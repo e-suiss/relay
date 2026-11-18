@@ -1,0 +1,2504 @@
+{
+  "track": "sdk",
+  "version": "1",
+  "operation": "sdk.error_classify",
+  "rule": [
+    "X-29",
+    "API-65",
+    "API-36",
+    "API-38"
+  ],
+  "description": "How an SDK turns an error response into its typed error hierarchy. The class of a code comes from its catalog family: auth -> auth, quota -> rate_limit, idempotency -> idempotency, platform -> server; every other family is validation, unless its status is 5xx (server). A code the SDK does not know is classed by its status (fallback). retryable is the problem's own member; without a problem body it comes from the status defaults, and a status outside the table is not retryable. catalog and status_defaults are copies of contracts/errors.yaml and are checked against it.",
+  "source": "contracts/errors.yaml",
+  "classes": [
+    "auth",
+    "validation",
+    "rate_limit",
+    "idempotency",
+    "server"
+  ],
+  "family_classes": {
+    "auth": "auth",
+    "quota": "rate_limit",
+    "idempotency": "idempotency",
+    "platform": "server"
+  },
+  "fallback": [
+    {
+      "status_min": 401,
+      "status_max": 401,
+      "class": "auth"
+    },
+    {
+      "status_min": 403,
+      "status_max": 403,
+      "class": "auth"
+    },
+    {
+      "status_min": 429,
+      "status_max": 429,
+      "class": "rate_limit"
+    },
+    {
+      "status_min": 500,
+      "status_max": 599,
+      "class": "server"
+    },
+    {
+      "status_min": 400,
+      "status_max": 499,
+      "class": "validation"
+    }
+  ],
+  "status_defaults": [
+    {
+      "status": 400,
+      "retryable": false
+    },
+    {
+      "status": 401,
+      "retryable": false
+    },
+    {
+      "status": 403,
+      "retryable": false
+    },
+    {
+      "status": 404,
+      "retryable": false
+    },
+    {
+      "status": 413,
+      "retryable": false
+    },
+    {
+      "status": 422,
+      "retryable": false
+    },
+    {
+      "status": 409,
+      "code": "resource_conflict",
+      "retryable": false
+    },
+    {
+      "status": 409,
+      "code": "idempotency_key_in_progress",
+      "retryable": true,
+      "retry_after_seconds": 1
+    },
+    {
+      "status": 429,
+      "code": "rate_limited",
+      "retryable": true,
+      "retry_after": "window"
+    },
+    {
+      "status": 429,
+      "code": "quota_exhausted",
+      "retryable": false
+    },
+    {
+      "status": 500,
+      "retryable": true,
+      "retry_after_seconds": 2
+    },
+    {
+      "status": 503,
+      "retryable": true,
+      "retry_after_seconds": "5-30"
+    },
+    {
+      "status": 504,
+      "retryable": true,
+      "retry_after_seconds": 5
+    }
+  ],
+  "cases": [
+    {
+      "name": "auth-invalid-token",
+      "response": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/problem+json"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/auth_invalid_token",
+          "title": "Token is not valid",
+          "status": 401,
+          "code": "auth_invalid_token",
+          "retryable": false,
+          "request_id": "req_1"
+        }
+      },
+      "expect": {
+        "class": "auth",
+        "code": "auth_invalid_token",
+        "status": 401,
+        "retryable": false,
+        "request_id": "req_1"
+      }
+    },
+    {
+      "name": "validation-with-field-errors",
+      "response": {
+        "status": 422,
+        "headers": {
+          "content-type": "application/problem+json"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/validation_failed",
+          "title": "Validation failed",
+          "status": 422,
+          "code": "validation_failed",
+          "retryable": false,
+          "errors": [
+            {
+              "pointer": "/to/id",
+              "code": "required",
+              "detail": "to.id is required"
+            }
+          ]
+        }
+      },
+      "expect": {
+        "class": "validation",
+        "code": "validation_failed",
+        "status": 422,
+        "retryable": false,
+        "field_errors": 1
+      }
+    },
+    {
+      "name": "not-found-is-validation",
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/problem+json"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/notification_not_found",
+          "title": "Notification not found",
+          "status": 404,
+          "code": "notification_not_found",
+          "retryable": false
+        }
+      },
+      "expect": {
+        "class": "validation",
+        "code": "notification_not_found",
+        "status": 404,
+        "retryable": false
+      }
+    },
+    {
+      "name": "rate-limited",
+      "response": {
+        "status": 429,
+        "headers": {
+          "content-type": "application/problem+json",
+          "retry-after": "7"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/rate_limited",
+          "title": "Rate limit exceeded",
+          "status": 429,
+          "code": "rate_limited",
+          "retryable": true,
+          "retry_after": 7
+        }
+      },
+      "expect": {
+        "class": "rate_limit",
+        "code": "rate_limited",
+        "status": 429,
+        "retryable": true,
+        "retry_after_s": 7
+      }
+    },
+    {
+      "name": "quota-exhausted",
+      "response": {
+        "status": 429,
+        "headers": {
+          "content-type": "application/problem+json"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/quota_exhausted",
+          "title": "Quota exhausted",
+          "status": 429,
+          "code": "quota_exhausted",
+          "retryable": false
+        }
+      },
+      "expect": {
+        "class": "rate_limit",
+        "code": "quota_exhausted",
+        "status": 429,
+        "retryable": false
+      }
+    },
+    {
+      "name": "idempotency-key-reuse",
+      "response": {
+        "status": 422,
+        "headers": {
+          "content-type": "application/problem+json"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/idempotency_key_reuse",
+          "title": "Idempotency key reused",
+          "status": 422,
+          "code": "idempotency_key_reuse",
+          "retryable": false
+        }
+      },
+      "expect": {
+        "class": "idempotency",
+        "code": "idempotency_key_reuse",
+        "status": 422,
+        "retryable": false
+      }
+    },
+    {
+      "name": "idempotency-key-in-progress",
+      "response": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/problem+json",
+          "retry-after": "1"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/idempotency_key_in_progress",
+          "title": "Request in progress",
+          "status": 409,
+          "code": "idempotency_key_in_progress",
+          "retryable": true,
+          "retry_after": 1
+        }
+      },
+      "expect": {
+        "class": "idempotency",
+        "code": "idempotency_key_in_progress",
+        "status": 409,
+        "retryable": true,
+        "retry_after_s": 1
+      }
+    },
+    {
+      "name": "internal-error",
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-type": "application/problem+json",
+          "retry-after": "2"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/internal_error",
+          "title": "Internal error",
+          "status": 500,
+          "code": "internal_error",
+          "retryable": true,
+          "retry_after": 2
+        }
+      },
+      "expect": {
+        "class": "server",
+        "code": "internal_error",
+        "status": 500,
+        "retryable": true,
+        "retry_after_s": 2
+      }
+    },
+    {
+      "name": "step-up-unavailable-stays-auth",
+      "response": {
+        "status": 503,
+        "headers": {
+          "content-type": "application/problem+json",
+          "retry-after": "5"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/auth_step_up_unavailable",
+          "title": "Step-up unavailable",
+          "status": 503,
+          "code": "auth_step_up_unavailable",
+          "retryable": true,
+          "retry_after": 5
+        }
+      },
+      "expect": {
+        "class": "auth",
+        "code": "auth_step_up_unavailable",
+        "status": 503,
+        "retryable": true,
+        "retry_after_s": 5
+      }
+    },
+    {
+      "name": "body-retryable-wins-over-status-default",
+      "response": {
+        "status": 500,
+        "headers": {
+          "content-type": "application/problem+json"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/internal_error",
+          "title": "Internal error",
+          "status": 500,
+          "code": "internal_error",
+          "retryable": false
+        }
+      },
+      "expect": {
+        "class": "server",
+        "code": "internal_error",
+        "status": 500,
+        "retryable": false
+      }
+    },
+    {
+      "name": "unknown-code-classed-by-status",
+      "response": {
+        "status": 403,
+        "headers": {
+          "content-type": "application/problem+json"
+        },
+        "body": {
+          "type": "https://relay.example.com/v1/errors/some_future_code",
+          "title": "Future",
+          "status": 403,
+          "code": "some_future_code",
+          "retryable": false
+        }
+      },
+      "expect": {
+        "class": "auth",
+        "code": "some_future_code",
+        "status": 403,
+        "retryable": false
+      }
+    },
+    {
+      "name": "no-body-503-uses-status-default",
+      "response": {
+        "status": 503,
+        "headers": {},
+        "body": null
+      },
+      "expect": {
+        "class": "server",
+        "code": null,
+        "status": 503,
+        "retryable": true
+      }
+    },
+    {
+      "name": "non-problem-body-502-not-in-table",
+      "response": {
+        "status": 502,
+        "headers": {
+          "content-type": "text/html"
+        },
+        "body": "<html>Bad Gateway</html>"
+      },
+      "expect": {
+        "class": "server",
+        "code": null,
+        "status": 502,
+        "retryable": false
+      }
+    },
+    {
+      "name": "no-body-409-without-code-not-retryable",
+      "response": {
+        "status": 409,
+        "headers": {},
+        "body": null
+      },
+      "expect": {
+        "class": "validation",
+        "code": null,
+        "status": 409,
+        "retryable": false
+      }
+    }
+  ],
+  "catalog": [
+    {
+      "code": "auth_missing_credentials",
+      "family": "auth",
+      "status": 401,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_malformed_credentials",
+      "family": "auth",
+      "status": 401,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_invalid_token",
+      "family": "auth",
+      "status": 401,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_revoked_client",
+      "family": "auth",
+      "status": 401,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_client_pending",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_expired_token",
+      "family": "auth",
+      "status": 401,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_insufficient_scope",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_environment_mismatch",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_tenant_suspended",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_subscriber_suspended",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_agent_inactive",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_insufficient_role",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_step_up_required",
+      "family": "auth",
+      "status": 401,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_step_up_unavailable",
+      "family": "auth",
+      "status": 503,
+      "retryable": true,
+      "retry_after": {
+        "kind": "range",
+        "seconds": 5,
+        "max_seconds": 30
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_invalid_session",
+      "family": "auth",
+      "status": 401,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_operator_session_required",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_delegation_required",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "auth_csrf_failed",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "malformed_request",
+      "family": "request",
+      "status": 400,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "payload_too_large",
+      "family": "request",
+      "status": 413,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "unsupported_media_type",
+      "family": "request",
+      "status": 415,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "validation_failed",
+      "family": "request",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "unknown_field",
+      "family": "request",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "unsupported_api_version",
+      "family": "request",
+      "status": 400,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "unsupported_beta_feature",
+      "family": "request",
+      "status": 400,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "precondition_failed",
+      "family": "request",
+      "status": 412,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "precondition_required",
+      "family": "request",
+      "status": 428,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "idempotency_key_missing",
+      "family": "idempotency",
+      "status": 400,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "idempotency"
+    },
+    {
+      "code": "idempotency_key_invalid",
+      "family": "idempotency",
+      "status": 400,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "idempotency"
+    },
+    {
+      "code": "idempotency_key_reuse",
+      "family": "idempotency",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "idempotency"
+    },
+    {
+      "code": "idempotency_key_in_progress",
+      "family": "idempotency",
+      "status": 409,
+      "retryable": true,
+      "retry_after": {
+        "kind": "fixed",
+        "seconds": 1,
+        "max_seconds": 1
+      },
+      "class": "idempotency"
+    },
+    {
+      "code": "workflow_not_found",
+      "family": "workflow",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "workflow_not_published",
+      "family": "workflow",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "route_policy_not_found",
+      "family": "workflow",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "route_policy_archived",
+      "family": "workflow",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "route_policy_in_use",
+      "family": "workflow",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "event_type_not_mapped",
+      "family": "workflow",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "workflow_version_not_found",
+      "family": "workflow",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "recipient_not_found",
+      "family": "recipient",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "recipient_invalid",
+      "family": "recipient",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "channel_not_configured",
+      "family": "channel",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "policy_field_not_overridable",
+      "family": "channel",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "rate_limited",
+      "family": "quota",
+      "status": 429,
+      "retryable": true,
+      "retry_after": {
+        "kind": "window",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "rate_limit"
+    },
+    {
+      "code": "quota_exhausted",
+      "family": "quota",
+      "status": 429,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "rate_limit"
+    },
+    {
+      "code": "batch_too_large",
+      "family": "quota",
+      "status": 413,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "rate_limit"
+    },
+    {
+      "code": "internal_error",
+      "family": "platform",
+      "status": 500,
+      "retryable": true,
+      "retry_after": {
+        "kind": "fixed",
+        "seconds": 2,
+        "max_seconds": 2
+      },
+      "class": "server"
+    },
+    {
+      "code": "service_unavailable",
+      "family": "platform",
+      "status": 503,
+      "retryable": true,
+      "retry_after": {
+        "kind": "range",
+        "seconds": 5,
+        "max_seconds": 30
+      },
+      "class": "server"
+    },
+    {
+      "code": "upstream_timeout",
+      "family": "platform",
+      "status": 504,
+      "retryable": true,
+      "retry_after": {
+        "kind": "fixed",
+        "seconds": 5,
+        "max_seconds": 5
+      },
+      "class": "server"
+    },
+    {
+      "code": "event_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "notification_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "delivery_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "subscriber_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "device_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "messaging_target_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "channel_identity_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "event_type_mapping_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "kill_switch_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "api_client_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "operator_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "role_assignment_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "support_delegation_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "tenant_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "error_code_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "route_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "resource_conflict",
+      "family": "resource",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "category_not_found",
+      "family": "category",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "category_archived",
+      "family": "category",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "category_builtin",
+      "family": "category",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "category_class_mismatch",
+      "family": "category",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "category_lock_not_allowed",
+      "family": "category",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "category_default_forbidden",
+      "family": "category",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "preference_direction_forbidden",
+      "family": "preference",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "preference_last_channel",
+      "family": "preference",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "preference_digest_not_allowed",
+      "family": "preference",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "sms_destination_stop_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "suppression_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "suppression_lift_forbidden",
+      "family": "suppression",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "subtenant_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_version_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "layout_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "layout_version_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "partial_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "partial_version_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_archived",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "layout_archived",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "partial_archived",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "layout_in_use",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "partial_in_use",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_protected",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_producer_required",
+      "family": "template",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_no_draft",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_draft_changed",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_gate_failed",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_warnings_unacknowledged",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_version_duplicate",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_version_archived",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_version_immutable",
+      "family": "template",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_class_mismatch",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_translation_unapproved",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "template_sensitivity_unconfirmed",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "layout_not_published",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "partial_not_published",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "locale_not_supported",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "preview_sample_unavailable",
+      "family": "template",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "link_scheme_not_allowed",
+      "family": "request",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "waitpoint_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "waitpoint_closed",
+      "family": "agent",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "waitpoint_limit_reached",
+      "family": "agent",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "waitpoint_heartbeat_refused",
+      "family": "agent",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "waitpoint_response_refused",
+      "family": "agent",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "response_token_invalid",
+      "family": "agent",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "mailbox_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "mailbox_record_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "mailbox_inactive",
+      "family": "agent",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "first_contact_token_required",
+      "family": "agent",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "encrypted_transport_disabled",
+      "family": "agent",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "escalation_policy_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "escalation_policy_archived",
+      "family": "agent",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "escalation_responder_outside_set",
+      "family": "agent",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "agent_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "ceiling_event_not_found",
+      "family": "agent",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "ceiling_decision_conflict",
+      "family": "agent",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_endpoint_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_endpoint_archived",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_endpoint_managed",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_consumer_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_event_type_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_message_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_attempt_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_consumer_archived",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_consumer_in_use",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_event_type_archived",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_endpoint_limit_reached",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_endpoint_url_not_allowed",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_endpoint_not_signed",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_endpoint_state_conflict",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_credential_not_found",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_source_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_source_limit_reached",
+      "family": "webhook",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "iys_not_configured",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "iys_upload_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "webhook_message_in_flight",
+      "family": "webhook",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "messaging_install_failed",
+      "family": "channel",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "messaging_install_state_invalid",
+      "family": "channel",
+      "status": 400,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "provider_account_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "whatsapp_template_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "sender_identity_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "takedown_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "provider_invoice_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "export_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "recurrence_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "recurrence_closed",
+      "family": "workflow",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "recurrence_limit_reached",
+      "family": "workflow",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "campaign_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "campaign_samples_changed",
+      "family": "workflow",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "campaign_approval_required",
+      "family": "workflow",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "provider_account_archived",
+      "family": "channel",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "provider_account_shared",
+      "family": "channel",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "sender_identity_archived",
+      "family": "channel",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "channel_identity_retired",
+      "family": "channel",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "test_recipient_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "test_recipient_limit_reached",
+      "family": "resource",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "email_reputation_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "topic_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "topic_archived",
+      "family": "resource",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "audience_too_large",
+      "family": "recipient",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "throttle_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "inbox_item_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "inbox_item_conflict",
+      "family": "resource",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "realtime_origin_not_allowed",
+      "family": "auth",
+      "status": 403,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "auth"
+    },
+    {
+      "code": "inbox_bulk_operation_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "inbox_announcement_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    }
+  ]
+}

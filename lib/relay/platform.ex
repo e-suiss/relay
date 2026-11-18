@@ -49,6 +49,28 @@ defmodule Relay.Platform do
     end
   end
 
+  # X-7
+  # T-63 (6)
+  @doc "Checks each dependency of the node on its own: PostgreSQL, the key store and Valkey, each `:ok` or `{:error, reason}`, in that order."
+  @spec health() :: [{:database | :key_store | :valkey, :ok | {:error, String.t()}}]
+  def health do
+    [
+      database: check(fn -> Store.ping() end),
+      key_store: check(fn -> Relay.Keys.ping() end),
+      valkey: check(fn -> Valkey.ping() end)
+    ]
+  end
+
+  defp check(ping) do
+    case ping.() do
+      :ok -> :ok
+      {:error, %Relay.Error{code: code}} -> {:error, Atom.to_string(code)}
+      {:error, reason} when is_atom(reason) -> {:error, Atom.to_string(reason)}
+    end
+  rescue
+    _exception -> {:error, "unavailable"}
+  end
+
   # T-7
   # T-55
   # TN-14

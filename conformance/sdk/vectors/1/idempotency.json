@@ -1,0 +1,133 @@
+{
+  "track": "sdk",
+  "version": "1",
+  "operation": "sdk.idempotency",
+  "rule": ["X-29", "API-65", "API-10", "API-11", "API-13", "API-17"],
+  "description": "The Idempotency-Key an SDK sends. Every operation whose contract declares the Idempotency-Key header gets one: the caller's key when given, otherwise a key the SDK generates for that call (8 to 255 characters, never derived from the request content). Every retry of the same call sends the same key; a new call gets a new key. Operations without the header (reads, and the few writes that take none) send none. A replayed response (Idempotency-Replayed: true) is a success and is reported as replayed. Each call lists the responses the server gives, in order; network_error stands for a request that got no response. Retry waits follow retry.json and are not part of these cases.",
+  "key_length": { "min": 8, "max": 255 },
+  "cases": [
+    {
+      "name": "retry-keeps-generated-key",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/v1/events",
+          "takes_idempotency_key": true,
+          "responses": [
+            { "status": 503, "headers": {}, "body": null },
+            { "status": 202, "headers": { "content-type": "application/json" }, "body": { "object": "event" } }
+          ],
+          "expect": { "requests": 2, "key_sent": true, "same_key_on_every_request": true, "outcome": "success", "replayed": false }
+        }
+      ]
+    },
+    {
+      "name": "network-error-keeps-key",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/v1/events",
+          "takes_idempotency_key": true,
+          "responses": [
+            { "network_error": true },
+            { "status": 202, "headers": { "content-type": "application/json" }, "body": { "object": "event" } }
+          ],
+          "expect": { "requests": 2, "key_sent": true, "same_key_on_every_request": true, "outcome": "success", "replayed": false }
+        }
+      ]
+    },
+    {
+      "name": "in-progress-then-replay",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/v1/events",
+          "takes_idempotency_key": true,
+          "responses": [
+            { "status": 409, "headers": { "retry-after": "1" }, "body": { "type": "https://relay.example.com/v1/errors/idempotency_key_in_progress", "title": "Request in progress", "status": 409, "code": "idempotency_key_in_progress", "retryable": true, "retry_after": 1 } },
+            { "status": 202, "headers": { "content-type": "application/json", "idempotency-replayed": "true" }, "body": { "object": "event" } }
+          ],
+          "expect": { "requests": 2, "key_sent": true, "same_key_on_every_request": true, "outcome": "success", "replayed": true }
+        }
+      ]
+    },
+    {
+      "name": "caller-key-kept-across-retries",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/v1/events",
+          "takes_idempotency_key": true,
+          "caller_idempotency": "order-4821-shipped",
+          "responses": [
+            { "status": 500, "headers": {}, "body": { "type": "https://relay.example.com/v1/errors/internal_error", "title": "Internal error", "status": 500, "code": "internal_error", "retryable": true } },
+            { "status": 202, "headers": { "content-type": "application/json" }, "body": { "object": "event" } }
+          ],
+          "expect": { "requests": 2, "key_sent": true, "same_key_on_every_request": true, "sent_idempotency": "order-4821-shipped", "outcome": "success", "replayed": false }
+        }
+      ]
+    },
+    {
+      "name": "key-reuse-is-not-retried",
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/v1/events",
+          "takes_idempotency_key": true,
+          "caller_idempotency": "order-4821-shipped",
+          "responses": [
+            { "status": 422, "headers": {}, "body": { "type": "https://relay.example.com/v1/errors/idempotency_key_reuse", "title": "Idempotency key reused", "status": 422, "code": "idempotency_key_reuse", "retryable": false } }
+          ],
+          "expect": { "requests": 1, "key_sent": true, "same_key_on_every_request": true, "sent_idempotency": "order-4821-shipped", "outcome": "error", "error_class": "idempotency", "error_code": "idempotency_key_reuse" }
+        }
+      ]
+    },
+    {
+      "name": "new-call-gets-new-key",
+      "distinct_keys_across_calls": true,
+      "calls": [
+        {
+          "method": "POST",
+          "path": "/v1/events",
+          "takes_idempotency_key": true,
+          "responses": [{ "status": 202, "headers": {}, "body": { "object": "event" } }],
+          "expect": { "requests": 1, "key_sent": true, "same_key_on_every_request": true, "outcome": "success", "replayed": false }
+        },
+        {
+          "method": "POST",
+          "path": "/v1/events",
+          "takes_idempotency_key": true,
+          "responses": [{ "status": 202, "headers": {}, "body": { "object": "event" } }],
+          "expect": { "requests": 1, "key_sent": true, "same_key_on_every_request": true, "outcome": "success", "replayed": false }
+        }
+      ]
+    },
+    {
+      "name": "read-sends-no-key-but-retries",
+      "calls": [
+        {
+          "method": "GET",
+          "path": "/v1/notifications",
+          "takes_idempotency_key": false,
+          "responses": [
+            { "status": 503, "headers": {}, "body": null },
+            { "status": 200, "headers": { "content-type": "application/json" }, "body": { "object": "list", "data": [], "has_more": false, "next_cursor": null, "previous_cursor": null } }
+          ],
+          "expect": { "requests": 2, "key_sent": false, "outcome": "success", "replayed": false }
+        }
+      ]
+    },
+    {
+      "name": "write-without-key-parameter-sends-none",
+      "calls": [
+        {
+          "method": "PATCH",
+          "path": "/v1/subscriber/devices/dev_0000000000000000000000000/status",
+          "takes_idempotency_key": false,
+          "responses": [{ "status": 200, "headers": {}, "body": {} }],
+          "expect": { "requests": 1, "key_sent": false, "outcome": "success", "replayed": false }
+        }
+      ]
+    }
+  ]
+}

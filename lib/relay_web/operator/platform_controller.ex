@@ -370,4 +370,40 @@ defmodule RelayWeb.Operator.PlatformController do
   @spec queue_panel(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def queue_panel(conn, _params),
     do: reply(conn, 200, %{"object" => "queue_panel", "url" => @queues})
+
+  # X-7
+  # T-63 (6)
+  # TN-38
+  @spec region_health(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def region_health(conn, _params) do
+    checks =
+      Enum.map(Relay.Platform.health(), fn {name, result} -> check(name, result) end) ++
+        [check(:kill_switch_state, kill_switch_state()), check(:channel_parameters, parameters())]
+
+    status = if Enum.all?(checks, &(&1["status"] == "ok")), do: "ok", else: "degraded"
+
+    reply(conn, 200, %{
+      "object" => "region_health",
+      "region" => Relay.Datasets.installation_region(),
+      "status" => status,
+      "checked_at" => Relay.Clock.utc_now(),
+      "checks" => checks,
+      "queue_panel_url" => @queues
+    })
+  end
+
+  defp check(name, :ok), do: %{"name" => Atom.to_string(name), "status" => "ok", "reason" => nil}
+
+  defp check(name, {:error, reason}),
+    do: %{"name" => Atom.to_string(name), "status" => "unavailable", "reason" => reason}
+
+  defp kill_switch_state,
+    do: if(KillSwitch.ready?(), do: :ok, else: {:error, "kill_switch_unknown"})
+
+  defp parameters do
+    case Relay.Datasets.channel_parameters() do
+      {:ok, _snapshot} -> :ok
+      {:error, %Relay.Error{code: code}} -> {:error, Atom.to_string(code)}
+    end
+  end
 end

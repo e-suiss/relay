@@ -21,6 +21,7 @@ defmodule EsuissRelay.LiveSmokeTest do
       "to" => [env("SDK_LIVE_RECIPIENT")],
       "data" => %{"first_name" => "Ayse"}
     }
+
     assert {:ok, %{"id" => id}} = Api.create_event(client, event)
     assert is_binary(id)
 

@@ -103,6 +103,16 @@ config :relay, Relay.Templates.Sandbox, timeout_ms: 1_000, email_timeout_ms: 1_0
 
 config :relay, Relay.Channels.Email.Esp, req_options: [plug: {Req.Test, Relay.Channels.Email.Esp}]
 
+config :relay, Relay.Platform.Maintenance.ArchiveTask,
+  store: [
+    endpoint: "http://localhost:9000",
+    bucket: "relay-archive",
+    region: "us-east-1",
+    access_key_id: "relay",
+    secret_access_key: "relay-dev-secret",
+    prefix: ""
+  ]
+
 if valkey_url = System.get_env("CHAOS_VALKEY_URL") do
   config :relay, Relay.Platform.Valkey, url: valkey_url
 end

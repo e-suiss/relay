@@ -86,6 +86,10 @@ table relay.api_clients relay_archive SELECT
 table relay.api_clients relay_maint SELECT
 table relay.api_clients relay_owner INSERT,SELECT,UPDATE
 table relay.api_clients relay_report SELECT
+table relay.archive_manifests relay_app SELECT
+table relay.archive_manifests relay_archive SELECT
+table relay.archive_manifests relay_maint SELECT
+table relay.archive_manifests relay_owner SELECT
 table relay.audience_members relay_app SELECT
 table relay.audience_members relay_archive SELECT
 table relay.audience_members relay_maint SELECT

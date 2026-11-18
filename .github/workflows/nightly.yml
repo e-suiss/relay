@@ -33,6 +33,8 @@ jobs:
         working-directory: native/pkcs11_port
       - run: rustup toolchain install
         working-directory: native/mjml_port
+      - run: rustup toolchain install
+        working-directory: native/archive_port
       - run: native/build.sh
       - run: mix test --include integration --include nightly
         env:

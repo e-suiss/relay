@@ -450,6 +450,24 @@
     "reason": "OP-9: the trigger rejects TRUNCATE on the kill switch effects"
   },
   {
+    "path": "priv/repo/migrations/20270112000100_create_archive_manifests.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-9: the trigger rejects TRUNCATE on the archive manifests"
+  },
+  {
+    "path": "priv/repo/migrations/20270112000100_create_archive_manifests.exs",
+    "rule": "physical_delete",
+    "match": "DROP TABLE relay.%I",
+    "reason": "OP-15, INV-47: relay_archive removes the hot copy of a detached partition only after its cold archive copy is verified"
+  },
+  {
+    "path": "priv/repo/migrations/20270112000100_create_archive_manifests.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON %I.%I",
+    "reason": "OP-84: the seal of a restored partition rejects TRUNCATE"
+  },
+  {
     "path": "priv/repo/migrations/20270113000200_create_tenant_closures.exs",
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",

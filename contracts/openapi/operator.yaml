@@ -2323,7 +2323,7 @@ paths:
       tags:
         - platform
       summary: Close a tenant and export its data
-      description: "Installation operator with step-up, the first step of the closure (OP-86, OP-26). The tenant is set closed at once, so every entry point refuses new work, and the full export of both environments starts: subscribers and the raw deliveries, delivery events and usage records, page by page as JSON lines and CSV (formats, default both) in the installation's object store in the tenant's region, then a manifest. Audited as tenant.closed, and tenant.export_ready when the export is written. A tenant has one closure: a second request is 409 resource_conflict, and the installation tenant cannot be closed."
+      description: "Installation operator with step-up, the first step of the closure (OP-86, OP-26). The tenant is set closed at once, so every entry point refuses new work, and the full export of both environments starts: subscribers and the raw deliveries, delivery events and usage records, page by page as JSON lines, CSV and Parquet (formats, default all three) in the installation's object store in the tenant's region, then a manifest. Audited as tenant.closed, and tenant.export_ready when the export is written. A tenant has one closure: a second request is 409 resource_conflict, and the installation tenant cannot be closed."
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"

@@ -6,7 +6,7 @@ defmodule RelayDev.Acceptance do
     * `shadow_send`: an event in `shadow` send mode is accepted and every delivery reaches a final state; the time is end to end (OP-52).
     * `pool_saturation` (with Toxiproxy): with added latency on the database proxy a burst of sends is answered only with 202 or 503 with `Retry-After`, and every accepted event has its deliveries (OP-49, OP-88).
     * `failover`: sends keep coming while the failover command runs (a Postgres restart on compose, a real failover in a region); every accepted event is still readable afterwards (loss 0, OP-28, OP-76); the time is from the command to the first accepted send after it.
-    * `archive_restore`: the archive restore command, timed; skipped while none is given (OP-84).
+    * `archive_restore`: the archive restore command, such as `bin/archive restore --manifest <id> --schema restore_…` run on a node of the region (`Relay.Release.Archive`), timed; skipped while none is given or when it exits with 78, nothing to restore (OP-84).
     * `kill_switch`: a workflow kill switch with a two minute TTL, then a send of that workflow; the time is from the engage to the delivery paused by the kill switch, at most 60 seconds (TN-39, OP-47).
 
   A step answers `passed`, `failed` or `skipped` with its time in milliseconds and a detail that carries no credential.
@@ -204,14 +204,18 @@ defmodule RelayDev.Acceptance do
   end
 
   defp archive_restore(%{restore_command: nil}),
-    do: {:skipped, %{note: "no archive restore command; set ACCEPTANCE_RESTORE_COMMAND"}}
+    do: {:skipped, %{note: "set ACCEPTANCE_RESTORE_COMMAND to a bin/archive restore"}}
 
   defp archive_restore(config) do
     {_output, exit_status} =
       System.cmd("sh", ["-c", config.restore_command], stderr_to_stdout: true)
 
-    {if(exit_status == 0, do: :passed, else: :failed), %{command_exit: exit_status}}
+    {restored(exit_status), %{command_exit: exit_status}}
   end
+
+  defp restored(0), do: :passed
+  defp restored(78), do: :skipped
+  defp restored(_exit_status), do: :failed
 
   defp kill_switch(config) do
     engage = %{

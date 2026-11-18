@@ -1,0 +1,17 @@
+[package]
+name = "archive_port"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+parquet = { version = "=60.1.0", default-features = false, features = ["snap"] }
+sha2 = "=0.11.1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true

@@ -1,0 +1,11 @@
+node_modules/
+.vitepress/cache/
+.vitepress/dist/
+reference/api/
+reference/events.md
+reference/errors.md
+test-results/
+playwright-report/
+pseudo/
+format.patch
+reference/limits.md

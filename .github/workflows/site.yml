@@ -1,0 +1,341 @@
+name: site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      site: ${{ steps.scope.outputs.site }}
+      dotnet: ${{ steps.scope.outputs.dotnet }}
+      java: ${{ steps.scope.outputs.java }}
+      elixir: ${{ steps.scope.outputs.elixir }}
+      kotlin: ${{ steps.scope.outputs.kotlin }}
+      swift: ${{ steps.scope.outputs.swift }}
+      flutter: ${{ steps.scope.outputs.flutter }}
+      react-native: ${{ steps.scope.outputs.react-native }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          range=""
+          case "$EVENT" in
+            pull_request) range="origin/$BASE_REF...HEAD" ;;
+            push) if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then range="$BEFORE..HEAD"; fi ;;
+          esac
+          changed() {
+            if [ -z "$range" ]; then echo true; return; fi
+            if git diff --name-only "$range" -- "$@" .github/workflows/site.yml | grep -q .; then echo true; else echo false; fi
+          }
+          {
+            echo "site=$(changed site contracts web/src/i18n sdks/typescript)"
+            echo "dotnet=$(changed site/examples/dotnet sdks/dotnet)"
+            echo "java=$(changed site/examples/java sdks/java)"
+            echo "elixir=$(changed site/examples/elixir sdks/elixir)"
+            echo "kotlin=$(changed site/examples/kotlin sdks/kotlin)"
+            echo "swift=$(changed site/examples/swift sdks/swift)"
+            echo "flutter=$(changed site/examples/flutter sdks/flutter)"
+            echo "react-native=$(changed site/examples/react-native sdks/react-native)"
+          } >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+
+  site:
+    needs: changes
+    if: needs.changes.outputs.site == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - name: Build the TypeScript SDK the examples use
+        working-directory: sdks/typescript
+        run: npm ci --no-audit && npm run build
+      # T-76
+      - id: lock
+        name: lockfile matches package.json
+        continue-on-error: true
+        run: |
+          npm install --package-lock-only --no-audit
+          git add --intent-to-add package-lock.json
+          git diff --exit-code -- package-lock.json
+      - id: ci
+        run: npm ci --no-audit
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm audit --omit=dev
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm audit --audit-level=critical
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run typecheck
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run lint
+      - id: format
+        if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        name: prettier
+        continue-on-error: true
+        run: |
+          if ! npm run format:check; then
+            npx prettier --write .
+            git diff -- . ':!package-lock.json' > format.patch
+            exit 1
+          fi
+      # X-37
+      # X-38
+      # X-39
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run check:content
+      # TP-30
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run check:i18n
+      # X-49
+      - id: build
+        if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run build
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npm run check:links
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+      # T-76
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npm run a11y
+      - name: generated files are committed
+        if: ${{ !cancelled() }}
+        env:
+          LOCK: ${{ steps.lock.outcome }}
+          FORMAT: ${{ steps.format.outcome }}
+        run: test "$LOCK" = success && test "$FORMAT" = success
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: site-fixups
+          path: |
+            site/package-lock.json
+            site/format.patch
+            site/playwright-report
+            site/pseudo
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # X-37
+  # X-49
+  examples:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      MIX_ENV: dev
+      SOFTHSM2_CONF: ${{ github.workspace }}/deploy/softhsm/softhsm2.conf
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            deps
+            _build/dev
+          key: mix-dev-${{ runner.os }}-${{ hashFiles('.tool-versions', 'mix.lock') }}
+          restore-keys: mix-dev-${{ runner.os }}-
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            ~/.cargo/registry
+            native/pkcs11_port/target
+            native/mjml_port/target
+          key: cargo-release-${{ runner.os }}-${{ hashFiles('native/*/Cargo.lock', 'native/*/rust-toolchain.toml') }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends softhsm2 opensc uuid-runtime
+      - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
+      - run: rustup toolchain install
+        working-directory: native/pkcs11_port
+      - run: rustup toolchain install
+        working-directory: native/mjml_port
+      - name: Native ports
+        run: |
+          native/build.sh
+          mkdir -p priv/native
+          for program in pkcs11_port mjml_port; do
+            cp "native/$program/target/release/$program" "native/$program/target/release/$program.sha256" priv/native/
+          done
+      # TN-63
+      - name: SoftHSM token and keys
+        run: |
+          mkdir -p deploy/softhsm/tokens
+          softhsm2-util --init-token --free --label relay-dev --pin 1234 --so-pin 12345678
+          printf 1234 > deploy/softhsm/pin
+          PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so PKCS11_TOKEN=relay-dev PKCS11_PIN_FILE=deploy/softhsm/pin \
+            KEY_STORE_KEK_LABEL=kek-dev KEY_STORE_FINGERPRINT_LABEL=fingerprint-dev \
+            KEY_STORE_CURSOR_LABEL=cursor-dev KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
+      - run: mix deps.get
+      - run: mix compile
+      - run: mix ecto.setup
+      - run: mix relay.audit.store
+      - run: mix relay.dev.seed
+      - name: Start Relay
+        run: |
+          nohup mix phx.server > "$RUNNER_TEMP/relay.log" 2>&1 &
+          for attempt in $(seq 1 90); do
+            if curl -fsS http://localhost:4000/readyz > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat "$RUNNER_TEMP/relay.log"
+          exit 1
+      - name: Build the TypeScript SDK and the site's dependencies
+        run: |
+          (cd sdks/typescript && npm ci --no-audit && npm run build)
+          cd site
+          test -f package-lock.json || npm install --package-lock-only --no-audit
+          npm ci --no-audit
+      - name: Run every curl and TypeScript example of the docs
+        run: site/scripts/run-examples.sh
+      - if: failure()
+        run: tail -n 300 "$RUNNER_TEMP/relay.log"
+
+  examples-dotnet:
+    needs: changes
+    if: needs.changes.outputs.dotnet == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: sdks/dotnet/global.json
+      - run: dotnet build site/examples/dotnet/DocsExamples.csproj --configuration Release
+
+  examples-java:
+    needs: changes
+    if: needs.changes.outputs.java == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdks/java
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: "9.8.2"
+          cache-read-only: true
+      - run: mkdir -p src/test/java/docs && cp ../../site/examples/java/docs/*.java src/test/java/docs/
+      - run: gradle --no-daemon --dependency-verification strict compileTestJava
+
+  examples-elixir:
+    needs: changes
+    if: needs.changes.outputs.elixir == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MIX_ENV: prod
+    defaults:
+      run:
+        working-directory: sdks/elixir
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - run: mkdir -p lib/docs_examples && cp ../../site/examples/elixir/*.ex lib/docs_examples/
+      - run: mix deps.get --only prod
+      - run: mix compile --warnings-as-errors
+
+  examples-kotlin:
+    needs: changes
+    if: needs.changes.outputs.kotlin == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: sdks/kotlin
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: gradle/actions/wrapper-validation@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - run: echo "JAVA_HOME=$JAVA_HOME_21_X64" >> "$GITHUB_ENV"
+      - run: mkdir -p relay/src/main/kotlin/app/suiss/relay/docs && cp ../../site/examples/kotlin/*.kt relay/src/main/kotlin/app/suiss/relay/docs/
+      - run: ./gradlew --no-daemon :relay:compileReleaseKotlin
+
+  examples-swift:
+    needs: changes
+    if: needs.changes.outputs.swift == 'true'
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.1.1.app/Contents/Developer
+    defaults:
+      run:
+        working-directory: sdks/swift
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: cp ../../site/examples/swift/*.swift Tests/EsuissRelayTests/
+      - run: swift build --build-tests --force-resolved-versions
+
+  examples-flutter:
+    needs: changes
+    if: needs.changes.outputs.flutter == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdks/flutter
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+      - run: flutter pub get --enforce-lockfile
+      - run: cp ../../site/examples/flutter/*.dart test/
+      - run: dart analyze --fatal-infos
+
+  examples-react-native:
+    needs: changes
+    if: needs.changes.outputs.react-native == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdks/react-native
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - run: npm ci --no-audit
+      - run: mkdir -p docs-examples && cp ../../site/examples/react-native/* docs-examples/
+      - run: npx tsc -p docs-examples/tsconfig.json

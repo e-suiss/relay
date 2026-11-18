@@ -37,13 +37,29 @@ defmodule RelayWeb.Api.Work do
   end
 
   # TN-48
-  @doc "The audit actor of the request's API client."
+  # X-47
+  @doc "The audit actor of the request: its API client, or the operator of an operator session."
   @spec actor(Plug.Conn.t()) :: Relay.Actor.t()
-  def actor(conn) do
-    ref = conn.assigns.principal.api_client_id || "api_client"
+  def actor(conn), do: principal_actor(conn.assigns.principal, "api_client")
+
+  # TN-48
+  # X-47
+  @doc "The audit actor of a principal: the operator of an operator session, else its API client (`fallback` when it names none)."
+  @spec principal_actor(RelayWeb.Auth.Principal.t(), String.t()) :: Relay.Actor.t()
+  def principal_actor(%RelayWeb.Auth.Principal{kind: :operator} = principal, _fallback),
+    do: RelayWeb.Auth.OperatorSession.actor(principal)
+
+  def principal_actor(principal, fallback) do
+    ref = principal.api_client_id || fallback
     {:ok, actor} = Relay.Actor.new(:api_client, ref, ref)
     actor
   end
+
+  # X-47
+  @doc "Returns true if the request runs under the console's operator session."
+  @spec operator?(Plug.Conn.t()) :: boolean()
+  def operator?(conn),
+    do: match?(%RelayWeb.Auth.Principal{kind: :operator}, conn.assigns.principal)
 
   @doc "A record digest over an action, the scope and a reference."
   @spec digest(Relay.Scope.t(), String.t(), String.t()) :: <<_::256>>

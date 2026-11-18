@@ -12,7 +12,7 @@ defmodule RelayWeb.Api.DeviceInterruptionTest do
     scope = tenant.live
     app = FakeAccess.client!(scope, ["read"])
     ctx = %{scope: scope, access_tenant: tenant.attrs.access_tenant_id, app: app}
-    {token, id} = RealtimeFixture.token!(ctx, RealtimeFixture.subject())
+    {token, id} = RealtimeFixture.token!(ctx, RealtimeFixture.subject(), "devices:write")
     Map.merge(ctx, %{subscriber_token: token, id: id})
   end
 

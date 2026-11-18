@@ -5,6 +5,7 @@ export const en = {
   "nav.agents": "Agents",
   "nav.sdks": "SDKs",
   "nav.reference": "Reference",
+  "nav.operations": "Operations",
   "outline.label": "On this page",
   "docFooter.prev": "Previous page",
   "docFooter.next": "Next page",

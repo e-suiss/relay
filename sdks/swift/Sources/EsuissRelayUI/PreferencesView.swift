@@ -67,7 +67,7 @@ public struct RelayPreferencesView: View {
       .tint(theme.accent)
       .accessibilityValue(Text(strings.text(state == .on ? "prefs.on" : "prefs.off")))
     case .lockedOn:
-      LabeledContent(name, value: strings.text("prefs.lockedOn"))
+      LabeledContent(name, value: strings.text(lockKey(cell.lockBeneficiary)))
     case .adminDisabled:
       LabeledContent(name, value: strings.text("prefs.adminDisabled"))
     case .deviceDisabled:
@@ -84,6 +84,15 @@ public struct RelayPreferencesView: View {
           Button(strings.text("prefs.allow"), action: requestPermission)
         }
       }
+    }
+  }
+
+  // X-51
+  private func lockKey(_ beneficiary: RelayLockBeneficiary?) -> String {
+    switch beneficiary {
+    case .subscriber: return "prefs.lockedSubscriber"
+    case .tenant: return "prefs.lockedTenant"
+    case nil: return "prefs.lockedOn"
     }
   }
 }

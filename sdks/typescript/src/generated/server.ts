@@ -1464,6 +1464,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/subtenants": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List sub-tenants
+     * @description Pages through the sub-tenants of this environment, active and archived, newest first: the organizations of the tenant as Relay mirrors them from Access (TN-3). The console's tenant switcher reads them; they are written only by Access events, never through this API.
+     */
+    get: operations["listSubtenants"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/categories/{category_key}/subtenants/{subtenant_id}": {
     parameters: {
       query?: never;
@@ -7125,6 +7145,22 @@ export interface components {
       /** @description Written as a whole object; null removes the threshold. */
       density?: components["schemas"]["CategoryDensityInput"] | null;
     };
+    /** @description A sub-tenant: an organization of the tenant in Access, mirrored by Relay (TN-3). */
+    Subtenant: {
+      /** @constant */
+      object: "subtenant";
+      id: components["schemas"]["Id_stn"];
+      access_organization_id: string;
+      name: string;
+      /** @enum {string} */
+      state: "active" | "archived";
+      archived_at: components["schemas"]["Timestamp"] | null;
+      created_at: components["schemas"]["Timestamp"];
+      updated_at: components["schemas"]["Timestamp"];
+    };
+    SubtenantList: components["schemas"]["ListEnvelope"] & {
+      data?: components["schemas"]["Subtenant"][];
+    };
     /** @description Overrides of a category for one subtenant. A null override inherits the category's value. */
     CategorySubtenantSetting: {
       /** @constant */
@@ -7623,6 +7659,8 @@ export interface components {
       digest_only: ("security_subtype" | "retention_none") | null;
       locale: components["schemas"]["Locale"] | null;
       output: Record<string, unknown> | null;
+      /** @description For a render with HTML, the short-lived link of the sandboxed preview origin, shown only in an iframe with an empty sandbox attribute (TP-24, TP-39); null when no preview host is configured or the render has no HTML. */
+      sandbox_url?: string | null;
       rendered_at: components["schemas"]["Timestamp"];
     };
     /** @description A delivery of a test plane message: its decision chain and its render. */
@@ -17074,6 +17112,62 @@ export interface operations {
       403: components["responses"]["Forbidden"];
       404: components["responses"]["NotFound"];
       409: components["responses"]["Conflict"];
+      422: components["responses"]["UnprocessableContent"];
+      429: components["responses"]["TooManyRequests"];
+      500: components["responses"]["InternalError"];
+      503: components["responses"]["ServiceUnavailable"];
+    };
+  };
+  listSubtenants: {
+    parameters: {
+      query?: {
+        /** @description Page size, 1 to 100. */
+        limit?: components["parameters"]["Limit"];
+        /** @description Cursor from next_cursor. */
+        starting_after?: components["parameters"]["StartingAfter"];
+        /** @description Cursor from previous_cursor. */
+        ending_before?: components["parameters"]["EndingBefore"];
+      };
+      header?: {
+        /**
+         * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+         * @example 2026-11-01
+         */
+        "Relay-Version"?: components["parameters"]["RelayVersion"];
+        /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+        "Relay-Beta"?: components["parameters"]["RelayBeta"];
+        /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+        "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+        /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+        "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description A page of sub-tenants. */
+      200: {
+        headers: {
+          "Request-Id": components["headers"]["Request-Id"];
+          "Relay-Version": components["headers"]["Relay-Version"];
+          RateLimit: components["headers"]["RateLimit"];
+          "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+          "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+          "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+          "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+          Deprecation: components["headers"]["Deprecation"];
+          Sunset: components["headers"]["Sunset"];
+          Link: components["headers"]["Link"];
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["SubtenantList"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
       422: components["responses"]["UnprocessableContent"];
       429: components["responses"]["TooManyRequests"];
       500: components["responses"]["InternalError"];

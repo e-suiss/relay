@@ -23,26 +23,56 @@ public enum RelayDigestChoice: String, Sendable, Equatable {
   case digest
 }
 
+// X-51
+/// Whom the lock of a locked category serves (PC-6).
+public enum RelayLockBeneficiary: String, Sendable, Equatable {
+  case subscriber
+  case tenant
+}
+
+// PC-6
+// PC-15
+// PC-16
+// PC-17
+// X-51
 /// One category × channel cell.
 public struct RelayPreferenceCell: Equatable, Hashable, Sendable {
   public let category: String
+  public let categoryName: String
   public let channel: String
   public let value: RelayPreferenceValue
   public let effective: Bool
   public let source: RelayPreferenceSource
+  public let locked: Bool
+  public let lockBeneficiary: RelayLockBeneficiary?
+  public let disabledByAdmin: Bool
+  public let disabledInDeviceSettings: Bool
+  public let digestAllowed: Bool
 
   public init(
     category: String,
+    categoryName: String? = nil,
     channel: String,
     value: RelayPreferenceValue,
     effective: Bool,
-    source: RelayPreferenceSource
+    source: RelayPreferenceSource,
+    locked: Bool = false,
+    lockBeneficiary: RelayLockBeneficiary? = nil,
+    disabledByAdmin: Bool = false,
+    disabledInDeviceSettings: Bool = false,
+    digestAllowed: Bool = false
   ) {
     self.category = category
+    self.categoryName = categoryName ?? category
     self.channel = channel
     self.value = value
     self.effective = effective
     self.source = source
+    self.locked = locked
+    self.lockBeneficiary = lockBeneficiary
+    self.disabledByAdmin = disabledByAdmin
+    self.disabledInDeviceSettings = disabledInDeviceSettings
+    self.digestAllowed = digestAllowed
   }
 }
 
@@ -168,10 +198,18 @@ extension RelayPreferences {
       cells: preferences.cells.map { cell in
         RelayPreferenceCell(
           category: cell.category,
+          categoryName: cell.categoryName,
           channel: cell.channel.rawValue,
           value: RelayPreferenceValue(rawValue: cell.value.rawValue) ?? .unset,
           effective: cell.effective,
-          source: RelayPreferenceSource(rawValue: cell.source.rawValue) ?? .classDefault
+          source: RelayPreferenceSource(rawValue: cell.source.rawValue) ?? .classDefault,
+          locked: cell.locked,
+          lockBeneficiary: cell.lockBeneficiary.flatMap {
+            RelayLockBeneficiary(rawValue: $0.rawValue)
+          },
+          disabledByAdmin: cell.disabledByAdmin,
+          disabledInDeviceSettings: cell.disabledInDeviceSettings,
+          digestAllowed: cell.digestAllowed
         )
       },
       channels: channels,

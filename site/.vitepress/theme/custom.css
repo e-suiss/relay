@@ -1,0 +1,25 @@
+:root {
+  --vp-c-text-2: rgba(60, 60, 67, 0.92);
+  --vp-c-text-3: rgba(60, 60, 67, 0.86);
+  --vp-c-brand-1: #2f4bb0;
+  --vp-c-brand-2: #3a56c0;
+  --vp-c-brand-3: #2f4bb0;
+}
+
+.dark {
+  --vp-c-text-2: rgba(235, 235, 245, 0.86);
+  --vp-c-text-3: rgba(235, 235, 245, 0.78);
+  --vp-c-brand-1: #a8b4ff;
+  --vp-c-brand-2: #bcc5ff;
+  --vp-c-brand-3: #a8b4ff;
+  --vp-button-brand-text: #10131f;
+  --vp-button-brand-hover-text: #10131f;
+  --vp-button-brand-active-text: #10131f;
+}
+
+.relay-ref caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: 600;
+  padding: 8px 0;
+}

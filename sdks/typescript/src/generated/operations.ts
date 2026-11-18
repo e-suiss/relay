@@ -1274,6 +1274,13 @@ export const serverOperations = {
     paginated: true,
     contentType: null,
   },
+  listSubtenants: {
+    method: "GET",
+    path: "/v1/subtenants",
+    idempotency: "none",
+    paginated: true,
+    contentType: null,
+  },
   listSuppressions: {
     method: "GET",
     path: "/v1/suppressions",

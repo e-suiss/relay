@@ -284,6 +284,9 @@ public static partial class Operations
     /// <summary>Archive a category</summary>
     public static readonly Operation ArchiveCategory = new("archiveCategory", "POST", "/v1/categories/{category_key}/archive", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
+    /// <summary>List sub-tenants</summary>
+    public static readonly Operation ListSubtenants = new("listSubtenants", "GET", "/v1/subtenants", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>Get a subtenant setting of a category</summary>
     public static readonly Operation GetCategorySubtenantSetting = new("getCategorySubtenantSetting", "GET", "/v1/categories/{category_key}/subtenants/{subtenant_id}", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -782,6 +785,36 @@ public static partial class Operations
     /// <summary>Reset an active throttle</summary>
     public static readonly Operation ResetThrottle = new("resetThrottle", "POST", "/v1/throttles/{throttle_key}/reset", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
+    /// <summary>Find a subscriber by phone or e-mail</summary>
+    public static readonly Operation LookupSubscribers = new("lookupSubscribers", "POST", "/v1/subscriber_lookups", IdempotencyMode.None, IfMatchMode.None, BodyMode.Required, "application/json", ResponseKind.Json);
+
+    /// <summary>List the rule dictionary</summary>
+    public static readonly Operation ListRules = new("listRules", "GET", "/v1/rules", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Get the tenant settings</summary>
+    public static readonly Operation GetTenantSettings = new("getTenantSettings", "GET", "/v1/settings", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Where a route is used</summary>
+    public static readonly Operation GetRouteUsage = new("getRouteUsage", "GET", "/v1/routes/{route_key}/usage", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Where an escalation policy is used</summary>
+    public static readonly Operation GetEscalationPolicyUsage = new("getEscalationPolicyUsage", "GET", "/v1/escalation_policies/{policy_key}/usage", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Run the publication gate on the draft without publishing</summary>
+    public static readonly Operation CheckWorkflowPublication = new("checkWorkflowPublication", "GET", "/v1/workflows/{workflow_key}/publication_check", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Run the publication gate on the draft without publishing</summary>
+    public static readonly Operation CheckTemplatePublication = new("checkTemplatePublication", "GET", "/v1/templates/{template_key}/publication_check", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Get the waitpoint figures</summary>
+    public static readonly Operation GetWaitpointStats = new("getWaitpointStats", "GET", "/v1/waitpoint_stats", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Get the A/B variant report</summary>
+    public static readonly Operation GetVariantReport = new("getVariantReport", "GET", "/v1/reports/variants", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Get the render and locale problem report</summary>
+    public static readonly Operation GetRenderProblemReport = new("getRenderProblemReport", "GET", "/v1/reports/render_problems", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>All operations, in contract order.</summary>
     public static readonly IReadOnlyList<Operation> All =
     [
@@ -878,6 +911,7 @@ public static partial class Operations
         GetCategory,
         UpdateCategory,
         ArchiveCategory,
+        ListSubtenants,
         GetCategorySubtenantSetting,
         ReplaceCategorySubtenantSetting,
         GetCategoryEmailTracking,
@@ -1044,5 +1078,15 @@ public static partial class Operations
         GetRecurrence,
         CancelRecurrence,
         ResetThrottle,
+        LookupSubscribers,
+        ListRules,
+        GetTenantSettings,
+        GetRouteUsage,
+        GetEscalationPolicyUsage,
+        CheckWorkflowPublication,
+        CheckTemplatePublication,
+        GetWaitpointStats,
+        GetVariantReport,
+        GetRenderProblemReport,
     ];
 }

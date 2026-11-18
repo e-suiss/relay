@@ -45,9 +45,9 @@ defmodule RelayDev.Seed do
   end
 
   # E-93
-  @doc "A DPoP-bound token of the sample test plane API client, valid for one hour; `RelayDev.Access.proof/3` makes the proof each request carries with it."
-  @spec token() :: String.t()
-  def token, do: RelayDev.Access.server_token(@tenant, @client, @scopes)
+  @doc "A DPoP-bound token of the sample test plane API client, valid for one hour, bound to the stand-in's DPoP key (`RelayDev.Access.proof/3` makes the proof each request carries with it) or to the key of the JWK thumbprint `jkt`."
+  @spec token(String.t() | nil) :: String.t()
+  def token(jkt \\ nil), do: RelayDev.Access.server_token(@tenant, @client, @scopes, jkt)
 
   # X-35
   @doc "The body of a sample `POST /v1/events` request to the sample workflow."

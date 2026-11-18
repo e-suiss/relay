@@ -476,6 +476,28 @@ class Operations(OperationsBase):
             response="json",
         ))
 
+    def create_preference_page_link(
+        self,
+        subscriber_id: m.ExternalId,
+        *,
+        idempotency_key: str | None = None,
+        options: RequestOptions | None = None,
+    ) -> m.PreferencePageLink:
+        """Mint a hosted preference page link."""
+        return _t.cast("m.PreferencePageLink", self._call(
+            "POST",
+            "/v1/subscribers/{subscriber_id}/preference_page_links",
+            path={"subscriber_id": subscriber_id},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=True,
+            idempotency_key=idempotency_key,
+            options=options,
+            response="json",
+        ))
+
     def list_subscriber_consents(
         self,
         subscriber_id: m.ExternalId,
@@ -2891,6 +2913,69 @@ class Operations(OperationsBase):
             idempotency_key=None,
             options=options,
             response="json",
+        ))
+
+    def list_seed_recipients(
+        self,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.SeedRecipientList:
+        """List the seed recipients of the test plane."""
+        return _t.cast("m.SeedRecipientList", self._call(
+            "GET",
+            "/v1/test/seed-recipients",
+            path={},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def reset_seed_recipients(
+        self,
+        *,
+        idempotency_key: str | None = None,
+        options: RequestOptions | None = None,
+    ) -> m.SeedReset:
+        """Reset the seed recipients of the test plane."""
+        return _t.cast("m.SeedReset", self._call(
+            "POST",
+            "/v1/test/seed-recipients/reset",
+            path={},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=True,
+            idempotency_key=idempotency_key,
+            options=options,
+            response="json",
+        ))
+
+    def list_test_inbox_messages(
+        self,
+        *,
+        limit: int | None = None,
+        starting_after: m.Cursor | None = None,
+        ending_before: m.Cursor | None = None,
+        options: RequestOptions | None = None,
+    ) -> Page[m.TestInboxMessage]:
+        """List the test inbox."""
+        return _t.cast("Page[m.TestInboxMessage]", self._page(
+            "GET",
+            "/v1/test/inbox",
+            path={},
+            query={"limit": limit, "starting_after": starting_after, "ending_before": ending_before},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
         ))
 
     def get_relay_configuration(
@@ -5846,6 +5931,216 @@ class Operations(OperationsBase):
             content_type=None,
             idempotent=True,
             idempotency_key=idempotency_key,
+            options=options,
+            response="json",
+        ))
+
+    def lookup_subscribers(
+        self,
+        body: m.SubscriberLookupRequest,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.SubscriberLookup:
+        """Find a subscriber by phone or e-mail."""
+        return _t.cast("m.SubscriberLookup", self._call(
+            "POST",
+            "/v1/subscriber_lookups",
+            path={},
+            query={},
+            headers={},
+            body=body,
+            content_type="application/json",
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def list_rules(
+        self,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.RuleDictionary:
+        """List the rule dictionary."""
+        return _t.cast("m.RuleDictionary", self._call(
+            "GET",
+            "/v1/rules",
+            path={},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def get_tenant_settings(
+        self,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.TenantSettings:
+        """Get the tenant settings."""
+        return _t.cast("m.TenantSettings", self._call(
+            "GET",
+            "/v1/settings",
+            path={},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def get_route_usage(
+        self,
+        route_key: m.RouteKey,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.RouteUsage:
+        """Where a route is used."""
+        return _t.cast("m.RouteUsage", self._call(
+            "GET",
+            "/v1/routes/{route_key}/usage",
+            path={"route_key": route_key},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def get_escalation_policy_usage(
+        self,
+        policy_key: m.EscalationPolicyKey,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.EscalationPolicyUsage:
+        """Where an escalation policy is used."""
+        return _t.cast("m.EscalationPolicyUsage", self._call(
+            "GET",
+            "/v1/escalation_policies/{policy_key}/usage",
+            path={"policy_key": policy_key},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def check_workflow_publication(
+        self,
+        workflow_key: m.WorkflowKey,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.WorkflowPublicationCheck:
+        """Run the publication gate on the draft without publishing."""
+        return _t.cast("m.WorkflowPublicationCheck", self._call(
+            "GET",
+            "/v1/workflows/{workflow_key}/publication_check",
+            path={"workflow_key": workflow_key},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def check_template_publication(
+        self,
+        template_key: m.TemplateKey,
+        *,
+        subtenant: m.Id_stn | None = None,
+        options: RequestOptions | None = None,
+    ) -> m.TemplatePublicationCheck:
+        """Run the publication gate on the draft without publishing."""
+        return _t.cast("m.TemplatePublicationCheck", self._call(
+            "GET",
+            "/v1/templates/{template_key}/publication_check",
+            path={"template_key": template_key},
+            query={"subtenant": subtenant},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def get_waitpoint_stats(
+        self,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.WaitpointStats:
+        """Get the waitpoint figures."""
+        return _t.cast("m.WaitpointStats", self._call(
+            "GET",
+            "/v1/waitpoint_stats",
+            path={},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def get_variant_report(
+        self,
+        *,
+        from_: str,
+        to: str,
+        options: RequestOptions | None = None,
+    ) -> m.VariantReport:
+        """Get the A/B variant report."""
+        return _t.cast("m.VariantReport", self._call(
+            "GET",
+            "/v1/reports/variants",
+            path={},
+            query={"from": from_, "to": to},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def get_render_problem_report(
+        self,
+        *,
+        from_: str,
+        to: str,
+        options: RequestOptions | None = None,
+    ) -> m.RenderProblemReport:
+        """Get the render and locale problem report."""
+        return _t.cast("m.RenderProblemReport", self._call(
+            "GET",
+            "/v1/reports/render_problems",
+            path={},
+            query={"from": from_, "to": to},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
             options=options,
             response="json",
         ))

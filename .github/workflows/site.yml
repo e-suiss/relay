@@ -256,7 +256,13 @@ jobs:
           gradle-version: "9.8.2"
           cache-read-only: true
       - run: mkdir -p src/test/java/snippets && cp ../../site/examples/java/snippets/*.java src/test/java/snippets/
-      - run: gradle --no-daemon --dependency-verification strict compileTestJava
+      - name: Compile the snippets with the SDK
+        run: |
+          for attempt in 1 2 3; do
+            if gradle --no-daemon --dependency-verification strict compileTestJava; then exit 0; fi
+            sleep 30
+          done
+          exit 1
 
   examples-elixir:
     needs: changes

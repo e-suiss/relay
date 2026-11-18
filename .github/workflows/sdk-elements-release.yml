@@ -1,0 +1,45 @@
+name: sdk-elements-release
+
+on:
+  push:
+    tags: ["sdk-elements-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-elements-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdks/elements
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+          registry-url: https://registry.npmjs.org
+      # X-50
+      - run: test "sdk-elements-v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - working-directory: sdks/typescript
+        run: npm ci --no-audit --no-fund && npm run build
+      - working-directory: sdks/react
+        run: npm ci --no-audit --no-fund && npm run build
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --omit=dev
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - run: npm publish --provenance --access public

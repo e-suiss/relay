@@ -1,0 +1,96 @@
+name: sdk-elements
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - sdks/elements/**
+      - sdks/react/**
+      - sdks/typescript/**
+      - .github/workflows/sdk-elements.yml
+  pull_request:
+    paths:
+      - sdks/elements/**
+      - sdks/react/**
+      - sdks/typescript/**
+      - .github/workflows/sdk-elements.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-elements-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  elements:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: sdks/elements
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - working-directory: sdks/typescript
+        run: npm ci --no-audit --no-fund && npm run build
+      - working-directory: sdks/react
+        run: |
+          test -f package-lock.json || npm install --package-lock-only --no-audit --no-fund
+          npm ci --no-audit --no-fund
+          npm run build
+      - run: npm install --package-lock-only --no-audit --no-fund
+      - id: install
+        run: npm ci --no-audit --no-fund
+      - run: npx prettier --write . > /dev/null
+      - id: drift
+        run: |
+          git add --intent-to-add .
+          if git diff --quiet -- .; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git diff --stat -- .
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: ${{ !cancelled() && steps.drift.outputs.changed == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-elements-synced
+          path: |
+            sdks/elements
+            !sdks/elements/node_modules
+            !sdks/elements/dist
+            !sdks/elements/test-results
+          include-hidden-files: true
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm audit --omit=dev
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm audit --audit-level=critical
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run typecheck
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run lint
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm test
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run build
+      # X-32
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+      - if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: npm run e2e
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-elements-e2e
+          path: sdks/elements/test-results
+          if-no-files-found: ignore
+      - if: ${{ !cancelled() && steps.drift.outputs.changed == 'true' }}
+        run: |
+          echo "The lockfile or formatting differ from the commit; the synced tree is the sdk-elements-synced artifact."
+          exit 1

@@ -1,6 +1,6 @@
 defmodule Relay.Api.Contract do
   @moduledoc """
-  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml`, `contracts/openapi/operator.yaml` and their components. It answers which operations exist, which family each belongs to (`:server`, `:subscriber` or `:operator`), how it is authenticated (`:bearer`, `:public`, `:provider_webhook` or, for the webhook portal's token, `:portal`), what it requires (scopes, weight, idempotency, environment; for an operator operation the lowest role, the roles by direction of change and the step-up rule) and which schemas its requests and responses follow. A subscriber or operator operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
+  The API contract, read at compile time from `contracts/openapi/server.yaml`, `contracts/openapi/subscriber.yaml`, `contracts/openapi/operator.yaml` and their components. It answers which operations exist, which family each belongs to (`:server`, `:subscriber` or `:operator`), how it is authenticated (`:bearer`, `:public`, `:provider_webhook` or, for the webhook portal's token, `:portal`), whether a server operation also accepts the operator session of the console (`operator_session`, X-47), what it requires (scopes, weight, idempotency, environment; for an operator operation the lowest role, the roles by direction of change and the step-up rule) and which schemas its requests and responses follow. A subscriber or operator operation's local schema references are inlined. The contract files are the single source; nothing here repeats their values.
   """
 
   @root Path.expand("../../../contracts/openapi", __DIR__)
@@ -36,6 +36,7 @@ defmodule Relay.Api.Contract do
           step_up: :always | :conditional | :never,
           stored_replay: boolean(),
           security: :bearer | :public | :provider_webhook | :portal,
+          operator_session: boolean(),
           no_store: boolean(),
           method: String.t(),
           path: String.t(),
@@ -138,6 +139,7 @@ defmodule Relay.Api.Contract do
         id: op["operationId"],
         family: family,
         security: security,
+        operator_session: Enum.any?(op["security"] || [], &Map.has_key?(&1, "operator_session")),
         no_store:
           get_in(op, ["responses", "200", "headers", "Cache-Control", "description"]) ==
             "no-store",

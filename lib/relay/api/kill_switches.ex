@@ -1,6 +1,6 @@
 defmodule Relay.Api.KillSwitches do
   @moduledoc """
-  Kill switches on the server API (TN-41, TN-45, API-79 (6)). An API client with the `kill_switch` scope may engage a campaign or workflow kill switch and replace it by a tighter one; stopping `security`, a record without TTL, releasing, relaxing, resuming and bulk cancelling need an operator session with step-up (`403 auth_operator_session_required`). Writes use the same records and audit entries as every other path (TN-45).
+  Kill switches on the server API (TN-41, TN-45, API-79 (6), X-47). An API client with the `kill_switch` scope may engage a campaign or workflow kill switch and replace it by a tighter one; stopping `security`, a record without TTL, releasing, relaxing, resuming and bulk cancelling need an operator session with step-up (`403 auth_operator_session_required`). The console's operator session acts with its role in the scope (`actor`: `%{kind: role, ref: subject, on_behalf_of_ref, access_record_ref}`): any tenant scope its rank reaches, with its step-up reference as the approval of a `security` stop, a record without TTL and a relaxation. Writes use the same records and audit entries as every other path (TN-45).
   """
 
   alias Relay.Api.Duration
@@ -10,8 +10,21 @@ defmodule Relay.Api.KillSwitches do
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
   @type written :: {:ok, {201, list(), map()}, non_neg_integer()} | {:error, Relay.Error.t()}
+  @type actor_kind :: :api_client | :installation_operator | :tenant_admin | :tenant_operator
+  @type actor :: %{
+          required(:kind) => actor_kind(),
+          required(:ref) => String.t(),
+          optional(:on_behalf_of_ref) => String.t(),
+          optional(:access_record_ref) => String.t() | nil
+        }
 
   @classes ~w(security transactional operational social marketing system action_required)
+  @approvals [
+    :relax_approval_required,
+    :security_approval_required,
+    :no_ttl_approval_required,
+    :approval_required
+  ]
   @scopes %{
     "tenant" => :tenant,
     "subtenant" => :subtenant,
@@ -62,14 +75,17 @@ defmodule Relay.Api.KillSwitches do
 
   # TN-41
   # API-79 (6)
-  @doc "Builds the engage spec of an API client's request, outside any transaction: only campaign and workflow scopes, a TTL, no `security` stop; a workflow is named by its key."
-  @spec engage_spec(Relay.Scope.t(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
-  def engage_spec(scope, body) do
+  # X-47
+  @doc "Builds the engage spec of a request, outside any transaction. An API client (`opts` empty) gets only campaign and workflow scopes, a TTL and no `security` stop; an operator session (`operator: true`) any tenant scope, with `approval` (its step-up reference) as the approval of a `security` stop and of a record without TTL (`no_ttl`). A workflow is named by its key, a sub-tenant by its `stn_` identifier; the tenant scope names nothing."
+  @spec engage_spec(Relay.Scope.t(), map(), keyword()) :: {:ok, map()} | {:error, Relay.Error.t()}
+  def engage_spec(scope, body, opts \\ []) do
     kind = Map.fetch!(@scopes, body["scope_kind"])
+    operator = Keyword.get(opts, :operator, false)
+    approval = Keyword.get(opts, :approval)
 
-    with :ok <- client_may(kind, body),
+    with :ok <- if(operator, do: :ok, else: client_may(kind, body)),
          {:ok, ref} <- scope_ref(scope, kind, body["scope_ref"]),
-         {:ok, expires_at} <- expiry(body["ttl"]),
+         {:ok, expires_at} <- expiry(body["ttl"], operator and body["no_ttl"] == true),
          {:ok, state} <- state(body) do
       {:ok,
        %{
@@ -79,10 +95,12 @@ defmodule Relay.Api.KillSwitches do
          channel: body["channel"],
          target: target(body),
          message_class: class(body["message_class"]),
+         security_approval: approval,
          state: state,
          reason: body["reason"],
          ticket: body["ticket_ref"],
-         expires_at: expires_at
+         expires_at: expires_at,
+         no_ttl_approval: approval
        }}
     end
   end
@@ -94,6 +112,7 @@ defmodule Relay.Api.KillSwitches do
        else: {:error, operator_session_required()}
   end
 
+  defp scope_ref(_scope, :tenant, _ref), do: {:ok, nil}
   defp scope_ref(_scope, _kind, nil), do: field_error("/scope_ref", "required", "name the scope")
 
   defp scope_ref(scope, :workflow, key) do
@@ -106,6 +125,15 @@ defmodule Relay.Api.KillSwitches do
 
   defp scope_ref(_scope, :campaign, ref), do: {:ok, ref}
 
+  defp scope_ref(_scope, :subtenant, ref) do
+    case Relay.ExternalId.decode(ref, ["stn"]) do
+      {:ok, id} -> {:ok, id}
+      {:error, _error} -> field_error("/scope_ref", "invalid_format", "a stn_ identifier")
+    end
+  end
+
+  defp scope_ref(_scope, kind, ref) when kind in [:api_client, :sender], do: {:ok, ref}
+
   defp workflow_id(scope, key) do
     case Relay.Workflow.get(scope, key) do
       {:ok, %{"id" => id}} -> {:ok, id}
@@ -114,9 +142,10 @@ defmodule Relay.Api.KillSwitches do
   end
 
   # TN-41
-  defp expiry(nil), do: field_error("/ttl", "required", "a kill switch needs a TTL")
+  defp expiry(_ttl, true), do: {:ok, nil}
+  defp expiry(nil, false), do: field_error("/ttl", "required", "a kill switch needs a TTL")
 
-  defp expiry(ttl) do
+  defp expiry(ttl, false) do
     case Duration.to_ms(ttl) do
       {:ok, ms} when ms > 0 -> {:ok, DateTime.add(Relay.Clock.utc_now(), ms, :millisecond)}
       _ -> field_error("/ttl", "invalid_format", "weeks, days, hours, minutes or seconds")
@@ -152,10 +181,14 @@ defmodule Relay.Api.KillSwitches do
 
   # TN-41
   # TN-45
-  @doc "Engages a prepared kill switch inside the request's transaction; `201` with the record."
-  @spec engage(map(), String.t()) :: written()
-  def engage(spec, client_ref) do
-    case KillSwitch.engage_here(spec, %{kind: :api_client, ref: client_ref}) do
+  # X-47
+  @doc "Engages a prepared kill switch inside the request's transaction; `201` with the record. `actor` is an API client's reference or an operator `actor()`."
+  @spec engage(map(), String.t() | actor()) :: written()
+  def engage(spec, client_ref) when is_binary(client_ref),
+    do: engage(spec, %{kind: :api_client, ref: client_ref})
+
+  def engage(spec, %{kind: _, ref: actor_ref} = actor) do
+    case KillSwitch.engage_here(spec, actor) do
       {:ok, %{id: id, generation: generation}} ->
         {target_kind, target_ref} =
           case spec.target do
@@ -176,7 +209,7 @@ defmodule Relay.Api.KillSwitches do
             message_class: spec.message_class,
             reason: spec.reason,
             ticket_ref: spec.ticket,
-            created_by_ref: client_ref,
+            created_by_ref: actor_ref,
             expires_at: spec.expires_at,
             supersedes_id: nil
           })
@@ -184,7 +217,7 @@ defmodule Relay.Api.KillSwitches do
         {:ok, {201, [], view(fresh(record))}, generation}
 
       {:error, reason} ->
-        {:error, engage_error(reason)}
+        {:error, engage_error(reason, actor)}
     end
   end
 
@@ -216,15 +249,29 @@ defmodule Relay.Api.KillSwitches do
   end
 
   # TN-22
-  @doc "Replaces a kill switch read before, inside the request's transaction; only a tighter state is accepted from an API client."
-  @spec replace(map(), map(), String.t()) :: written()
-  def replace(record, body, client_ref) do
-    with :ok <- if(body["no_ttl"] == true, do: {:error, operator_session_required()}, else: :ok),
-         {:ok, state} <- state(body),
-         {:ok, expires_at} <- expiry(body["ttl"]) do
-      change = %{state: state, reason: body["reason"], expires_at: expires_at}
+  # X-47
+  @doc "Replaces a kill switch read before, inside the request's transaction; only a tighter state is accepted from an API client (`actor` its reference). An operator `actor()` may relax and drop the TTL with `approval`, its step-up reference."
+  @spec replace(map(), map(), String.t() | actor(), String.t() | nil) :: written()
+  def replace(record, body, actor, approval \\ nil)
 
-      case KillSwitch.replace_here(record, change, %{kind: :api_client, ref: client_ref}) do
+  def replace(record, body, client_ref, approval) when is_binary(client_ref),
+    do: replace(record, body, %{kind: :api_client, ref: client_ref}, approval)
+
+  def replace(record, body, %{kind: kind, ref: actor_ref} = actor, approval) do
+    operator = kind != :api_client
+
+    with :ok <- no_ttl_allowed(operator, body),
+         {:ok, state} <- state(body),
+         {:ok, expires_at} <- expiry(body["ttl"], operator and body["no_ttl"] == true) do
+      change = %{
+        state: state,
+        reason: body["reason"],
+        expires_at: expires_at,
+        no_ttl_approval: if(is_nil(expires_at), do: approval),
+        relax_approval: approval
+      }
+
+      case KillSwitch.replace_here(record, change, actor) do
         {:ok, %{id: id, generation: generation}} ->
           new =
             record
@@ -232,7 +279,7 @@ defmodule Relay.Api.KillSwitches do
             |> Map.merge(%{
               id: decode(id),
               reason: body["reason"],
-              created_by_ref: client_ref,
+              created_by_ref: actor_ref,
               expires_at: expires_at,
               supersedes_id: record.id
             })
@@ -240,20 +287,102 @@ defmodule Relay.Api.KillSwitches do
           {:ok, {201, [], view(fresh(new))}, generation}
 
         {:error, reason} ->
-          {:error, engage_error(reason)}
+          {:error, engage_error(reason, actor)}
       end
     end
   end
 
-  defp engage_error(reason)
-       when reason in [
-              :forbidden,
-              :relax_approval_required,
-              :security_approval_required,
-              :no_ttl_approval_required,
-              :approval_required
-            ],
-       do: operator_session_required()
+  defp no_ttl_allowed(false, %{"no_ttl" => true}), do: {:error, operator_session_required()}
+  defp no_ttl_allowed(_operator, _body), do: :ok
+
+  # TN-22
+  # TN-40
+  # X-47
+  @doc "Releases a kill switch read before for an operator `actor()` with `approval`, its step-up reference; the command runs its own transaction. `200` with the released record; paused deliveries stay paused."
+  @spec release(map(), String.t(), actor(), String.t() | nil) :: answer()
+  def release(record, reason, actor, approval) do
+    change = %{reason: reason, relax_approval: approval}
+
+    case KillSwitch.release(record.id, change, actor) do
+      {:ok, _result} ->
+        released =
+          Map.merge(record, %{
+            status: :released,
+            released_at: Relay.Clock.utc_now(),
+            released_by_ref: actor.ref,
+            release_reason: reason
+          })
+
+        {:ok, {200, [], view(released)}}
+
+      {:error, code} ->
+        {:error, engage_error(code, actor)}
+    end
+  end
+
+  # TN-40
+  # TN-22
+  # X-47
+  @doc "Resumes the deliveries a released kill switch paused, for an operator `actor()` with `approval`; each passes the policy lattice again. `200` with the number of deliveries the lattice sent, deferred, cancelled or expired."
+  @spec resume(map(), String.t(), actor(), String.t() | nil) :: answer()
+  def resume(record, reason, actor, approval) do
+    change = %{
+      reason: reason,
+      relax_approval: approval,
+      scope_kind: record.scope_kind,
+      job: &Relay.Delivery.send_job/2
+    }
+
+    case KillSwitch.resume(record.id, change, actor) do
+      {:ok, totals} ->
+        affected = totals |> Map.values() |> Enum.sum()
+        {:ok, {200, [], action_view(record, "resume", affected)}}
+
+      {:error, :policy_lattice_unavailable} ->
+        {:error, Relay.Error.new(:service_unavailable, "the policy lattice cannot be read")}
+
+      {:error, code} ->
+        {:error, engage_error(code, actor)}
+    end
+  end
+
+  # TN-47
+  # X-47
+  @doc "Cancels every delivery a kill switch paused, for an operator `actor()`; one `killswitch.bulk_cancelled` audit record in the record's scope. `200` with the number cancelled."
+  @spec cancel_paused(map(), String.t(), actor()) :: answer()
+  def cancel_paused(record, reason, actor) do
+    scope = Relay.Scope.new!(record.tenant_id, record.environment)
+    change = %{reason: reason, scope_kind: record.scope_kind, scope: scope}
+
+    case KillSwitch.bulk_cancel(record.id, change, actor) do
+      {:ok, %{cancelled: cancelled}} ->
+        {:ok, {200, [], action_view(record, "bulk_cancel", cancelled)}}
+
+      {:error, code} ->
+        {:error, engage_error(code, actor)}
+    end
+  end
+
+  defp action_view(record, action, affected) do
+    %{
+      "object" => "kill_switch_action",
+      "kill_switch_id" => Views.id("ksw", record.id),
+      "action" => action,
+      "affected" => affected,
+      "has_more" => false
+    }
+  end
+
+  defp engage_error(reason, %{kind: :api_client}) when reason in [:forbidden | @approvals],
+    do: operator_session_required()
+
+  defp engage_error(reason, _operator) when reason in @approvals,
+    do: Relay.Error.new(:auth_step_up_required, "this kill switch change needs a fresh step-up")
+
+  defp engage_error(:forbidden, _operator),
+    do: Relay.Error.new(:auth_insufficient_role, "the operator's role does not reach the scope")
+
+  defp engage_error(reason, _actor), do: engage_error(reason)
 
   defp engage_error(:scope_not_found),
     do: Relay.Error.new(:workflow_not_found, "no workflow has this key")
@@ -280,6 +409,20 @@ defmodule Relay.Api.KillSwitches do
 
       {:error, _reason} ->
         {:error, not_found()}
+    end
+  end
+
+  # TN-40
+  # TN-47
+  @doc "Reads a kill switch of `scope` (or a platform record that applies to it), in force or released, outside any transaction; resuming and bulk cancelling act on released records."
+  @spec fetch_any(Relay.Scope.t(), String.t()) :: {:ok, map()} | {:error, Relay.Error.t()}
+  def fetch_any(scope, id) do
+    with {:ok, <<n::128>> = uuid} <- Relay.ExternalId.decode(id, ["ksw"]),
+         opts = [include_released: true, after: <<n - 1::128>>, limit: 1],
+         {:ok, [%{id: ^uuid} = record | _]} <- KillSwitch.list(scope, opts) do
+      {:ok, record}
+    else
+      _ -> {:error, not_found()}
     end
   end
 

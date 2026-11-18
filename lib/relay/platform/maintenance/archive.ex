@@ -71,7 +71,6 @@ defmodule Relay.Platform.Maintenance.Archive do
 
     case ArchiveStore.with_rows(leaf, columns, &Relay.Parquet.write(file, names, &1, opts)) do
       {:ok, {:ok, written}} -> {:ok, written}
-      {:ok, {:error, _} = error} -> error
       {:error, _} = error -> error
     end
   end
@@ -153,7 +152,9 @@ defmodule Relay.Platform.Maintenance.Archive do
     dir = Path.join(Keyword.get_lazy(opts, :tmp_dir, &System.tmp_dir!/0), name)
 
     case File.mkdir_p(dir) do
-      :ok -> {:ok, dir}
+      :ok ->
+        {:ok, dir}
+
       {:error, reason} ->
         {:error, Relay.Error.new(:archive_io, "no scratch directory", %{reason: reason})}
     end

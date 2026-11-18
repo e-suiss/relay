@@ -164,8 +164,7 @@ defmodule Relay.ObjectStore.S3 do
   defp lock(mode, until),
     do: [
       {"x-amz-object-lock-mode", mode},
-      {"x-amz-object-lock-retain-until-date",
-       DateTime.to_iso8601(%{until | microsecond: {0, 0}})}
+      {"x-amz-object-lock-retain-until-date", DateTime.to_iso8601(%{until | microsecond: {0, 0}})}
     ]
 
   defp put(opts, key, body, headers) do

@@ -181,14 +181,6 @@ jobs:
         working-directory: native/mjml_port
       - run: rustup toolchain install
         working-directory: native/archive_port
-      - if: hashFiles('native/archive_port/Cargo.lock') == ''
-        run: cargo generate-lockfile && cargo update -p bytes --precise 1.12.1 && cargo update -p cc --precise 1.11.1 && cargo update -p bumpalo --precise 3.20.3
-        working-directory: native/archive_port
-      - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: archive-port-lock
-          path: native/archive_port/Cargo.lock
       - run: cargo fmt --check
         working-directory: native/archive_port
       - run: cargo clippy --locked --all-targets -- -D warnings

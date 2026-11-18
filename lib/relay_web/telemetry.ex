@@ -397,7 +397,8 @@ defmodule RelayWeb.Telemetry do
       last_value("relay.postgres.pool_rule.exceeded",
         event_name: [:relay, :postgres, :pool_rule],
         measurement: :exceeded,
-        description: "1 when the nodes' connection demand exceeds half of max_connections without a pooler"
+        description:
+          "1 when the nodes' connection demand exceeds half of max_connections without a pooler"
       ),
       last_value("relay.postgres.pool_rule.demand",
         event_name: [:relay, :postgres, :pool_rule],

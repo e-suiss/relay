@@ -219,7 +219,7 @@ grep -q "RELAY_TRUSTED_PROXIES names a malformed range" "$work/bad-proxies.log" 
   || { cat "$work/bad-proxies.log" >&2; fail "a malformed trusted proxy range was not reported"; }
 
 # OP-90
-if run -e RELAY_ROLES=api -e RELAY_REGION=eu -e METRICS_PORT=19568 -e PORT=14000 "$image" start >"$work/wrong-region.log" 2>&1; then
+if run -e RELAY_ROLES=api,worker,socket -e RELAY_REGION=eu -e METRICS_PORT=19568 -e PORT=14000 "$image" start >"$work/wrong-region.log" 2>&1; then
   fail "a node whose RELAY_REGION is not the installation region started"
 fi
 grep -q "region check failed" "$work/wrong-region.log" \

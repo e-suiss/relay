@@ -52,6 +52,7 @@ defmodule Relay.Application do
         RelayWeb.Metrics.children() ++
         [
           Relay.Repo,
+          Relay.Datasets.region_check_child(),
           {Phoenix.PubSub, name: Relay.PubSub},
           {Task.Supervisor, name: Relay.TaskSupervisor},
           Relay.TenantWorker

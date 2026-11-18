@@ -27,14 +27,13 @@ defmodule Relay.Datasets do
   @type publish_result :: :published | :exists | :dataset_not_found | :scope_not_allowed
   @type activate_result :: :activated | :already_active | :version_not_found | :operator_pinned
 
-  # OP-90
-  @doc "Supervised children: the region check and the node-local cache of active versions."
+  @doc "Supervised children: the node-local cache of active versions."
   @spec children() :: [Supervisor.child_spec()]
-  def children, do: [region_check_child(), Supervisor.child_spec(Cache, [])]
+  def children, do: [Supervisor.child_spec(Cache, [])]
 
   # OP-90
   # INV-41
-  @doc "Child specification that compares the configured region (`RELAY_REGION`, `config :relay, Relay.Region, configured: code`) with the installation's region in the database while the supervision tree starts; a mismatch stops the node. A node without a configured region (development and test) checks nothing."
+  @doc "Child specification that compares the configured region (`RELAY_REGION`, `config :relay, Relay.Region, configured: code`) with the installation's region in the database right after the database pool starts, before anything else runs; a mismatch stops the node. A node without a configured region (development and test) checks nothing."
   @spec region_check_child() :: Supervisor.child_spec()
   def region_check_child do
     %{id: :relay_region_check, start: {__MODULE__, :start_region_check, []}, restart: :temporary}

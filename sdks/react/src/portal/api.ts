@@ -45,7 +45,11 @@ export interface PortalHealth {
   readonly disable_at: string | null;
   readonly backlog: { readonly waiting: number; readonly held: number };
   readonly breaker: { readonly state: "closed" | "open" | "half_open" };
-  readonly recent_failures: readonly { readonly code: string; readonly count: number; readonly last_at: string }[];
+  readonly recent_failures: readonly {
+    readonly code: string;
+    readonly count: number;
+    readonly last_at: string;
+  }[];
 }
 
 /** A delivery of one event to one endpoint (WH-2). */
@@ -64,7 +68,8 @@ export interface PortalMessage {
 export interface PortalAttempt {
   readonly id: string;
   readonly attempt_no: number;
-  readonly result: "succeeded" | "failed_retryable" | "failed_permanent" | "aborted" | "deferred" | null;
+  readonly result:
+    "succeeded" | "failed_retryable" | "failed_permanent" | "aborted" | "deferred" | null;
   readonly failure_code: string | null;
   readonly response_status: number | null;
   readonly duration_ms: number | null;
@@ -87,7 +92,11 @@ export interface MessageFilter {
 
 function page<T>(raw: unknown): PortalPage<T> {
   const record = raw as { data?: T[]; has_more?: boolean; next_cursor?: string | null };
-  return { data: record.data ?? [], has_more: record.has_more ?? false, next_cursor: record.next_cursor ?? null };
+  return {
+    data: record.data ?? [],
+    has_more: record.has_more ?? false,
+    next_cursor: record.next_cursor ?? null,
+  };
 }
 
 /**
@@ -117,10 +126,18 @@ export class PortalApi {
   }
 
   async endpoints(): Promise<PortalEndpoint[]> {
-    return [...page<PortalEndpoint>(await this.#client.call("listPortalWebhookEndpoints", { query: { limit: 100 } } as never)).data];
+    return [
+      ...page<PortalEndpoint>(
+        await this.#client.call("listPortalWebhookEndpoints", { query: { limit: 100 } } as never),
+      ).data,
+    ];
   }
 
-  async create(body: { url: string; event_types: string[]; description?: string }): Promise<PortalEndpointSecret> {
+  async create(body: {
+    url: string;
+    event_types: string[];
+    description?: string;
+  }): Promise<PortalEndpointSecret> {
     return (await this.#client.call("createPortalWebhookEndpoint", {
       body: { ...body, signature_scheme: "v1a" },
     } as never)) as unknown as PortalEndpointSecret;
@@ -128,7 +145,12 @@ export class PortalApi {
 
   async update(
     id: string,
-    body: { url?: string; event_types?: string[]; description?: string | null; state?: "active" | "disabled" },
+    body: {
+      url?: string;
+      event_types?: string[];
+      description?: string | null;
+      state?: "active" | "disabled";
+    },
   ): Promise<PortalEndpoint> {
     return (await this.#client.call("updatePortalWebhookEndpoint", {
       path: { webhook_endpoint_id: id },
@@ -169,7 +191,10 @@ export class PortalApi {
     } as never)) as unknown as { selected: number };
   }
 
-  async messages(filter: MessageFilter, cursor: string | null = null): Promise<PortalPage<PortalMessage>> {
+  async messages(
+    filter: MessageFilter,
+    cursor: string | null = null,
+  ): Promise<PortalPage<PortalMessage>> {
     return page<PortalMessage>(
       await this.#client.call("listPortalWebhookMessages", {
         query: { limit: 25, ...filter, ...(cursor === null ? {} : { starting_after: cursor }) },
@@ -199,7 +224,12 @@ export class PortalApi {
 export function httpsUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.protocol === "https:" && parsed.hostname.length > 0 && parsed.username === "" && parsed.password === "";
+    return (
+      parsed.protocol === "https:" &&
+      parsed.hostname.length > 0 &&
+      parsed.username === "" &&
+      parsed.password === ""
+    );
   } catch {
     return false;
   }

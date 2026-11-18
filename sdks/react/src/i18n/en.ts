@@ -90,7 +90,8 @@ export const en = {
   "prefs.scopeEmpty": "Nothing is muted.",
   "prefs.unmute": "Unmute {name}",
   "prefs.schedule": "Weekly schedule",
-  "prefs.scheduleHint": "Notifications reach you only within these times. Without a time range they can reach you at any time.",
+  "prefs.scheduleHint":
+    "Notifications reach you only within these times. Without a time range they can reach you at any time.",
   "prefs.quietHours": "Quiet hours",
   "prefs.quietHint": "Notifications that interrupt wait until quiet hours end.",
   "prefs.quietEmail": "Also apply quiet hours to e-mail",
@@ -217,7 +218,8 @@ export const en = {
   "portal.resent": "Resend started.",
   "portal.inFlight": "This delivery is in progress. Try again shortly.",
   "portal.recover": "Resend failed deliveries",
-  "portal.recoverHint": "Sends again every failed or never attempted delivery of this endpoint in the time range.",
+  "portal.recoverHint":
+    "Sends again every failed or never attempted delivery of this endpoint in the time range.",
   "portal.since": "From",
   "portal.until": "Until",
   "portal.recovered": "{count} deliveries queued again.",

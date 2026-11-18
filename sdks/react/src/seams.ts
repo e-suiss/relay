@@ -37,7 +37,12 @@ export interface WaitpointView {
   readonly approval_url: string | null;
 }
 
-const statuses: ReadonlySet<string> = new Set(["awaiting", "processing", "responded", "not_awaited"]);
+const statuses: ReadonlySet<string> = new Set([
+  "awaiting",
+  "processing",
+  "responded",
+  "not_awaited",
+]);
 
 function text(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
@@ -52,7 +57,8 @@ export function waitpointOf(item: InboxItem): WaitpointView | null {
   const record = raw as Record<string, unknown>;
   const id = text(record.id);
   if (id === null) return null;
-  const status = typeof record.status === "string" && statuses.has(record.status) ? record.status : "awaiting";
+  const status =
+    typeof record.status === "string" && statuses.has(record.status) ? record.status : "awaiting";
   const options = Array.isArray(record.options)
     ? record.options.flatMap((option: unknown) => {
         if (typeof option !== "object" || option === null) return [];

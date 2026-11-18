@@ -92,7 +92,8 @@ export const tr: Messages = {
   "prefs.scopeEmpty": "Sessize alınan bir şey yok.",
   "prefs.unmute": "{name} sesini aç",
   "prefs.schedule": "Haftalık program",
-  "prefs.scheduleHint": "Bildirimler yalnız bu saatlerde gelir. Saat aralığı yoksa her zaman gelebilir.",
+  "prefs.scheduleHint":
+    "Bildirimler yalnız bu saatlerde gelir. Saat aralığı yoksa her zaman gelebilir.",
   "prefs.quietHours": "Sessiz saatler",
   "prefs.quietHint": "Anında kesen bildirimler sessiz saat bitene kadar bekler.",
   "prefs.quietEmail": "Sessiz saatleri e-postaya da uygula",
@@ -148,7 +149,8 @@ export const tr: Messages = {
   "portal.urlHint": "https:// ile başlayan herkese açık bir adres",
   "portal.urlInvalid": "https:// ile başlayan bir adres girin.",
   "portal.urlNotAllowed": "Bu adrese izin verilmiyor: {reason}",
-  "portal.urlNotAllowedGeneric": "Bu adrese izin verilmiyor. Herkese açık bir https adresi kullanın.",
+  "portal.urlNotAllowedGeneric":
+    "Bu adrese izin verilmiyor. Herkese açık bir https adresi kullanın.",
   "portal.description": "Açıklama",
   "portal.eventTypes": "Olay türleri",
   "portal.eventTypesEmpty": "Henüz yayımlanmış olay türü yok.",
@@ -182,7 +184,8 @@ export const tr: Messages = {
   "portal.recentFailures": "Son hatalar",
   "portal.failure": "{code}: {count} kez, son {time}",
   "portal.rotate": "İmza anahtarını döndür",
-  "portal.rotated": "Yeni imza anahtarı etkin. Önceki anahtar {time} tarihine kadar imzalamaya devam eder.",
+  "portal.rotated":
+    "Yeni imza anahtarı etkin. Önceki anahtar {time} tarihine kadar imzalamaya devam eder.",
   "portal.secretOnce": "Bu sırrı şimdi kopyalayın. Bir daha gösterilmez.",
   "portal.secretLabel": "İmza sırrı",
   "portal.publicKey": "Açık anahtar",
@@ -219,7 +222,8 @@ export const tr: Messages = {
   "portal.resent": "Yeniden gönderim başladı.",
   "portal.inFlight": "Bu teslim sürüyor. Biraz sonra tekrar deneyin.",
   "portal.recover": "Başarısız teslimleri yeniden gönder",
-  "portal.recoverHint": "Bu uç noktanın aralıktaki başarısız ya da hiç denenmemiş bütün teslimlerini yeniden gönderir.",
+  "portal.recoverHint":
+    "Bu uç noktanın aralıktaki başarısız ya da hiç denenmemiş bütün teslimlerini yeniden gönderir.",
   "portal.since": "Başlangıç",
   "portal.until": "Bitiş",
   "portal.recovered": "{count} teslim yeniden kuyruğa alındı.",

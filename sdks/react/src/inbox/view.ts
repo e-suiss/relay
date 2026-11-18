@@ -46,7 +46,8 @@ export function visibleItems(
 export function categoriesOf(items: readonly InboxItem[]): string[] {
   const categories = new Set<string>();
   for (const item of items) {
-    if (typeof item.category === "string" && item.category.length > 0) categories.add(item.category);
+    if (typeof item.category === "string" && item.category.length > 0)
+      categories.add(item.category);
   }
   return [...categories].sort();
 }
@@ -60,7 +61,9 @@ export function badgeCount(
   pendingRead: readonly InboxItem[] = [],
 ): number {
   if (counters === null) return 0;
-  const lowered = pendingRead.filter((item) => (source === "unseen" ? !item.seen : !item.read)).length;
+  const lowered = pendingRead.filter((item) =>
+    source === "unseen" ? !item.seen : !item.read,
+  ).length;
   return Math.max(0, counters[source] - lowered);
 }
 
@@ -73,7 +76,15 @@ export function badgeText(count: number): string {
 export function snoozeTimes(now: Date): { hour: string; tomorrow: string; week: string } {
   const hour = new Date(now.getTime() + 3_600_000);
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0, 0, 0);
-  const daysToMonday = ((8 - now.getDay()) % 7) || 7;
-  const week = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToMonday, 9, 0, 0, 0);
+  const daysToMonday = (8 - now.getDay()) % 7 || 7;
+  const week = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + daysToMonday,
+    9,
+    0,
+    0,
+    0,
+  );
   return { hour: hour.toISOString(), tomorrow: tomorrow.toISOString(), week: week.toISOString() };
 }

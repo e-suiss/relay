@@ -43,7 +43,12 @@ export function demoRelay(): FakeRelay {
           { label: "Review", url: "https://access.example.com/approvals/77" },
         ],
       }),
-      fakeItem("inb_05", { title: "Sign-in from a new device", category: "security", read: true, seen: true }),
+      fakeItem("inb_05", {
+        title: "Sign-in from a new device",
+        category: "security",
+        read: true,
+        seen: true,
+      }),
     ],
     preferences: {
       object: "subscriber_preferences",
@@ -115,8 +120,18 @@ export function demoRelay(): FakeRelay {
       },
     },
     eventTypes: [
-      { object: "webhook_event_type", id: "wet_01", name: "order.created", description: "An order was placed." },
-      { object: "webhook_event_type", id: "wet_02", name: "order.shipped", description: "An order left the warehouse." },
+      {
+        object: "webhook_event_type",
+        id: "wet_01",
+        name: "order.created",
+        description: "An order was placed.",
+      },
+      {
+        object: "webhook_event_type",
+        id: "wet_02",
+        name: "order.shipped",
+        description: "An order left the warehouse.",
+      },
     ],
     endpoints: [
       {
@@ -129,7 +144,14 @@ export function demoRelay(): FakeRelay {
         disabled_reason: null,
         signature_scheme: "v1a",
         signing_keys: [
-          { id: "whk_01", scheme: "v1a", state: "active", public_key: "whpk_demo", activated_at: "2026-11-01T09:00:00Z", expires_at: null },
+          {
+            id: "whk_01",
+            scheme: "v1a",
+            state: "active",
+            public_key: "whpk_demo",
+            activated_at: "2026-11-01T09:00:00Z",
+            expires_at: null,
+          },
         ],
         managed_by: "tenant",
       },

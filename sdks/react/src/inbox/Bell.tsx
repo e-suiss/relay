@@ -8,7 +8,11 @@ import { badgeCount, badgeText, type BadgeSource } from "./view.js";
 export function useBadgeCount(source: BadgeSource = "unseen"): number {
   const { snapshot, pendingMarkAllRead } = useInboxState();
   if (snapshot === null) return 0;
-  return badgeCount(snapshot.counters, source, pendingReadItems(snapshot.items, pendingMarkAllRead));
+  return badgeCount(
+    snapshot.counters,
+    source,
+    pendingReadItems(snapshot.items, pendingMarkAllRead),
+  );
 }
 
 /** Props of {@link Bell}. */
@@ -52,7 +56,9 @@ function BellButton({
       {...(controls === undefined ? {} : { "aria-controls": controls })}
     >
       <BellIcon />
-      <span className="relay-sr-only">{count > 0 ? t("bell.label", { count: text }) : t("bell.labelNone")}</span>
+      <span className="relay-sr-only">
+        {count > 0 ? t("bell.label", { count: text }) : t("bell.labelNone")}
+      </span>
       {text === "" ? null : (
         <span className="relay-badge" aria-hidden="true" data-testid="relay-badge">
           {text}

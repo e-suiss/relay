@@ -52,7 +52,10 @@ export function fakeToken(typ: string, claims: Record<string, unknown> = {}): st
 }
 
 /** A complete inbox item with defaults for the fields a test does not care about. */
-export function fakeItem(id: string, fields: Partial<InboxItem> & Record<string, unknown> = {}): InboxItem {
+export function fakeItem(
+  id: string,
+  fields: Partial<InboxItem> & Record<string, unknown> = {},
+): InboxItem {
   return {
     object: "inbox_item",
     kind: "personal",
@@ -95,7 +98,10 @@ function str(value: unknown): string | null {
 function json(status: number, body: unknown): Response {
   return new Response(body === null ? null : JSON.stringify(body), {
     status,
-    headers: { "content-type": status >= 400 ? "application/problem+json" : "application/json", "request-id": "req_fake" },
+    headers: {
+      "content-type": status >= 400 ? "application/problem+json" : "application/json",
+      "request-id": "req_fake",
+    },
   });
 }
 
@@ -114,7 +120,12 @@ function problem(status: number, code: string, detail: string, errors: unknown[]
 function blockedHost(url: string): boolean {
   try {
     const host = new URL(url).hostname;
-    return host === "localhost" || /^(127|10)\./.test(host) || /^192\.168\./.test(host) || host.endsWith(".internal");
+    return (
+      host === "localhost" ||
+      /^(127|10)\./.test(host) ||
+      /^192\.168\./.test(host) ||
+      host.endsWith(".internal")
+    );
   } catch {
     return true;
   }
@@ -135,7 +146,13 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
       channels: [],
       workflows: [],
       scope_keys: [],
-      profile: { quiet_hours: [], schedule: [], dnd_until: null, quiet_hours_email: false, digest: {} },
+      profile: {
+        quiet_hours: [],
+        schedule: [],
+        dnd_until: null,
+        quiet_hours_email: false,
+        digest: {},
+      },
     },
     endpoints: [...(options.endpoints ?? [])],
     eventTypes: [...(options.eventTypes ?? [])],
@@ -193,18 +210,23 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
     const typ = (() => {
       try {
         const header = auth.replace(/^Bearer /, "").split(".")[0] ?? "";
-        return (JSON.parse(atob(header.replace(/-/g, "+").replace(/_/g, "/"))) as { typ?: string }).typ;
+        return (JSON.parse(atob(header.replace(/-/g, "+").replace(/_/g, "/"))) as { typ?: string })
+          .typ;
       } catch {
         return undefined;
       }
     })();
-    if (subscriber && typ !== "relay-subscriber+jwt") return problem(401, "auth_invalid_token", "A subscriber token is required.");
-    if (portal && typ !== "relay-webhook-portal+jwt") return problem(401, "auth_invalid_token", "A portal token is required.");
+    if (subscriber && typ !== "relay-subscriber+jwt")
+      return problem(401, "auth_invalid_token", "A subscriber token is required.");
+    if (portal && typ !== "relay-webhook-portal+jwt")
+      return problem(401, "auth_invalid_token", "A portal token is required.");
 
     if (path === "/v1/subscriber/inbox/counters" && method === "GET") return json(200, counters());
     if (path === "/v1/subscriber/inbox/items" && method === "GET") {
       const status = query.get("status") ?? "inbox";
-      const items = state.items.filter((item) => (status === "archived" ? item.archived && !item.hidden : visible(item)));
+      const items = state.items.filter((item) =>
+        status === "archived" ? item.archived && !item.hidden : visible(item),
+      );
       return json(200, {
         object: "list",
         data: items,
@@ -217,7 +239,9 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
     }
     if (segments[3] === "items" && segments.length === 5 && method === "GET") {
       const item = state.items.find((entry) => entry.id === segments[4]);
-      return item === undefined ? problem(404, "inbox_item_not_found", "No such item.") : json(200, item);
+      return item === undefined
+        ? problem(404, "inbox_item_not_found", "No such item.")
+        : json(200, item);
     }
     if (segments[3] === "items" && segments[5] === "intents" && method === "POST") {
       const itemId = segments[4] ?? "";
@@ -273,18 +297,36 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
       let updated = 0;
       for (const item of state.items) {
         const tags = Array.isArray(item.tags) ? (item.tags as string[]) : [];
-        if (visible(item) && !item.read && (filter.tag === undefined || tags.includes(filter.tag)) && (filter.category === undefined || item.category === filter.category)) {
+        if (
+          visible(item) &&
+          !item.read &&
+          (filter.tag === undefined || tags.includes(filter.tag)) &&
+          (filter.category === undefined || item.category === filter.category)
+        ) {
           update(item.id, { read: true, seen: true });
           updated += 1;
         }
       }
       bump();
-      return json(202, { object: "inbox_bulk_operation", id: id("ibk"), action: "read", state: "completed", matched: updated, updated });
+      return json(202, {
+        object: "inbox_bulk_operation",
+        id: id("ibk"),
+        action: "read",
+        state: "completed",
+        matched: updated,
+        updated,
+      });
     }
     if (path === "/v1/subscriber/inbox/changes" && method === "GET") {
       return json(200, {
         object: "inbox_changes",
-        changes: state.items.map((item) => ({ type: "created", item_id: item.id, state_version: item.state_version, cursor: "c", item })),
+        changes: state.items.map((item) => ({
+          type: "created",
+          item_id: item.id,
+          state_version: item.state_version,
+          cursor: "c",
+          item,
+        })),
         cursor: `c${state.countersVersion}`,
         has_more: false,
         truncated: false,
@@ -293,7 +335,11 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
       });
     }
     if (path === "/v1/subscriber/inbox/counters/inconsistency" && method === "POST") {
-      return json(200, { object: "inbox_reconciliation", result: "consistent", counters: counters() });
+      return json(200, {
+        object: "inbox_reconciliation",
+        result: "consistent",
+        counters: counters(),
+      });
     }
     if (segments[2] === "waitpoints" && segments[4] === "response" && method === "POST") {
       return json(200, {
@@ -304,41 +350,80 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
         responded_at: iso(),
       });
     }
-    if (path === "/v1/subscriber/preferences" && method === "GET") return json(200, state.preferences);
+    if (path === "/v1/subscriber/preferences" && method === "GET")
+      return json(200, state.preferences);
     if (path === "/v1/subscriber/preferences" && method === "PATCH") {
-      const prefs = state.preferences as { cells: Record<string, unknown>[]; channels: Record<string, unknown>[]; workflows: Record<string, unknown>[]; scope_keys: Record<string, unknown>[]; profile: Record<string, unknown> };
+      const prefs = state.preferences as {
+        cells: Record<string, unknown>[];
+        channels: Record<string, unknown>[];
+        workflows: Record<string, unknown>[];
+        scope_keys: Record<string, unknown>[];
+        profile: Record<string, unknown>;
+      };
       for (const write of (body?.preferences ?? []) as Record<string, string>[]) {
         if (write.level === "category_channel") {
-          const cell = prefs.cells.find((entry) => entry.category === write.category && entry.channel === write.channel);
-          if (cell?.locked === true && write.value === "opt_out") return problem(422, "preference_last_channel", "The last open channel of a locked category cannot be closed.");
+          const cell = prefs.cells.find(
+            (entry) => entry.category === write.category && entry.channel === write.channel,
+          );
+          if (cell?.locked === true && write.value === "opt_out")
+            return problem(
+              422,
+              "preference_last_channel",
+              "The last open channel of a locked category cannot be closed.",
+            );
           prefs.cells = prefs.cells.map((entry) =>
             entry.category === write.category && entry.channel === write.channel
-              ? { ...entry, value: write.value, effective: write.value !== "opt_out", source: "user" }
+              ? {
+                  ...entry,
+                  value: write.value,
+                  effective: write.value !== "opt_out",
+                  source: "user",
+                }
               : entry,
           );
         } else {
-          const listKey = write.level === "channel" ? "channels" : write.level === "workflow" ? "workflows" : "scope_keys";
-          const nameKey = write.level === "channel" ? "channel" : write.level === "workflow" ? "workflow" : "scope_key";
+          const listKey =
+            write.level === "channel"
+              ? "channels"
+              : write.level === "workflow"
+                ? "workflows"
+                : "scope_keys";
+          const nameKey =
+            write.level === "channel"
+              ? "channel"
+              : write.level === "workflow"
+                ? "workflow"
+                : "scope_key";
           const list = prefs[listKey];
           const name = write[nameKey];
           prefs[listKey] = list.some((entry) => entry[nameKey] === name)
-            ? list.map((entry) => (entry[nameKey] === name ? { ...entry, value: write.value } : entry))
+            ? list.map((entry) =>
+                entry[nameKey] === name ? { ...entry, value: write.value } : entry,
+              )
             : [...list, { [nameKey]: name, value: write.value }];
         }
       }
       const profile = body?.profile;
-      if (typeof profile === "object" && profile !== null) prefs.profile = { ...prefs.profile, ...(profile as Record<string, unknown>) };
+      if (typeof profile === "object" && profile !== null)
+        prefs.profile = { ...prefs.profile, ...(profile as Record<string, unknown>) };
       return json(200, state.preferences);
     }
 
-    const list = (data: unknown[]) => json(200, { object: "list", data, has_more: false, next_cursor: null });
-    if (path === "/v1/portal/webhook_event_types" && method === "GET") return list(state.eventTypes);
-    if (path === "/v1/portal/webhook_endpoints" && method === "GET") return list(state.endpoints.filter((endpoint) => endpoint.state !== "archived"));
+    const list = (data: unknown[]) =>
+      json(200, { object: "list", data, has_more: false, next_cursor: null });
+    if (path === "/v1/portal/webhook_event_types" && method === "GET")
+      return list(state.eventTypes);
+    if (path === "/v1/portal/webhook_endpoints" && method === "GET")
+      return list(state.endpoints.filter((endpoint) => endpoint.state !== "archived"));
     if (path === "/v1/portal/webhook_endpoints" && method === "POST") {
       const url = String(body?.url ?? "");
       if (blockedHost(url)) {
         return problem(422, "webhook_endpoint_url_not_allowed", "Endpoint address is not allowed", [
-          { pointer: "/url", code: "address_blocked", detail: "the host resolves to a private address" },
+          {
+            pointer: "/url",
+            code: "address_blocked",
+            detail: "the host resolves to a private address",
+          },
         ]);
       }
       const endpoint = {
@@ -350,7 +435,16 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
         state: "active",
         disabled_reason: null,
         signature_scheme: "v1a",
-        signing_keys: [{ id: id("whk"), scheme: "v1a", state: "active", public_key: "whpk_fake", activated_at: iso(), expires_at: null }],
+        signing_keys: [
+          {
+            id: id("whk"),
+            scheme: "v1a",
+            state: "active",
+            public_key: "whpk_fake",
+            activated_at: iso(),
+            expires_at: null,
+          },
+        ],
         managed_by: "tenant",
       };
       state.endpoints = [endpoint, ...state.endpoints];
@@ -359,7 +453,8 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
     if (segments[2] === "webhook_endpoints" && segments.length >= 4) {
       const endpointId = segments[3];
       const endpoint = state.endpoints.find((entry) => entry.id === endpointId);
-      if (endpoint === undefined) return problem(404, "webhook_endpoint_not_found", "No such endpoint.");
+      if (endpoint === undefined)
+        return problem(404, "webhook_endpoint_not_found", "No such endpoint.");
       const action = segments[4];
       const replace = (next: Record<string, unknown>) => {
         state.endpoints = state.endpoints.map((entry) => (entry.id === endpointId ? next : entry));
@@ -369,9 +464,18 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
       if (action === undefined && method === "PATCH") {
         const newUrl = str(body?.url);
         if (newUrl !== null && blockedHost(newUrl)) {
-          return problem(422, "webhook_endpoint_url_not_allowed", "Endpoint address is not allowed", [
-            { pointer: "/url", code: "address_blocked", detail: "the host resolves to a private address" },
-          ]);
+          return problem(
+            422,
+            "webhook_endpoint_url_not_allowed",
+            "Endpoint address is not allowed",
+            [
+              {
+                pointer: "/url",
+                code: "address_blocked",
+                detail: "the host resolves to a private address",
+              },
+            ],
+          );
         }
         const next = { ...endpoint, ...(body ?? {}) } as Record<string, unknown>;
         if (newUrl !== null) next.destination = { kind: "https", url: newUrl, auth: "none" };
@@ -381,7 +485,12 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
         return json(200, replace(next));
       }
       if (action === "archive") return json(200, replace({ ...endpoint, state: "archived" }));
-      if (action === "rotate_key") return json(200, { ...endpoint, secret: null, previous_key_expires_at: new Date(now() + 86_400_000).toISOString() });
+      if (action === "rotate_key")
+        return json(200, {
+          ...endpoint,
+          secret: null,
+          previous_key_expires_at: new Date(now() + 86_400_000).toISOString(),
+        });
       if (action === "health") {
         return json(200, {
           object: "webhook_endpoint_health",
@@ -402,8 +511,26 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
           recent_failures: [{ code: "http_5xx", count: 2, last_at: iso() }],
         });
       }
-      if (action === "test") return json(201, { object: "webhook_message", id: id("whm"), endpoint_id: endpointId, event_type: "webhook_endpoint.tested", state: "pending", attempt_count: 0, next_attempt_at: null, created_at: iso() });
-      if (action === "recover") return json(200, { object: "webhook_recovery", operation: "recover", endpoint_id: endpointId, selected: state.messages.filter((message) => message.endpoint_id === endpointId && message.state !== "delivered").length });
+      if (action === "test")
+        return json(201, {
+          object: "webhook_message",
+          id: id("whm"),
+          endpoint_id: endpointId,
+          event_type: "webhook_endpoint.tested",
+          state: "pending",
+          attempt_count: 0,
+          next_attempt_at: null,
+          created_at: iso(),
+        });
+      if (action === "recover")
+        return json(200, {
+          object: "webhook_recovery",
+          operation: "recover",
+          endpoint_id: endpointId,
+          selected: state.messages.filter(
+            (message) => message.endpoint_id === endpointId && message.state !== "delivered",
+          ).length,
+        });
     }
     if (path === "/v1/portal/webhook_messages" && method === "GET") {
       const filtered = state.messages.filter(
@@ -414,10 +541,12 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
       );
       return list(filtered);
     }
-    if (segments[2] === "webhook_messages" && segments[4] === "attempts" && method === "GET") return list(state.attempts[segments[3] ?? ""] ?? []);
+    if (segments[2] === "webhook_messages" && segments[4] === "attempts" && method === "GET")
+      return list(state.attempts[segments[3] ?? ""] ?? []);
     if (segments[2] === "webhook_messages" && segments[4] === "resend" && method === "POST") {
       const message = state.messages.find((entry) => entry.id === segments[3]);
-      if (message === undefined) return problem(404, "webhook_message_not_found", "No such message.");
+      if (message === undefined)
+        return problem(404, "webhook_message_not_found", "No such message.");
       return json(200, { ...message, state: "in_flight" });
     }
     return problem(404, "not_found", `The fake does not answer ${method} ${path}.`);
@@ -430,7 +559,10 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
       method: init?.method ?? "GET",
       path: url.pathname,
       query: url.searchParams,
-      body: typeof init?.body === "string" && init.body.length > 0 ? (JSON.parse(init.body) as Record<string, unknown>) : null,
+      body:
+        typeof init?.body === "string" && init.body.length > 0
+          ? (JSON.parse(init.body) as Record<string, unknown>)
+          : null,
       authorization: headers.get("authorization"),
     };
     requests.push(request);
@@ -439,7 +571,11 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
 
   return {
     fetch,
-    token: () => fakeToken("relay-subscriber+jwt", { sub: "sub_fake", scope: "inbox:read inbox:write preferences" }),
+    token: () =>
+      fakeToken("relay-subscriber+jwt", {
+        sub: "sub_fake",
+        scope: "inbox:read inbox:write preferences",
+      }),
     portalToken: () => fakeToken("relay-webhook-portal+jwt", { sub: "whc_fake" }),
     state,
     requests,

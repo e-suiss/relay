@@ -53,7 +53,11 @@ export {
   type InboxFilter,
 } from "./inbox/view.js";
 export { PortalApi, httpsUrl, type PortalEndpoint, type PortalMessage } from "./portal/api.js";
-export { WebhookPortal, WebhookPortalPanel, type WebhookPortalProps } from "./portal/WebhookPortal.js";
+export {
+  WebhookPortal,
+  WebhookPortalPanel,
+  type WebhookPortalProps,
+} from "./portal/WebhookPortal.js";
 export {
   applyPatch,
   categoryRows,

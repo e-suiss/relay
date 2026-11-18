@@ -16,8 +16,12 @@ describe("X-32 narrow tokens only", () => {
   it("X-32 refuses an Access token, a secret and the other narrow token", () => {
     expect(() => assertNarrowToken("subscriber", fakeToken("at+jwt"))).toThrow(RelayUsageError);
     expect(() => assertNarrowToken("subscriber", "whsec_c2VjcmV0")).toThrow(RelayUsageError);
-    expect(() => assertNarrowToken("subscriber", fakeToken("relay-webhook-portal+jwt"))).toThrow(RelayUsageError);
-    expect(() => assertNarrowToken("portal", fakeToken("relay-subscriber+jwt"))).toThrow(RelayUsageError);
+    expect(() => assertNarrowToken("subscriber", fakeToken("relay-webhook-portal+jwt"))).toThrow(
+      RelayUsageError,
+    );
+    expect(() => assertNarrowToken("portal", fakeToken("relay-subscriber+jwt"))).toThrow(
+      RelayUsageError,
+    );
   });
 
   it("X-32 a wide token never leaves the browser", async () => {

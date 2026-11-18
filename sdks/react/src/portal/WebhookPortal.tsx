@@ -1,5 +1,13 @@
 import { RelayApiError } from "@esuiss/relay/browser";
-import { useCallback, useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { RelayRoot, useRelay } from "../context.js";
 import type { MessageKey } from "../i18n/index.js";
 import { glyphs, StatusGlyph } from "../icons.js";
@@ -24,7 +32,13 @@ type Flash = { readonly error: boolean; readonly text: string } | null;
 
 function stateGlyph(state: string): string {
   if (state === "active" || state === "delivered") return glyphs.done;
-  if (state === "disabled" || state === "archived" || state === "failed_permanent" || state === "exhausted") return glyphs.off;
+  if (
+    state === "disabled" ||
+    state === "archived" ||
+    state === "failed_permanent" ||
+    state === "exhausted"
+  )
+    return glyphs.off;
   if (state === "paused" || state === "held") return glyphs.stopped;
   return glyphs.pending;
 }
@@ -45,7 +59,9 @@ function EndpointForm({
   const { t } = useRelay();
   const [url, setUrl] = useState(endpoint?.destination.url ?? "");
   const [description, setDescription] = useState(endpoint?.description ?? "");
-  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set(endpoint?.event_types ?? []));
+  const [selected, setSelected] = useState<ReadonlySet<string>>(
+    new Set(endpoint?.event_types ?? []),
+  );
   const [urlError, setUrlError] = useState<string | null>(null);
   const [typesError, setTypesError] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -67,15 +83,30 @@ function EndpointForm({
     const types = [...selected];
     const request =
       endpoint === null
-        ? api.create({ url: trimmed, event_types: types, ...(description.trim() === "" ? {} : { description: description.trim() }) })
-        : api.update(endpoint.id, { url: trimmed, event_types: types, description: description.trim() === "" ? null : description.trim() });
+        ? api.create({
+            url: trimmed,
+            event_types: types,
+            ...(description.trim() === "" ? {} : { description: description.trim() }),
+          })
+        : api.update(endpoint.id, {
+            url: trimmed,
+            event_types: types,
+            description: description.trim() === "" ? null : description.trim(),
+          });
     request
       .then((result) => onDone(result, t("common.saved")))
       .catch((error: unknown) => {
         if (error instanceof RelayApiError && error.code === "webhook_endpoint_url_not_allowed") {
           const reason = error.fieldErrors[0]?.detail ?? error.problem?.detail;
-          setUrlError(reason === undefined ? t("portal.urlNotAllowedGeneric") : t("portal.urlNotAllowed", { reason }));
-        } else if (error instanceof RelayApiError && error.code === "webhook_endpoint_limit_reached") {
+          setUrlError(
+            reason === undefined
+              ? t("portal.urlNotAllowedGeneric")
+              : t("portal.urlNotAllowed", { reason }),
+          );
+        } else if (
+          error instanceof RelayApiError &&
+          error.code === "webhook_endpoint_limit_reached"
+        ) {
           setFormError(t("portal.limitReached"));
         } else {
           setFormError(t("common.error"));
@@ -94,7 +125,9 @@ function EndpointForm({
 
   return (
     <form className="relay-card" onSubmit={submit} noValidate data-testid="relay-endpoint-form">
-      <h3 className="relay-subheading">{endpoint === null ? t("portal.addEndpoint") : t("portal.editEndpoint")}</h3>
+      <h3 className="relay-subheading">
+        {endpoint === null ? t("portal.addEndpoint") : t("portal.editEndpoint")}
+      </h3>
       <div className="relay-field">
         <label htmlFor={urlId}>{t("portal.url")}</label>
         <input
@@ -145,10 +178,16 @@ function EndpointForm({
             {eventTypes.map((type) => (
               <li key={type.id}>
                 <label>
-                  <input type="checkbox" checked={selected.has(type.name)} onChange={() => toggle(type.name)} />
+                  <input
+                    type="checkbox"
+                    checked={selected.has(type.name)}
+                    onChange={() => toggle(type.name)}
+                  />
                   <span>
                     <span className="relay-code">{type.name}</span>
-                    {type.description === null ? null : <span className="relay-muted"> {type.description}</span>}
+                    {type.description === null ? null : (
+                      <span className="relay-muted"> {type.description}</span>
+                    )}
                   </span>
                 </label>
               </li>
@@ -187,24 +226,41 @@ function HealthPanel({ health }: { readonly health: PortalHealth }): ReactNode {
           ? t("portal.noAttempts")
           : t("portal.successRate", { rate: `${(health.success_rate_bp / 100).toFixed(1)}%` })}
       </p>
-      {health.latency_ms === null ? null : <p>{t("portal.latency", { ms: health.latency_ms.p95 })}</p>}
-      <p>{t("portal.lastSuccess", { time: health.last_success_at === null ? t("common.never") : formatTime(health.last_success_at) })}</p>
+      {health.latency_ms === null ? null : (
+        <p>{t("portal.latency", { ms: health.latency_ms.p95 })}</p>
+      )}
+      <p>
+        {t("portal.lastSuccess", {
+          time:
+            health.last_success_at === null
+              ? t("common.never")
+              : formatTime(health.last_success_at),
+        })}
+      </p>
       {health.failing_since === null ? null : (
         <p className="relay-status">
           <StatusGlyph glyph={glyphs.warning} />
           {t("portal.failingSince", { time: formatTime(health.failing_since) })}
         </p>
       )}
-      {health.disable_at === null ? null : <p>{t("portal.disableAt", { time: formatTime(health.disable_at) })}</p>}
+      {health.disable_at === null ? null : (
+        <p>{t("portal.disableAt", { time: formatTime(health.disable_at) })}</p>
+      )}
       <p>{t("portal.backlog", { waiting: health.backlog.waiting, held: health.backlog.held })}</p>
-      <p>{t("portal.breaker", { state: t(`portal.breaker.${health.breaker.state}` as MessageKey) })}</p>
+      <p>
+        {t("portal.breaker", { state: t(`portal.breaker.${health.breaker.state}` as MessageKey) })}
+      </p>
       {health.recent_failures.length === 0 ? null : (
         <>
           <p className="relay-label">{t("portal.recentFailures")}</p>
           <ul>
             {health.recent_failures.map((failure) => (
               <li key={failure.code}>
-                {t("portal.failure", { code: failure.code, count: failure.count, time: formatTime(failure.last_at) })}
+                {t("portal.failure", {
+                  code: failure.code,
+                  count: failure.count,
+                  time: formatTime(failure.last_at),
+                })}
               </li>
             ))}
           </ul>
@@ -245,7 +301,8 @@ function EndpointCard({
     setShowHealth(next);
     if (next) api.health(endpoint.id).then(setHealth).catch(fail);
   };
-  const setState = (state: "active" | "disabled") => api.update(endpoint.id, { state }).then(onChanged).catch(fail);
+  const setState = (state: "active" | "disabled") =>
+    api.update(endpoint.id, { state }).then(onChanged).catch(fail);
   const rotate = () =>
     api
       .rotate(endpoint.id)
@@ -255,7 +312,10 @@ function EndpointCard({
         flash({
           error: false,
           text: t("portal.rotated", {
-            time: result.previous_key_expires_at === null ? t("common.never") : formatTime(result.previous_key_expires_at),
+            time:
+              result.previous_key_expires_at === null
+                ? t("common.never")
+                : formatTime(result.previous_key_expires_at),
           }),
         });
       })
@@ -272,8 +332,14 @@ function EndpointCard({
     if (Number.isNaN(from)) return;
     const to = until === "" ? undefined : Date.parse(until);
     api
-      .recover(endpoint.id, new Date(from).toISOString(), to === undefined || Number.isNaN(to) ? undefined : new Date(to).toISOString())
-      .then((result) => flash({ error: false, text: t("portal.recovered", { count: result.selected }) }))
+      .recover(
+        endpoint.id,
+        new Date(from).toISOString(),
+        to === undefined || Number.isNaN(to) ? undefined : new Date(to).toISOString(),
+      )
+      .then((result) =>
+        flash({ error: false, text: t("portal.recovered", { count: result.selected }) }),
+      )
       .catch(fail);
   };
 
@@ -287,11 +353,16 @@ function EndpointCard({
       </p>
       {endpoint.disabled_reason === null ? null : (
         <p data-testid="relay-disabled-reason">
-          {t("portal.disabledReason", { reason: t(`portal.disabledReason.${endpoint.disabled_reason}` as MessageKey) })}
+          {t("portal.disabledReason", {
+            reason: t(`portal.disabledReason.${endpoint.disabled_reason}` as MessageKey),
+          })}
         </p>
       )}
       <p className="relay-muted">
-        {t("portal.eventTypes")}: {endpoint.event_types.map((type) => (type === "*" ? t("portal.allEventTypes") : type)).join(", ")}
+        {t("portal.eventTypes")}:{" "}
+        {endpoint.event_types
+          .map((type) => (type === "*" ? t("portal.allEventTypes") : type))
+          .join(", ")}
       </p>
       {activeKey === null || activeKey.public_key === null ? null : (
         <p>
@@ -304,7 +375,11 @@ function EndpointCard({
           <span>{t("portal.secretOnce")}</span>
           <span className="relay-label">{t("portal.secretLabel")}: </span>
           <span className="relay-code">{secret}</span>
-          <button type="button" className="relay-button relay-button-small" onClick={() => setSecret(null)}>
+          <button
+            type="button"
+            className="relay-button relay-button-small"
+            onClick={() => setSecret(null)}
+          >
             {t("common.close")}
           </button>
         </div>
@@ -312,23 +387,43 @@ function EndpointCard({
       {endpoint.state === "archived" ? null : (
         <div className="relay-row">
           {managed ? null : (
-            <button type="button" className="relay-button relay-button-small" onClick={() => onEdit(endpoint)}>
+            <button
+              type="button"
+              className="relay-button relay-button-small"
+              onClick={() => onEdit(endpoint)}
+            >
               {t("portal.edit")}
             </button>
           )}
           {managed ? null : endpoint.state === "disabled" ? (
-            <button type="button" className="relay-button relay-button-small" onClick={() => void setState("active")}>
+            <button
+              type="button"
+              className="relay-button relay-button-small"
+              onClick={() => void setState("active")}
+            >
               {t("portal.enable")}
             </button>
           ) : (
-            <button type="button" className="relay-button relay-button-small" onClick={() => void setState("disabled")}>
+            <button
+              type="button"
+              className="relay-button relay-button-small"
+              onClick={() => void setState("disabled")}
+            >
               {t("portal.disable")}
             </button>
           )}
-          <button type="button" className="relay-button relay-button-small" onClick={() => void rotate()}>
+          <button
+            type="button"
+            className="relay-button relay-button-small"
+            onClick={() => void rotate()}
+          >
             {t("portal.rotate")}
           </button>
-          <button type="button" className="relay-button relay-button-small" onClick={() => void test()}>
+          <button
+            type="button"
+            className="relay-button relay-button-small"
+            onClick={() => void test()}
+          >
             {t("portal.test")}
           </button>
           <button
@@ -341,13 +436,19 @@ function EndpointCard({
             {t("portal.health")}
           </button>
           {managed ? null : (
-            <button type="button" className="relay-button relay-button-small" onClick={() => void archive()}>
+            <button
+              type="button"
+              className="relay-button relay-button-small"
+              onClick={() => void archive()}
+            >
               {t("portal.archive")}
             </button>
           )}
         </div>
       )}
-      <div id={healthId}>{showHealth && health !== null ? <HealthPanel health={health} /> : null}</div>
+      <div id={healthId}>
+        {showHealth && health !== null ? <HealthPanel health={health} /> : null}
+      </div>
       {endpoint.state === "archived" ? null : (
         <form className="relay-dialog" onSubmit={recover} aria-labelledby={recoverId}>
           <p className="relay-label" id={recoverId}>
@@ -357,11 +458,22 @@ function EndpointCard({
           <div className="relay-row">
             <label className="relay-field">
               <span>{t("portal.since")}</span>
-              <input className="relay-input" type="datetime-local" value={since} onChange={(event) => setSince(event.target.value)} required />
+              <input
+                className="relay-input"
+                type="datetime-local"
+                value={since}
+                onChange={(event) => setSince(event.target.value)}
+                required
+              />
             </label>
             <label className="relay-field">
               <span>{t("portal.until")}</span>
-              <input className="relay-input" type="datetime-local" value={until} onChange={(event) => setUntil(event.target.value)} />
+              <input
+                className="relay-input"
+                type="datetime-local"
+                value={until}
+                onChange={(event) => setUntil(event.target.value)}
+              />
             </label>
             <button type="submit" className="relay-button relay-button-small">
               {t("portal.recover")}
@@ -373,7 +485,15 @@ function EndpointCard({
   );
 }
 
-function MessageRow({ api, message, flash }: { readonly api: PortalApi; readonly message: PortalMessage; readonly flash: (flash: Flash) => void }): ReactNode {
+function MessageRow({
+  api,
+  message,
+  flash,
+}: {
+  readonly api: PortalApi;
+  readonly message: PortalMessage;
+  readonly flash: (flash: Flash) => void;
+}): ReactNode {
   const { t, formatTime } = useRelay();
   const [attempts, setAttempts] = useState<PortalAttempt[] | null>(null);
   const [open, setOpen] = useState(false);
@@ -381,7 +501,11 @@ function MessageRow({ api, message, flash }: { readonly api: PortalApi; readonly
   const toggle = () => {
     const next = !open;
     setOpen(next);
-    if (next && attempts === null) api.attempts(message.id).then(setAttempts).catch(() => flash({ error: true, text: t("common.error") }));
+    if (next && attempts === null)
+      api
+        .attempts(message.id)
+        .then(setAttempts)
+        .catch(() => flash({ error: true, text: t("common.error") }));
   };
   const resend = () =>
     api
@@ -390,7 +514,10 @@ function MessageRow({ api, message, flash }: { readonly api: PortalApi; readonly
       .catch((error: unknown) =>
         flash({
           error: true,
-          text: error instanceof RelayApiError && error.code === "webhook_message_in_flight" ? t("portal.inFlight") : t("common.error"),
+          text:
+            error instanceof RelayApiError && error.code === "webhook_message_in_flight"
+              ? t("portal.inFlight")
+              : t("common.error"),
         }),
       );
   return (
@@ -403,13 +530,25 @@ function MessageRow({ api, message, flash }: { readonly api: PortalApi; readonly
           time: formatTime(message.created_at),
         })}
       </p>
-      {message.next_attempt_at === null ? null : <p>{t("portal.nextAttempt", { time: formatTime(message.next_attempt_at) })}</p>}
+      {message.next_attempt_at === null ? null : (
+        <p>{t("portal.nextAttempt", { time: formatTime(message.next_attempt_at) })}</p>
+      )}
       <div className="relay-row">
-        <button type="button" className="relay-button relay-button-small" aria-expanded={open} aria-controls={attemptsId} onClick={toggle}>
+        <button
+          type="button"
+          className="relay-button relay-button-small"
+          aria-expanded={open}
+          aria-controls={attemptsId}
+          onClick={toggle}
+        >
           {t("portal.attempts")}
         </button>
         {message.state === "delivered" ? null : (
-          <button type="button" className="relay-button relay-button-small" onClick={() => void resend()}>
+          <button
+            type="button"
+            className="relay-button relay-button-small"
+            onClick={() => void resend()}
+          >
             {t("portal.resend")}
           </button>
         )}
@@ -426,10 +565,15 @@ function MessageRow({ api, message, flash }: { readonly api: PortalApi; readonly
                 {attempt.response_status === null ? null : (
                   <span className="relay-muted">
                     {" "}
-                    {t("portal.attemptDetail", { status: attempt.response_status, ms: attempt.duration_ms ?? 0 })}
+                    {t("portal.attemptDetail", {
+                      status: attempt.response_status,
+                      ms: attempt.duration_ms ?? 0,
+                    })}
                   </span>
                 )}
-                {attempt.failure_code === null ? null : <span className="relay-code"> {attempt.failure_code}</span>}
+                {attempt.failure_code === null ? null : (
+                  <span className="relay-code"> {attempt.failure_code}</span>
+                )}
               </li>
             ))}
           </ol>
@@ -462,7 +606,9 @@ function DeliveryLog({
       api
         .messages(filter, from)
         .then((result) => {
-          setMessages((current) => (from === null ? [...result.data] : [...current, ...result.data]));
+          setMessages((current) =>
+            from === null ? [...result.data] : [...current, ...result.data],
+          );
           setCursor(result.has_more ? result.next_cursor : null);
         })
         .catch(() => flash({ error: true, text: t("common.error") }))
@@ -487,7 +633,11 @@ function DeliveryLog({
       <div className="relay-row">
         <label className="relay-field">
           <span>{t("portal.filterEndpoint")}</span>
-          <select className="relay-select" value={filter.endpoint_id ?? ""} onChange={(event) => select("endpoint_id", event.target.value)}>
+          <select
+            className="relay-select"
+            value={filter.endpoint_id ?? ""}
+            onChange={(event) => select("endpoint_id", event.target.value)}
+          >
             <option value="">{t("common.any")}</option>
             {endpoints.map((endpoint) => (
               <option key={endpoint.id} value={endpoint.id}>
@@ -498,7 +648,11 @@ function DeliveryLog({
         </label>
         <label className="relay-field">
           <span>{t("portal.filterState")}</span>
-          <select className="relay-select" value={filter.state ?? ""} onChange={(event) => select("state", event.target.value)}>
+          <select
+            className="relay-select"
+            value={filter.state ?? ""}
+            onChange={(event) => select("state", event.target.value)}
+          >
             <option value="">{t("common.any")}</option>
             {messageStates.map((state) => (
               <option key={state} value={state}>
@@ -509,7 +663,11 @@ function DeliveryLog({
         </label>
         <label className="relay-field">
           <span>{t("portal.filterEvent")}</span>
-          <select className="relay-select" value={filter.event_type ?? ""} onChange={(event) => select("event_type", event.target.value)}>
+          <select
+            className="relay-select"
+            value={filter.event_type ?? ""}
+            onChange={(event) => select("event_type", event.target.value)}
+          >
             <option value="">{t("common.any")}</option>
             {eventTypes.map((type) => (
               <option key={type.id} value={type.name}>
@@ -587,7 +745,9 @@ export function WebhookPortalPanel({ headingLevel = 2 }: WebhookPortalProps): Re
         </Heading>
       </div>
       <div role="status" aria-live="polite" data-testid="relay-portal-status">
-        {message === null ? null : <p className={message.error ? "relay-error" : "relay-success"}>{message.text}</p>}
+        {message === null ? null : (
+          <p className={message.error ? "relay-error" : "relay-success"}>{message.text}</p>
+        )}
       </div>
       {failed ? (
         <div className="relay-notice" role="alert">
@@ -599,7 +759,11 @@ export function WebhookPortalPanel({ headingLevel = 2 }: WebhookPortalProps): Re
       ) : null}
       <h3 className="relay-subheading">{t("portal.endpoints")}</h3>
       {editing === null ? (
-        <button type="button" className="relay-button relay-button-primary" onClick={() => setEditing("new")}>
+        <button
+          type="button"
+          className="relay-button relay-button-primary"
+          onClick={() => setEditing("new")}
+        >
           {t("portal.addEndpoint")}
         </button>
       ) : (
@@ -627,7 +791,14 @@ export function WebhookPortalPanel({ headingLevel = 2 }: WebhookPortalProps): Re
       ) : (
         <ul className="relay-list">
           {endpoints.map((endpoint) => (
-            <EndpointCard key={endpoint.id} api={api} endpoint={endpoint} onChanged={replace} onEdit={setEditing} flash={flash} />
+            <EndpointCard
+              key={endpoint.id}
+              api={api}
+              endpoint={endpoint}
+              onChanged={replace}
+              onEdit={setEditing}
+              flash={flash}
+            />
           ))}
         </ul>
       )}

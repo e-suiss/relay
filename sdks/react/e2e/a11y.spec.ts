@@ -5,12 +5,19 @@ const wcag = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 async function audit(page: Page): Promise<void> {
   const result = await new AxeBuilder({ page }).withTags(wcag).analyze();
-  expect(result.violations.map((violation) => `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`)).toEqual([]);
+  expect(
+    result.violations.map(
+      (violation) =>
+        `${violation.id}: ${violation.nodes.map((node) => node.target.join(" ")).join(", ")}`,
+    ),
+  ).toEqual([]);
 }
 
 for (const locale of ["en", "tr"]) {
   for (const scheme of ["light", "dark"]) {
-    test(`X-32 WCAG 2.2 AA inbox, preferences and portal (${locale}, ${scheme})`, async ({ page }) => {
+    test(`X-32 WCAG 2.2 AA inbox, preferences and portal (${locale}, ${scheme})`, async ({
+      page,
+    }) => {
       await page.goto(`/demo/?locale=${locale}&scheme=${scheme}`);
       await expect(page.getByTestId("relay-inbox-item").first()).toBeVisible();
       await expect(page.getByTestId("relay-preference-matrix")).toBeVisible();
@@ -21,7 +28,9 @@ for (const locale of ["en", "tr"]) {
   }
 }
 
-test("X-32 WCAG 2.2 AA with the open inbox, the three choices and a portal error", async ({ page }) => {
+test("X-32 WCAG 2.2 AA with the open inbox, the three choices and a portal error", async ({
+  page,
+}) => {
   await page.goto("/demo/?locale=en&scheme=light");
   await page.locator(".relay-bell").first().click();
   await expect(page.locator("[data-testid=relay-inbox-item]").first()).toBeVisible();
@@ -32,7 +41,11 @@ test("X-32 WCAG 2.2 AA with the open inbox, the three choices and a portal error
   await page.getByRole("checkbox", { name: /order.created/ }).check();
   await page.getByTestId("relay-endpoint-form").getByRole("button", { name: "Save" }).click();
   await expect(page.getByTestId("relay-url-error")).toBeVisible();
-  await page.getByTestId("relay-inbox-item").first().getByRole("button", { name: "Snooze" }).click();
+  await page
+    .getByTestId("relay-inbox-item")
+    .first()
+    .getByRole("button", { name: "Snooze" })
+    .click();
   await audit(page);
 });
 

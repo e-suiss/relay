@@ -18,7 +18,9 @@ const scheme = (params.get("scheme") ?? "light") as ColorScheme;
 const view = params.get("view") ?? "all";
 const relay = demoRelay();
 const consents = (): Promise<readonly ConsentView[] | null> =>
-  Promise.resolve(params.get("consents") === "none" ? null : [{ channel: "email", status: "none" }]);
+  Promise.resolve(
+    params.get("consents") === "none" ? null : [{ channel: "email", status: "none" }],
+  );
 document.documentElement.lang = locale;
 document.body.style.margin = "0";
 document.body.style.background = scheme === "dark" ? "#111418" : "#ffffff";
@@ -44,7 +46,13 @@ function Demo() {
         onOpenPreferences: (category) => setFocus(category),
       }}
     >
-      <h1 style={{ fontFamily: "system-ui", padding: "0 16px", color: scheme === "dark" ? "#f1f3f5" : "#1b1f24" }}>
+      <h1
+        style={{
+          fontFamily: "system-ui",
+          padding: "0 16px",
+          color: scheme === "dark" ? "#f1f3f5" : "#1b1f24",
+        }}
+      >
         Relay components
       </h1>
       <div style={{ padding: "0 16px", display: "grid", gap: "24px" }}>

@@ -4,7 +4,13 @@ import { RelayRoot, useInboxState, useRelay } from "../context.js";
 import { Bell } from "./Bell.js";
 import { InboxItemView } from "./InboxItemView.js";
 import { commitMarkAllRead, pressMarkAllRead, withPendingRead } from "./mark-all-read.js";
-import { allItems, categoriesOf, visibleItems, type BadgeSource, type InboxFilter } from "./view.js";
+import {
+  allItems,
+  categoriesOf,
+  visibleItems,
+  type BadgeSource,
+  type InboxFilter,
+} from "./view.js";
 
 /** A message under the list, with an undo when the action can still be taken back. */
 interface Notice {
@@ -54,7 +60,12 @@ export function InboxPanel({
   useEffect(() => {
     if (inbox === null) return;
     const unsubscribe = inbox.onNotice((event: InboxNotice) => {
-      setNotice({ text: event.type === "updated_elsewhere" ? t("inbox.updatedElsewhere") : t("inbox.actionFailed") });
+      setNotice({
+        text:
+          event.type === "updated_elsewhere"
+            ? t("inbox.updatedElsewhere")
+            : t("inbox.actionFailed"),
+      });
     });
     return () => {
       unsubscribe();
@@ -63,7 +74,10 @@ export function InboxPanel({
 
   useEffect(() => {
     if (notice === null) return;
-    const timer = setTimeout(() => setNotice((current) => (current === notice ? null : current)), runtime.undoWindowMs + 1000);
+    const timer = setTimeout(
+      () => setNotice((current) => (current === notice ? null : current)),
+      runtime.undoWindowMs + 1000,
+    );
     return () => clearTimeout(timer);
   }, [notice, runtime]);
 
@@ -82,7 +96,13 @@ export function InboxPanel({
   }, [inbox, shown]);
 
   const markAllRead = () => {
-    if (inbox === null || snapshot === null || pendingMarkAllRead !== null || runtime.subscriber === null) return;
+    if (
+      inbox === null ||
+      snapshot === null ||
+      pendingMarkAllRead !== null ||
+      runtime.subscriber === null
+    )
+      return;
     const client = runtime.subscriber;
     const pending = pressMarkAllRead(snapshot.items, filter, Date.now());
     if (pending.itemIds.size === 0) return;
@@ -223,7 +243,11 @@ export function InboxPanel({
           <div className="relay-notice">
             <span>{notice.text}</span>
             {notice.undo === undefined ? null : (
-              <button type="button" className="relay-button relay-button-small" onClick={notice.undo}>
+              <button
+                type="button"
+                className="relay-button relay-button-small"
+                onClick={notice.undo}
+              >
                 {t("inbox.undo")}
               </button>
             )}
@@ -233,7 +257,11 @@ export function InboxPanel({
       {error === null ? null : (
         <div className="relay-notice" role="alert">
           <span className="relay-error">{t("common.error")}</span>
-          <button type="button" className="relay-button relay-button-small" onClick={() => runtime.retryInbox()}>
+          <button
+            type="button"
+            className="relay-button relay-button-small"
+            onClick={() => runtime.retryInbox()}
+          >
             {t("common.retry")}
           </button>
         </div>
@@ -243,9 +271,11 @@ export function InboxPanel({
           {t("common.loading")}
         </p>
       ) : shown.length === 0 && error === null ? (
-        <p className="relay-muted">{filter.category === null && filter.tag === null && !filter.unreadOnly
+        <p className="relay-muted">
+          {filter.category === null && filter.tag === null && !filter.unreadOnly
             ? t("inbox.empty")
-            : t("inbox.emptyFiltered")}</p>
+            : t("inbox.emptyFiltered")}
+        </p>
       ) : (
         <ul className="relay-list" aria-labelledby={headingId}>
           {shown.map((item) => (

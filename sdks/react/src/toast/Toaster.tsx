@@ -17,7 +17,9 @@ export interface ToasterProps {
 
 /** The ids of new items: unknown before, unread and in the list now. */
 export function newItemIds(known: ReadonlySet<string>, items: readonly InboxItem[]): string[] {
-  return items.filter((item) => !known.has(item.id) && !item.read && !item.hidden).map((item) => item.id);
+  return items
+    .filter((item) => !known.has(item.id) && !item.read && !item.hidden)
+    .map((item) => item.id);
 }
 
 function ToastView({
@@ -38,7 +40,8 @@ function ToastView({
     const timer = setTimeout(onDismiss, durationMs);
     return () => clearTimeout(timer);
   }, [paused, durationMs, onDismiss]);
-  const title = typeof item.title === "string" && item.title.length > 0 ? item.title : t("inbox.untitled");
+  const title =
+    typeof item.title === "string" && item.title.length > 0 ? item.title : t("inbox.untitled");
   const body = typeof item.body === "string" && item.body.length > 0 ? item.body : null;
   const url = safeUrl(item.url);
   return (
@@ -113,7 +116,13 @@ export function Toaster({ durationMs = 8000, max = 3, onOpen }: ToasterProps): R
       <div className="relay-toaster" role="region" aria-label={t("toast.region")}>
         <div aria-live="polite" aria-atomic="false">
           {toasts.map((item) => (
-            <ToastItem key={item.id} item={item} durationMs={durationMs} onDismiss={dismiss} onOpen={open} />
+            <ToastItem
+              key={item.id}
+              item={item}
+              durationMs={durationMs}
+              onDismiss={dismiss}
+              onOpen={open}
+            />
           ))}
         </div>
       </div>

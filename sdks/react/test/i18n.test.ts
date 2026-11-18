@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createTranslator, en, format, placeholders, resolveLocale, tr } from "../src/i18n/index.js";
+import {
+  createTranslator,
+  en,
+  format,
+  placeholders,
+  resolveLocale,
+  tr,
+} from "../src/i18n/index.js";
 
 describe("X-32 localisation", () => {
   it("X-32 Turkish and English have the same keys", () => {

@@ -16,14 +16,23 @@ export interface TimeRangesEditorProps {
 }
 
 /** Edits weekly time ranges: the weekly schedule or quiet hours (§13.4.1, §13.9.1). */
-export function TimeRangesEditor({ title, hint, ranges, onSave, saving, children }: TimeRangesEditorProps): ReactNode {
+export function TimeRangesEditor({
+  title,
+  hint,
+  ranges,
+  onSave,
+  saving,
+  children,
+}: TimeRangesEditorProps): ReactNode {
   const { t } = useRelay();
   const [draft, setDraft] = useState<TimeRange[]>(() => [...ranges]);
   const [invalid, setInvalid] = useState(false);
   const headingId = useId();
   const hintId = useId();
   const set = (index: number, change: Partial<TimeRange>) =>
-    setDraft((current) => current.map((range, at) => (at === index ? { ...range, ...change } : range)));
+    setDraft((current) =>
+      current.map((range, at) => (at === index ? { ...range, ...change } : range)),
+    );
   const save = () => {
     if (!draft.every(validRange)) {
       setInvalid(true);
@@ -98,7 +107,9 @@ export function TimeRangesEditor({ title, hint, ranges, onSave, saving, children
         <button
           type="button"
           className="relay-button"
-          onClick={() => setDraft((current) => [...current, { day: "mon", start: "09:00", end: "18:00" }])}
+          onClick={() =>
+            setDraft((current) => [...current, { day: "mon", start: "09:00", end: "18:00" }])
+          }
         >
           {t("prefs.addRange")}
         </button>

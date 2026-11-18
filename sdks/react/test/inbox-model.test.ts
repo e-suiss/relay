@@ -1,7 +1,19 @@
 import { InboxClient, RelaySubscriberClient } from "@esuiss/relay/browser";
 import { describe, expect, it } from "vitest";
-import { commitMarkAllRead, pendingReadItems, pressMarkAllRead, withPendingRead } from "../src/inbox/mark-all-read.js";
-import { allItems, badgeCount, badgeText, categoriesOf, snoozeTimes, visibleItems } from "../src/inbox/view.js";
+import {
+  commitMarkAllRead,
+  pendingReadItems,
+  pressMarkAllRead,
+  withPendingRead,
+} from "../src/inbox/mark-all-read.js";
+import {
+  allItems,
+  badgeCount,
+  badgeText,
+  categoriesOf,
+  snoozeTimes,
+  visibleItems,
+} from "../src/inbox/view.js";
 import { isApprovalItem, senderTypeOf, waitpointOf } from "../src/seams.js";
 import { createFakeRelay, fakeItem } from "../src/testing/index.js";
 
@@ -20,7 +32,11 @@ describe("IN-20 badge", () => {
   });
 
   it("X-17 lowers the badge at once for items marked read in the undo window", () => {
-    const items = [fakeItem("a"), fakeItem("b", { seen: true }), fakeItem("c", { read: true, seen: true })];
+    const items = [
+      fakeItem("a"),
+      fakeItem("b", { seen: true }),
+      fakeItem("c", { read: true, seen: true }),
+    ];
     expect(badgeCount(counters(1, 2), "unseen", items)).toBe(0);
     expect(badgeCount(counters(1, 2), "unread", items)).toBe(0);
     expect(badgeCount(null, "unseen")).toBe(0);
@@ -41,12 +57,21 @@ describe("X-16 filters", () => {
   });
 
   it("X-16 narrows by category, tag and unread", () => {
-    expect(visibleItems(items, { category: "orders", tag: null, unreadOnly: false }, now).map((item) => item.id)).toEqual([
-      "a",
-      "e",
-    ]);
-    expect(visibleItems(items, { category: null, tag: "shipping", unreadOnly: false }, now).map((item) => item.id)).toEqual(["a"]);
-    expect(visibleItems(items, { category: null, tag: null, unreadOnly: true }, now).map((item) => item.id)).toEqual(["a", "e"]);
+    expect(
+      visibleItems(items, { category: "orders", tag: null, unreadOnly: false }, now).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["a", "e"]);
+    expect(
+      visibleItems(items, { category: null, tag: "shipping", unreadOnly: false }, now).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["a"]);
+    expect(
+      visibleItems(items, { category: null, tag: null, unreadOnly: true }, now).map(
+        (item) => item.id,
+      ),
+    ).toEqual(["a", "e"]);
     expect(categoriesOf(items)).toEqual(["orders", "social"]);
   });
 
@@ -68,7 +93,14 @@ describe("C-24 and IN-6 item seams", () => {
   it("AG-35 reads a waitpoint and gives null without one", () => {
     expect(waitpointOf(fakeItem("a"))).toBeNull();
     const waitpoint = waitpointOf(
-      fakeItem("a", { waitpoint: { id: "wp_1", status: "processing", subject_digest: "d", options: [{ label: "Yes", value: true }] } }),
+      fakeItem("a", {
+        waitpoint: {
+          id: "wp_1",
+          status: "processing",
+          subject_digest: "d",
+          options: [{ label: "Yes", value: true }],
+        },
+      }),
     );
     expect(waitpoint?.status).toBe("processing");
     expect(waitpoint?.options).toEqual([{ label: "Yes", value: true }]);
@@ -76,21 +108,41 @@ describe("C-24 and IN-6 item seams", () => {
 
   it("IN-6 knows an approval item", () => {
     expect(isApprovalItem(fakeItem("a", { approval: true }))).toBe(true);
-    expect(isApprovalItem(fakeItem("a", { waitpoint: { id: "wp_1", kind: "approval" } }))).toBe(true);
+    expect(isApprovalItem(fakeItem("a", { waitpoint: { id: "wp_1", kind: "approval" } }))).toBe(
+      true,
+    );
     expect(isApprovalItem(fakeItem("a"))).toBe(false);
   });
 });
 
 function inboxWith(relay: ReturnType<typeof createFakeRelay>) {
-  const client = new RelaySubscriberClient({ baseUrl: "https://relay.example.com", token: relay.token, fetch: relay.fetch });
-  const inbox = new InboxClient({ client, realtime: false, storage: null, visibility: null, online: null });
+  const client = new RelaySubscriberClient({
+    baseUrl: "https://relay.example.com",
+    token: relay.token,
+    fetch: relay.fetch,
+  });
+  const inbox = new InboxClient({
+    client,
+    realtime: false,
+    storage: null,
+    visibility: null,
+    online: null,
+  });
   return { client, inbox };
 }
 
 describe("X-17 mark all as read", () => {
   it("X-17 captures only the unread items of the filtered view at the press", () => {
-    const items = [fakeItem("a", { category: "orders" }), fakeItem("b", { category: "social" }), fakeItem("c", { category: "orders", read: true })];
-    const pending = pressMarkAllRead(items, { category: "orders", tag: null, unreadOnly: false }, now);
+    const items = [
+      fakeItem("a", { category: "orders" }),
+      fakeItem("b", { category: "social" }),
+      fakeItem("c", { category: "orders", read: true }),
+    ];
+    const pending = pressMarkAllRead(
+      items,
+      { category: "orders", tag: null, unreadOnly: false },
+      now,
+    );
     expect([...pending.itemIds]).toEqual(["a"]);
     expect(pending.pressedAt).toBe(now);
     expect(withPendingRead(items, pending).find((item) => item.id === "a")?.read).toBe(true);
@@ -98,12 +150,20 @@ describe("X-17 mark all as read", () => {
   });
 
   it("X-17 marks one category read in one request and archives nothing", async () => {
-    const relay = createFakeRelay({ items: [fakeItem("a", { category: "orders" }), fakeItem("b", { category: "social" })] });
+    const relay = createFakeRelay({
+      items: [fakeItem("a", { category: "orders" }), fakeItem("b", { category: "social" })],
+    });
     const { client, inbox } = inboxWith(relay);
     await inbox.start();
-    const pending = pressMarkAllRead(inbox.snapshot().items, { category: "orders", tag: null, unreadOnly: false }, Date.now());
+    const pending = pressMarkAllRead(
+      inbox.snapshot().items,
+      { category: "orders", tag: null, unreadOnly: false },
+      Date.now(),
+    );
     await commitMarkAllRead(inbox, client, pending);
-    const readAll = relay.requests.filter((request) => request.path === "/v1/subscriber/inbox/read_all");
+    const readAll = relay.requests.filter(
+      (request) => request.path === "/v1/subscriber/inbox/read_all",
+    );
     expect(readAll).toHaveLength(1);
     expect(readAll[0]?.body).toEqual({ category: "orders" });
     expect(relay.state.items.find((item) => item.id === "a")?.read).toBe(true);
@@ -128,10 +188,16 @@ describe("X-17 mark all as read", () => {
   });
 
   it("X-17 a tag view goes through a bulk read", async () => {
-    const relay = createFakeRelay({ items: [fakeItem("a", { tags: ["shipping"] }), fakeItem("b")] });
+    const relay = createFakeRelay({
+      items: [fakeItem("a", { tags: ["shipping"] }), fakeItem("b")],
+    });
     const { client, inbox } = inboxWith(relay);
     await inbox.start();
-    const pending = pressMarkAllRead(inbox.snapshot().items, { category: null, tag: "shipping", unreadOnly: false }, Date.now());
+    const pending = pressMarkAllRead(
+      inbox.snapshot().items,
+      { category: null, tag: "shipping", unreadOnly: false },
+      Date.now(),
+    );
     await commitMarkAllRead(inbox, client, pending, { wait: async () => undefined });
     const bulk = relay.requests.find((request) => request.path === "/v1/subscriber/inbox/bulk");
     expect(bulk?.body).toEqual({ action: "read", filter: { status: "inbox", tag: "shipping" } });

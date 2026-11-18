@@ -10,11 +10,23 @@ import {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import { createTranslator, resolveLocale, type Messages, type RelayLocale, type Translate } from "./i18n/index.js";
+import {
+  createTranslator,
+  resolveLocale,
+  type Messages,
+  type RelayLocale,
+  type Translate,
+} from "./i18n/index.js";
 import { RelayRuntime, type InboxState, type RelayRuntimeOptions } from "./runtime.js";
 import { relayStyles } from "./styles.js";
 import type { TokenProvider } from "./tokens.js";
-import { resolveBrand, themeVariables, type ColorScheme, type RelayBrand, type RelayTheme } from "./theme.js";
+import {
+  resolveBrand,
+  themeVariables,
+  type ColorScheme,
+  type RelayBrand,
+  type RelayTheme,
+} from "./theme.js";
 
 /** Where the components link to outside Relay. */
 export interface RelayLinks {
@@ -71,7 +83,17 @@ function provide(provider: TokenProvider | undefined): Promise<string> | string 
  * Provides the runtime, language, texts, brand and theme to the components below it. The runtime holds only narrow tokens (X-32): a subscriber token for the inbox, toast and preference center and a portal token for the webhook portal.
  */
 export function RelayProvider(props: RelayProviderProps): ReactNode {
-  const { runtime: given, locale, messages, theme, brand, subtenantBrand, colorScheme, links, children } = props;
+  const {
+    runtime: given,
+    locale,
+    messages,
+    theme,
+    brand,
+    subtenantBrand,
+    colorScheme,
+    links,
+    children,
+  } = props;
   const latest = useRef<Partial<RelayRuntimeOptions>>(props);
   latest.current = props;
   const hasToken = props.token !== undefined;
@@ -133,7 +155,12 @@ function prefersDark(): boolean {
 export function useResolvedScheme(scheme: ColorScheme): "light" | "dark" {
   const [dark, setDark] = useState(prefersDark);
   useEffect(() => {
-    if (scheme !== "auto" || typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    if (
+      scheme !== "auto" ||
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    )
+      return;
     const query = window.matchMedia("(prefers-color-scheme: dark)");
     const listener = (event: MediaQueryListEvent) => setDark(event.matches);
     query.addEventListener("change", listener);

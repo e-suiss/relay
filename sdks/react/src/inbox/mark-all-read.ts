@@ -21,7 +21,9 @@ export function pressMarkAllRead(
   return {
     pressedAt: now,
     filter,
-    itemIds: new Set(items.filter((item) => inScope(item, filter, now) && !item.read).map((item) => item.id)),
+    itemIds: new Set(
+      items.filter((item) => inScope(item, filter, now) && !item.read).map((item) => item.id),
+    ),
     knownIds: new Set(items.map((item) => item.id)),
   };
 }
@@ -32,7 +34,9 @@ export function withPendingRead(
   pending: PendingMarkAllRead | null,
 ): InboxItem[] {
   if (pending === null) return [...items];
-  return items.map((item) => (pending.itemIds.has(item.id) ? { ...item, read: true, seen: true } : item));
+  return items.map((item) =>
+    pending.itemIds.has(item.id) ? { ...item, read: true, seen: true } : item,
+  );
 }
 
 /** The items of a pending action as they were before it, for the optimistic badge. */
@@ -68,7 +72,8 @@ export async function commitMarkAllRead(
   const late = inbox
     .snapshot()
     .items.filter(
-      (item) => !pending.knownIds.has(item.id) && !item.read && inScope(item, pending.filter, now()),
+      (item) =>
+        !pending.knownIds.has(item.id) && !item.read && inScope(item, pending.filter, now()),
     )
     .map((item) => item.id);
   let updated: number;
@@ -76,7 +81,8 @@ export async function commitMarkAllRead(
     const before = inbox.snapshot().counters?.unread ?? null;
     await inbox.markAllRead(pending.filter.category ?? undefined);
     const after = inbox.snapshot().counters?.unread ?? null;
-    updated = before !== null && after !== null ? Math.max(0, before - after) : pending.itemIds.size;
+    updated =
+      before !== null && after !== null ? Math.max(0, before - after) : pending.itemIds.size;
   } else {
     const filter = {
       status: "inbox",
@@ -98,7 +104,8 @@ export async function commitMarkAllRead(
   if (late.length > 0) {
     await inbox.deltaSync();
     for (const id of late) {
-      if (inbox.snapshot().items.find((item) => item.id === id)?.read === true) inbox.markUnread(id);
+      if (inbox.snapshot().items.find((item) => item.id === id)?.read === true)
+        inbox.markUnread(id);
     }
   } else if (pending.filter.tag !== null) {
     await inbox.deltaSync();

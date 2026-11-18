@@ -10,7 +10,9 @@ test("X-20 turning a preference on and off again takes one click each", async ({
   await expect(cell).toHaveAttribute("aria-checked", "false");
 });
 
-test("PC-17 X-20 the three choices carry equal visual weight and none is preselected", async ({ page }) => {
+test("PC-17 X-20 the three choices carry equal visual weight and none is preselected", async ({
+  page,
+}) => {
   await page.goto("/demo/?view=preferences");
   await page.getByRole("switch", { name: "Mentions and comments by Push" }).click();
   const step = page.getByTestId("relay-digest-step");

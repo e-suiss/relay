@@ -39,23 +39,23 @@ Without any script configuration, attributes are enough:
 
 ## Elements
 
-| Element | Attributes |
-| --- | --- |
-| `relay-bell` | `badge-source` (`unseen` or `unread`) |
-| `relay-inbox` | `categories`, `tags` (comma separated), `heading-level` |
-| `relay-inbox-popover` | `badge-source`, `categories`, `tags`, `heading-level` |
-| `relay-toaster` | `duration` (milliseconds) |
+| Element                   | Attributes                                                |
+| ------------------------- | --------------------------------------------------------- |
+| `relay-bell`              | `badge-source` (`unseen` or `unread`)                     |
+| `relay-inbox`             | `categories`, `tags` (comma separated), `heading-level`   |
+| `relay-inbox-popover`     | `badge-source`, `categories`, `tags`, `heading-level`     |
+| `relay-toaster`           | `duration` (milliseconds)                                 |
 | `relay-preference-center` | `focus-category`, `marketing-categories`, `heading-level` |
-| `relay-webhook-portal` | `heading-level` |
+| `relay-webhook-portal`    | `heading-level`                                           |
 
 Every element also takes `locale`, `color-scheme`, `base-url`, `token-url` and `portal-token-url`, a `config` property for its own configuration and a `props` property for options that attributes cannot carry. Elements that share a configuration share one inbox and one realtime connection.
 
 ## Events
 
-| Event | Detail |
-| --- | --- |
+| Event                    | Detail                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------- |
 | `relay-open-preferences` | `{ category }`: the user asked for a category's preferences from an inbox item. |
-| `relay-item-open` | `{ item }`: the user opened an inbox item. |
+| `relay-item-open`        | `{ item }`: the user opened an inbox item.                                      |
 
 Both bubble out of the shadow root.
 

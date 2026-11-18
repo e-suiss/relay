@@ -1,6 +1,12 @@
 import { createFakeRelay, demoRelay, fakeItem, fakeToken } from "@esuiss/relay-react/testing";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import { configureRelay, defineRelayElements, relayElementTags, tokenFromUrl, type RelayElementsConfig } from "../src/index.js";
+import {
+  configureRelay,
+  defineRelayElements,
+  relayElementTags,
+  tokenFromUrl,
+  type RelayElementsConfig,
+} from "../src/index.js";
 
 beforeAll(() => {
   defineRelayElements();
@@ -20,7 +26,10 @@ async function until<T>(read: () => T | null | undefined, timeoutMs = 3000): Pro
   }
 }
 
-function configFor(relay: ReturnType<typeof createFakeRelay>, extra: Partial<RelayElementsConfig> = {}): RelayElementsConfig {
+function configFor(
+  relay: ReturnType<typeof createFakeRelay>,
+  extra: Partial<RelayElementsConfig> = {},
+): RelayElementsConfig {
   return {
     baseUrl: "https://relay.example.com",
     token: relay.token,
@@ -34,8 +43,14 @@ function configFor(relay: ReturnType<typeof createFakeRelay>, extra: Partial<Rel
   };
 }
 
-function mount(tag: string, config: RelayElementsConfig | null, attributes: Record<string, string> = {}): HTMLElement {
-  const element = document.createElement(tag) as HTMLElement & { config: RelayElementsConfig | null };
+function mount(
+  tag: string,
+  config: RelayElementsConfig | null,
+  attributes: Record<string, string> = {},
+): HTMLElement {
+  const element = document.createElement(tag) as HTMLElement & {
+    config: RelayElementsConfig | null;
+  };
   for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, value);
   if (config !== null) element.config = config;
   document.body.append(element);
@@ -59,7 +74,9 @@ describe("X-32 web components", () => {
   it("X-32 renders the inbox in its shadow root", async () => {
     const relay = createFakeRelay({ items: [fakeItem("inb_1", { title: "Hello" })] });
     const element = mount("relay-inbox", configFor(relay));
-    const item = await until(() => element.shadowRoot?.querySelector("[data-testid=relay-inbox-item]"));
+    const item = await until(() =>
+      element.shadowRoot?.querySelector("[data-testid=relay-inbox-item]"),
+    );
     expect(item.textContent).toContain("Hello");
     expect(document.querySelector("[data-testid=relay-inbox-item]")).toBeNull();
   });
@@ -77,9 +94,14 @@ describe("X-32 web components", () => {
     const relay = createFakeRelay({ items: [fakeItem("inb_1")] });
     const element = mount("relay-inbox", configFor(relay), { locale: "tr" });
     await until(() => element.shadowRoot?.querySelector("[data-testid=relay-delete]"));
-    expect(element.shadowRoot?.querySelector("[data-testid=relay-delete]")?.textContent).toBe("Sil");
+    expect(element.shadowRoot?.querySelector("[data-testid=relay-delete]")?.textContent).toBe(
+      "Sil",
+    );
     element.setAttribute("locale", "en");
-    await until(() => element.shadowRoot?.querySelector("[data-testid=relay-delete]")?.textContent === "Delete");
+    await until(
+      () =>
+        element.shadowRoot?.querySelector("[data-testid=relay-delete]")?.textContent === "Delete",
+    );
   });
 
   it("X-16 the category shortcut is a DOM event the host handles", async () => {
@@ -87,7 +109,9 @@ describe("X-32 web components", () => {
     const element = mount("relay-inbox", configFor(relay));
     const listener = vi.fn();
     document.addEventListener("relay-open-preferences", listener);
-    const shortcut = await until(() => element.shadowRoot?.querySelector<HTMLElement>("[data-testid=relay-category-shortcut]"));
+    const shortcut = await until(() =>
+      element.shadowRoot?.querySelector<HTMLElement>("[data-testid=relay-category-shortcut]"),
+    );
     shortcut.click();
     expect(listener).toHaveBeenCalledTimes(1);
     expect((listener.mock.calls[0]?.[0] as CustomEvent).detail).toEqual({ category: "orders" });
@@ -100,8 +124,12 @@ describe("X-32 web components", () => {
     const bell = mount("relay-bell", config, { "badge-source": "unread" });
     const inbox = mount("relay-inbox", config);
     await until(() => inbox.shadowRoot?.querySelector("[data-testid=relay-inbox-item]"));
-    await until(() => bell.shadowRoot?.querySelector("[data-testid=relay-badge]")?.textContent === "1");
-    expect(relay.requests.filter((request) => request.path === "/v1/subscriber/inbox/items")).toHaveLength(1);
+    await until(
+      () => bell.shadowRoot?.querySelector("[data-testid=relay-badge]")?.textContent === "1",
+    );
+    expect(
+      relay.requests.filter((request) => request.path === "/v1/subscriber/inbox/items"),
+    ).toHaveLength(1);
   });
 
   it("X-32 uses the global configuration", async () => {
@@ -116,7 +144,9 @@ describe("X-32 web components", () => {
     const relay = demoRelay();
     const element = mount("relay-webhook-portal", configFor(relay));
     await until(() => element.shadowRoot?.querySelector("[data-testid=relay-endpoint]"));
-    expect(relay.requests.every((request) => request.authorization === `Bearer ${relay.portalToken()}`)).toBe(true);
+    expect(
+      relay.requests.every((request) => request.authorization === `Bearer ${relay.portalToken()}`),
+    ).toBe(true);
   });
 
   it("X-32 refuses a token that is not narrow", async () => {
@@ -128,11 +158,19 @@ describe("X-32 web components", () => {
 
   it("X-32 reads a token from the application's endpoint", async () => {
     const token = fakeToken("relay-subscriber+jwt");
-    const fetcher = vi.fn(async () => new Response(JSON.stringify({ access_token: token }), { status: 200 }));
-    await expect(tokenFromUrl("/relay/token", fetcher as unknown as typeof fetch)()).resolves.toBe(token);
+    const fetcher = vi.fn(
+      async () => new Response(JSON.stringify({ access_token: token }), { status: 200 }),
+    );
+    await expect(tokenFromUrl("/relay/token", fetcher as unknown as typeof fetch)()).resolves.toBe(
+      token,
+    );
     const plain = vi.fn(async () => new Response(token, { status: 200 }));
-    await expect(tokenFromUrl("/relay/token", plain as unknown as typeof fetch)()).resolves.toBe(token);
+    await expect(tokenFromUrl("/relay/token", plain as unknown as typeof fetch)()).resolves.toBe(
+      token,
+    );
     const failing = vi.fn(async () => new Response("no", { status: 401 }));
-    await expect(tokenFromUrl("/relay/token", failing as unknown as typeof fetch)()).rejects.toThrow("401");
+    await expect(
+      tokenFromUrl("/relay/token", failing as unknown as typeof fetch)(),
+    ).rejects.toThrow("401");
   });
 });

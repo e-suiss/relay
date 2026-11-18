@@ -35,7 +35,11 @@ describe("X-32 theming and contrast", () => {
 
   it("X-32 a sub-tenant brand wins over the tenant brand", () => {
     const brand = resolveBrand(
-      { name: "Tenant", logoUrl: "https://tenant.example/logo.svg", theme: { accent: "#123456", radius: "4px" } },
+      {
+        name: "Tenant",
+        logoUrl: "https://tenant.example/logo.svg",
+        theme: { accent: "#123456", radius: "4px" },
+      },
       { name: "Sub brand", theme: { accent: "#0b5c3b" } },
     );
     expect(brand.name).toBe("Sub brand");

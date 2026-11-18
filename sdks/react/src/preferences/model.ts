@@ -72,14 +72,20 @@ function value(raw: unknown): PreferenceValue {
 /**
  * Reads a cell. The lock beneficiary, the administrator's and the device settings' states and the digest choice come from the cell when the server sends them (X-51); before that the lock and the administrator's state are taken from `source`.
  */
-export function normaliseCell(raw: Record<string, unknown>, digest: PreferenceProfile["digest"]): PreferenceCellView {
+export function normaliseCell(
+  raw: Record<string, unknown>,
+  digest: PreferenceProfile["digest"],
+): PreferenceCellView {
   const category = String(raw.category);
   const source = typeof raw.source === "string" ? raw.source : "class_default";
   const effective = bool(raw.effective, false);
   const beneficiary = raw.lock_beneficiary;
   return {
     category,
-    category_name: typeof raw.category_name === "string" && raw.category_name.length > 0 ? raw.category_name : category,
+    category_name:
+      typeof raw.category_name === "string" && raw.category_name.length > 0
+        ? raw.category_name
+        : category,
     channel: String(raw.channel),
     value: value(raw.value),
     effective,
@@ -96,28 +102,38 @@ export function normaliseCell(raw: Record<string, unknown>, digest: PreferencePr
 /** Reads the preferences answer of the subscriber API. */
 export function normalisePreferences(raw: unknown): PreferencesView {
   const record = (typeof raw === "object" && raw !== null ? raw : {}) as Record<string, unknown>;
-  const profileRaw = (typeof record.profile === "object" && record.profile !== null ? record.profile : {}) as Record<
-    string,
-    unknown
-  >;
-  const digest = (typeof profileRaw.digest === "object" && profileRaw.digest !== null ? profileRaw.digest : {}) as Record<
-    string,
-    "instant" | "digest"
-  >;
+  const profileRaw = (
+    typeof record.profile === "object" && record.profile !== null ? record.profile : {}
+  ) as Record<string, unknown>;
+  const digest = (
+    typeof profileRaw.digest === "object" && profileRaw.digest !== null ? profileRaw.digest : {}
+  ) as Record<string, "instant" | "digest">;
   const profile: PreferenceProfile = {
-    quiet_hours: Array.isArray(profileRaw.quiet_hours) ? (profileRaw.quiet_hours as TimeRange[]) : [],
+    quiet_hours: Array.isArray(profileRaw.quiet_hours)
+      ? (profileRaw.quiet_hours as TimeRange[])
+      : [],
     schedule: Array.isArray(profileRaw.schedule) ? (profileRaw.schedule as TimeRange[]) : [],
     dnd_until: typeof profileRaw.dnd_until === "string" ? profileRaw.dnd_until : null,
     quiet_hours_email: bool(profileRaw.quiet_hours_email, false),
     digest,
   };
-  const list = (key: string) => (Array.isArray(record[key]) ? (record[key] as Record<string, unknown>[]) : []);
+  const list = (key: string) =>
+    Array.isArray(record[key]) ? (record[key] as Record<string, unknown>[]) : [];
   return {
     subscriber_id: typeof record.subscriber_id === "string" ? record.subscriber_id : "",
     cells: list("cells").map((cell) => normaliseCell(cell, digest)),
-    channels: list("channels").map((entry) => ({ channel: String(entry.channel), value: value(entry.value) })),
-    workflows: list("workflows").map((entry) => ({ workflow: String(entry.workflow), value: value(entry.value) })),
-    scope_keys: list("scope_keys").map((entry) => ({ scope_key: String(entry.scope_key), value: value(entry.value) })),
+    channels: list("channels").map((entry) => ({
+      channel: String(entry.channel),
+      value: value(entry.value),
+    })),
+    workflows: list("workflows").map((entry) => ({
+      workflow: String(entry.workflow),
+      value: value(entry.value),
+    })),
+    scope_keys: list("scope_keys").map((entry) => ({
+      scope_key: String(entry.scope_key),
+      value: value(entry.value),
+    })),
     profile,
   };
 }
@@ -143,7 +159,10 @@ export interface CategoryRow {
 }
 
 /** The category rows in the order the cells name them. */
-export function categoryRows(view: PreferencesView, marketingCategories: ReadonlySet<string> = new Set()): CategoryRow[] {
+export function categoryRows(
+  view: PreferencesView,
+  marketingCategories: ReadonlySet<string> = new Set(),
+): CategoryRow[] {
   const rows = new Map<string, CategoryRow>();
   for (const cell of view.cells) {
     const known = rows.get(cell.category);
@@ -152,14 +171,21 @@ export function categoryRows(view: PreferencesView, marketingCategories: Readonl
       name: cell.category_name,
       locked: (known?.locked ?? false) || cell.locked,
       beneficiary: known?.beneficiary ?? cell.lock_beneficiary,
-      marketing: (known?.marketing ?? false) || cell.message_class === "marketing" || marketingCategories.has(cell.category),
+      marketing:
+        (known?.marketing ?? false) ||
+        cell.message_class === "marketing" ||
+        marketingCategories.has(cell.category),
     });
   }
   return [...rows.values()];
 }
 
 /** The cell of a category and channel, if the subscriber has one. */
-export function cellOf(view: PreferencesView, category: string, channel: string): PreferenceCellView | undefined {
+export function cellOf(
+  view: PreferencesView,
+  category: string,
+  channel: string,
+): PreferenceCellView | undefined {
   return view.cells.find((cell) => cell.category === category && cell.channel === channel);
 }
 
@@ -169,7 +195,12 @@ export type CellState =
   | { readonly kind: "locked"; readonly on: boolean }
   | { readonly kind: "admin_off" }
   | { readonly kind: "permission_pending" }
-  | { readonly kind: "switch"; readonly on: boolean; readonly deviceOff: boolean; readonly digestAllowed: boolean };
+  | {
+      readonly kind: "switch";
+      readonly on: boolean;
+      readonly deviceOff: boolean;
+      readonly digestAllowed: boolean;
+    };
 
 /**
  * The state of a cell: `—` when the subscriber has no such cell, a label for a locked cell ("On (locked)") and for one the administrator turned off, "Permission pending · Allow" on a marketing row whose channel has no active consent, and a switch otherwise, noting when the device settings turn it off.
@@ -199,9 +230,19 @@ export function needsDigestStep(state: CellState): boolean {
 }
 
 /** The writes of a switch: on is the subscriber's own opt-in, off its opt-out (PC-57). */
-export function cellWrite(cell: Pick<PreferenceCellView, "category" | "channel">, on: boolean): PreferencesPatch {
+export function cellWrite(
+  cell: Pick<PreferenceCellView, "category" | "channel">,
+  on: boolean,
+): PreferencesPatch {
   return {
-    preferences: [{ level: "category_channel", category: cell.category, channel: cell.channel, value: on ? "opt_in" : "opt_out" }],
+    preferences: [
+      {
+        level: "category_channel",
+        category: cell.category,
+        channel: cell.channel,
+        value: on ? "opt_in" : "opt_out",
+      },
+    ],
   };
 }
 
@@ -230,7 +271,12 @@ export function rowOffWrite(
       const state = cellState(cell, { marketing: row.marketing, consents });
       return state.kind === "switch" && state.on;
     })
-    .map((cell): PreferenceWrite => ({ level: "category_channel", category: cell.category, channel: cell.channel, value: "opt_out" }));
+    .map((cell): PreferenceWrite => ({
+      level: "category_channel",
+      category: cell.category,
+      channel: cell.channel,
+      value: "opt_out",
+    }));
   return preferences.length === 0 ? null : { preferences };
 }
 
@@ -259,7 +305,16 @@ export function applyPatch(view: PreferencesView, patch: PreferencesPatch): Pref
           ...next,
           cells: next.cells.map((cell) =>
             cell.category === write.category && cell.channel === write.channel
-              ? { ...cell, value: write.value, effective: write.value === "opt_out" ? false : write.value === "opt_in" ? true : cell.effective }
+              ? {
+                  ...cell,
+                  value: write.value,
+                  effective:
+                    write.value === "opt_out"
+                      ? false
+                      : write.value === "opt_in"
+                        ? true
+                        : cell.effective,
+                }
               : cell,
           ),
         };
@@ -271,23 +326,28 @@ export function applyPatch(view: PreferencesView, patch: PreferencesPatch): Pref
         };
         break;
       case "workflow":
-        next = { ...next, workflows: upsert(next.workflows, "workflow", write.workflow ?? "", write.value) };
+        next = {
+          ...next,
+          workflows: upsert(next.workflows, "workflow", write.workflow ?? "", write.value),
+        };
         break;
       case "scope_key":
-        next = { ...next, scope_keys: upsert(next.scope_keys, "scope_key", write.scope_key ?? "", write.value) };
+        next = {
+          ...next,
+          scope_keys: upsert(next.scope_keys, "scope_key", write.scope_key ?? "", write.value),
+        };
         break;
     }
   }
-  if (patch.profile !== undefined) next = { ...next, profile: { ...next.profile, ...patch.profile } };
+  if (patch.profile !== undefined)
+    next = { ...next, profile: { ...next.profile, ...patch.profile } };
   return next;
 }
 
-function upsert<K extends string, T extends { readonly value: PreferenceValue } & Record<K, string>>(
-  list: readonly T[],
-  key: K,
-  name: string,
-  value: PreferenceValue,
-): T[] {
+function upsert<
+  K extends string,
+  T extends { readonly value: PreferenceValue } & Record<K, string>,
+>(list: readonly T[], key: K, name: string, value: PreferenceValue): T[] {
   const found = list.some((entry) => entry[key] === name);
   if (found) return list.map((entry) => (entry[key] === name ? { ...entry, value } : entry));
   return [...list, { [key]: name, value } as unknown as T];

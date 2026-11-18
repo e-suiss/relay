@@ -96,7 +96,11 @@ function runtimeOf(config: RelayElementsConfig): Runtime {
 /** Reads a token from an endpoint of the application's own backend: JSON with `token` or `access_token`, or plain text. */
 export function tokenFromUrl(url: string, fetcher: typeof fetch = fetch): RelayTokenProvider {
   return async () => {
-    const response = await fetcher(url, { method: "POST", credentials: "include", headers: { accept: "application/json" } });
+    const response = await fetcher(url, {
+      method: "POST",
+      credentials: "include",
+      headers: { accept: "application/json" },
+    });
     if (!response.ok) throw new Error(`The token endpoint answered ${response.status}.`);
     const text = await response.text();
     try {
@@ -171,7 +175,11 @@ const specs: readonly ElementSpec[] = [
     inline: false,
     attributes: ["heading-level", "categories", "tags"],
     props: (element) =>
-      defined({ headingLevel: headingLevel(element), categories: list(element, "categories"), tags: list(element, "tags") }),
+      defined({
+        headingLevel: headingLevel(element),
+        categories: list(element, "categories"),
+        tags: list(element, "tags"),
+      }),
   },
   {
     tag: "relay-inbox-popover",
@@ -193,7 +201,9 @@ const specs: readonly ElementSpec[] = [
     attributes: ["duration"],
     props: (element) => {
       const duration = Number(element.getAttribute("duration"));
-      return defined({ durationMs: Number.isFinite(duration) && duration > 0 ? duration : undefined });
+      return defined({
+        durationMs: Number.isFinite(duration) && duration > 0 ? duration : undefined,
+      });
     },
   },
   {
@@ -313,7 +323,11 @@ function createElementClass(spec: ElementSpec): CustomElementConstructor {
           ? {
               onOpenPreferences: (category: string | null) =>
                 this.dispatchEvent(
-                  new CustomEvent("relay-open-preferences", { detail: { category }, bubbles: true, composed: true }),
+                  new CustomEvent("relay-open-preferences", {
+                    detail: { category },
+                    bubbles: true,
+                    composed: true,
+                  }),
                 ),
             }
           : {}),
@@ -326,20 +340,30 @@ function createElementClass(spec: ElementSpec): CustomElementConstructor {
           ...(spec.component === "inbox" || spec.component === "inbox-popover"
             ? {
                 onItemOpen: (item: unknown) =>
-                  this.dispatchEvent(new CustomEvent("relay-item-open", { detail: { item }, bubbles: true, composed: true })),
+                  this.dispatchEvent(
+                    new CustomEvent("relay-item-open", {
+                      detail: { item },
+                      bubbles: true,
+                      composed: true,
+                    }),
+                  ),
               }
             : {}),
           ...this.#extraProps,
         },
         locale: this.getAttribute("locale") ?? config.locale ?? document.documentElement.lang,
-        colorScheme: scheme === "light" || scheme === "dark" || scheme === "auto" ? scheme : (config.colorScheme ?? "auto"),
+        colorScheme:
+          scheme === "light" || scheme === "dark" || scheme === "auto"
+            ? scheme
+            : (config.colorScheme ?? "auto"),
         links,
         ...(config.theme === undefined ? {} : { theme: config.theme }),
         ...(config.brand === undefined ? {} : { brand: config.brand }),
         ...(config.subtenantBrand === undefined ? {} : { subtenantBrand: config.subtenantBrand }),
         ...(config.messages === undefined ? {} : { messages: config.messages }),
       } as unknown as MountOptions<RelayComponentName>;
-      if (this.#mounted === null) this.#mounted = mountRelayComponent(container, spec.component, options);
+      if (this.#mounted === null)
+        this.#mounted = mountRelayComponent(container, spec.component, options);
       else this.#mounted.update(options);
     }
   };

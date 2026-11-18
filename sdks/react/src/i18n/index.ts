@@ -22,7 +22,9 @@ export function resolveLocale(tag: string | undefined): RelayLocale {
 
 /** The `{name}` placeholders of a text, sorted. */
 export function placeholders(text: string): string[] {
-  return [...new Set([...text.matchAll(/\{([a-z][a-zA-Z0-9]*)\}/g)].map((match) => match[1] as string))].sort();
+  return [
+    ...new Set([...text.matchAll(/\{([a-z][a-zA-Z0-9]*)\}/g)].map((match) => match[1] as string)),
+  ].sort();
 }
 
 /** Fills the `{name}` placeholders of a text; an unknown placeholder stays as written. */

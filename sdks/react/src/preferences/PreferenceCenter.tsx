@@ -90,14 +90,31 @@ function DigestStep({
     groupRef.current?.focus();
   }, []);
   return (
-    <div className="relay-dialog" role="group" aria-labelledby={titleId} tabIndex={-1} ref={groupRef} data-testid="relay-digest-step">
+    <div
+      className="relay-dialog"
+      role="group"
+      aria-labelledby={titleId}
+      tabIndex={-1}
+      ref={groupRef}
+      data-testid="relay-digest-step"
+    >
       <p className="relay-label" id={titleId}>
         {title}
       </p>
       <div className="relay-choice-group">
         {(["instant", "digest", "never"] as const).map((choice) => (
-          <button key={choice} type="button" className="relay-choice" onClick={() => onChoose(choice)} data-choice={choice}>
-            {choice === "instant" ? t("prefs.stepInstant") : choice === "digest" ? t("prefs.stepDigest") : t("prefs.stepNever")}
+          <button
+            key={choice}
+            type="button"
+            className="relay-choice"
+            onClick={() => onChoose(choice)}
+            data-choice={choice}
+          >
+            {choice === "instant"
+              ? t("prefs.stepInstant")
+              : choice === "digest"
+                ? t("prefs.stepDigest")
+                : t("prefs.stepNever")}
           </button>
         ))}
       </div>
@@ -118,7 +135,13 @@ function errorKey(error: unknown): MessageKey {
   return "prefs.saveFailed";
 }
 
-function ConsentSection({ consents, channelName }: { readonly consents: readonly ConsentView[] | null; readonly channelName: (channel: string) => string }): ReactNode {
+function ConsentSection({
+  consents,
+  channelName,
+}: {
+  readonly consents: readonly ConsentView[] | null;
+  readonly channelName: (channel: string) => string;
+}): ReactNode {
   const { t, links } = useRelay();
   const headingId = useId();
   const href = safeUrl(links.accessConsentUrl);
@@ -163,7 +186,9 @@ export function PreferenceCenterPanel({
   const client = runtime.subscriber;
   const [view, setView] = useState<PreferencesView | null>(null);
   const [loadError, setLoadError] = useState(false);
-  const [message, setMessage] = useState<{ readonly error: boolean; readonly text: string } | null>(null);
+  const [message, setMessage] = useState<{ readonly error: boolean; readonly text: string } | null>(
+    null,
+  );
   const [consents, setConsents] = useState<readonly ConsentView[] | null>(null);
   const [step, setStep] = useState<StepTarget | null>(null);
   const [saving, setSaving] = useState(false);
@@ -257,7 +282,8 @@ export function PreferenceCenterPanel({
   const columns = channelColumns(view);
   const rows = categoryRows(view, marketing);
   const consentHref = safeUrl(links.accessConsentUrl);
-  const channelOn = (channel: string) => view.channels.find((entry) => entry.channel === channel)?.value !== "opt_out";
+  const channelOn = (channel: string) =>
+    view.channels.find((entry) => entry.channel === channel)?.value !== "opt_out";
 
   const toggleCell = (row: CategoryRow, channel: string, state: CellState) => {
     if (state.kind !== "switch") return;
@@ -271,14 +297,22 @@ export function PreferenceCenterPanel({
   const rowOff = (row: CategoryRow) => {
     const patch = rowOffWrite(view, row, consents);
     if (patch === null) return;
-    const digestible = view.cells.some((cell) => cell.category === row.category && cell.digest_allowed);
+    const digestible = view.cells.some(
+      (cell) => cell.category === row.category && cell.digest_allowed,
+    );
     if (digestible) setStep({ category: row.category, channel: null });
     else save(patch);
   };
 
   const choose = (target: StepTarget, choice: DigestChoice) => {
     if (target.channel !== null) {
-      save(digestChoiceWrite({ category: target.category, channel: target.channel }, choice, view.profile.digest));
+      save(
+        digestChoiceWrite(
+          { category: target.category, channel: target.channel },
+          choice,
+          view.profile.digest,
+        ),
+      );
       return;
     }
     if (choice === "never") {
@@ -369,7 +403,9 @@ export function PreferenceCenterPanel({
         {t("prefs.title")}
       </Heading>
       <div role="status" aria-live="polite">
-        {message === null ? null : <p className={message.error ? "relay-error" : "relay-success"}>{message.text}</p>}
+        {message === null ? null : (
+          <p className={message.error ? "relay-error" : "relay-success"}>{message.text}</p>
+        )}
       </div>
       <div className="relay-matrix-scroll">
         <table className="relay-matrix" data-testid="relay-preference-matrix">
@@ -393,7 +429,8 @@ export function PreferenceCenterPanel({
           </thead>
           <tbody>
             {rows.map((row) => {
-              const rowStep = step !== null && step.category === row.category && step.channel === null;
+              const rowStep =
+                step !== null && step.category === row.category && step.channel === null;
               const canTurnOff = rowOffWrite(view, row, consents) !== null;
               return (
                 <Fragment key={row.category}>
@@ -409,7 +446,10 @@ export function PreferenceCenterPanel({
                       <div className="relay-stack">
                         <span>{row.name}</span>
                         {row.locked ? (
-                          <span className="relay-status relay-muted" data-testid="relay-lock-reason">
+                          <span
+                            className="relay-status relay-muted"
+                            data-testid="relay-lock-reason"
+                          >
                             <StatusGlyph glyph={glyphs.locked} />
                             {row.beneficiary === "subscriber"
                               ? t("prefs.lockedSubscriber")
@@ -419,14 +459,20 @@ export function PreferenceCenterPanel({
                           </span>
                         ) : null}
                         {canTurnOff ? (
-                          <button type="button" className="relay-button relay-button-small" onClick={() => rowOff(row)}>
+                          <button
+                            type="button"
+                            className="relay-button relay-button-small"
+                            onClick={() => rowOff(row)}
+                          >
                             {t("prefs.rowOff", { category: row.name })}
                           </button>
                         ) : null}
                         {rowStep ? (
                           <DigestStep
                             title={t("prefs.stepTitle", { category: row.name })}
-                            onChoose={(choice) => choose({ category: row.category, channel: null }, choice)}
+                            onChoose={(choice) =>
+                              choose({ category: row.category, channel: null }, choice)
+                            }
                             onCancel={() => setStep(null)}
                           />
                         ) : null}
@@ -456,7 +502,11 @@ export function PreferenceCenterPanel({
               return (
                 <li key={entry.workflow} className="relay-row">
                   <span>{entry.workflow}</span>
-                  <Switch label={entry.workflow} on={on} onToggle={() => save(workflowWrite(entry.workflow, !on))} />
+                  <Switch
+                    label={entry.workflow}
+                    on={on}
+                    onToggle={() => save(workflowWrite(entry.workflow, !on))}
+                  />
                 </li>
               );
             })}
@@ -477,7 +527,11 @@ export function PreferenceCenterPanel({
               .map((entry) => (
                 <li key={entry.scope_key} className="relay-row">
                   <span className="relay-code">{entry.scope_key}</span>
-                  <button type="button" className="relay-button relay-button-small" onClick={() => save(unmuteWrite(entry.scope_key))}>
+                  <button
+                    type="button"
+                    className="relay-button relay-button-small"
+                    onClick={() => save(unmuteWrite(entry.scope_key))}
+                  >
                     {t("prefs.unmute", { name: entry.scope_key })}
                   </button>
                 </li>

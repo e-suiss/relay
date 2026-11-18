@@ -33,49 +33,49 @@ tests:
           - exp_labels: {severity: page, decision: OP-13, table: delivery_events}
             exp_annotations:
               summary: "Partition horizon of delivery_events is closer than the alarm threshold"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaypartitionhorizon
+              runbook_url: runbooks/partition-horizon.md
       - eval_time: 6m
         alertname: RelaySingletonLeaderless
         exp_alerts:
           - exp_labels: {severity: page, decision: T-86, task: audit_checkpoint}
             exp_annotations:
               summary: "Singleton task audit_checkpoint has had no leader for five minutes"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysingletonleaderless
+              runbook_url: runbooks/singleton-leaderless.md
       - eval_time: 6m
         alertname: RelayAuditCheckpointOverdue
         exp_alerts:
           - exp_labels: {severity: page, decision: OP-63}
             exp_annotations:
               summary: "An audit record was integrated after the declared checkpoint interval"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayauditcheckpointoverdue
+              runbook_url: runbooks/audit-checkpoint.md
       - eval_time: 6m
         alertname: RelayAuditCheckpointUnpublished
         exp_alerts:
           - exp_labels: {severity: page, decision: OP-70}
             exp_annotations:
               summary: "A signed audit checkpoint reached no publication target"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayauditcheckpointunpublished
+              runbook_url: runbooks/audit-checkpoint.md
       - eval_time: 6m
         alertname: RelayAuditMismatch
         exp_alerts:
           - exp_labels: {severity: page, decision: OP-63, kind: published_mismatch}
             exp_annotations:
               summary: "Audit verification found a published_mismatch mismatch"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayauditmismatch
+              runbook_url: runbooks/audit-mismatch.md
       - eval_time: 6m
         alertname: RelayQueuePolling
         exp_alerts:
           - exp_labels: {severity: warning, decision: T-17, component: notifier}
             exp_annotations:
               summary: "The job queue notifier falls back to polling"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayqueuepolling
+              runbook_url: runbooks/queue-polling.md
       - eval_time: 6m
         alertname: RelayIntegrityViolation
         exp_alerts:
           - exp_labels: {severity: page, decision: OP-42, check: fk_missing, table: deliveries}
             exp_annotations:
               summary: "Integrity check fk_missing found violations in deliveries"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayintegrityviolation
+              runbook_url: runbooks/integrity-violation.md
       - eval_time: 6m
         alertname: RelayIntegrityStale
         exp_alerts: []
@@ -88,21 +88,21 @@ tests:
           - exp_labels: {severity: page, decision: OP-71}
             exp_annotations:
               summary: "The weekly rebuild found a delivery projection that differs from its ledger"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayprojectiondifference
+              runbook_url: runbooks/projection-difference.md
       - eval_time: 6m
         alertname: RelayQueryStatsMissing
         exp_alerts:
           - exp_labels: {severity: warning, decision: OP-11}
             exp_annotations:
               summary: "PostgreSQL does not preload pg_stat_statements"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayquerystatsmissing
+              runbook_url: runbooks/query-stats-missing.md
       - eval_time: 6m
         alertname: RelayValkeyEvictionPolicy
         exp_alerts:
           - exp_labels: {severity: page, decision: T-9}
             exp_annotations:
               summary: "Valkey runs with an eviction policy other than noeviction"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayvalkeyevictionpolicy
+              runbook_url: runbooks/valkey-eviction-policy.md
   - interval: 1m
     input_series:
       - series: 'relay_partition_horizon_alarm_timestamp_seconds{table="delivery_events"}'
@@ -130,7 +130,7 @@ tests:
           - exp_labels: {severity: page, decision: OP-71}
             exp_annotations:
               summary: "The nightly integrity check has not completed for 36 hours"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayintegritystale
+              runbook_url: runbooks/integrity-stale.md
   - interval: 1h
     input_series:
       - series: 'relay_integrity_last_run_timestamp_seconds{instance="a"}'
@@ -155,14 +155,14 @@ tests:
           - exp_labels: {severity: page, decision: OP-71}
             exp_annotations:
               summary: "No node has reported a completed nightly integrity check for 36 hours"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayintegrityunreported
+              runbook_url: runbooks/integrity-stale.md
       - eval_time: 7d
         alertname: RelayProjectionDifference
         exp_alerts:
           - exp_labels: {severity: page, decision: OP-71}
             exp_annotations:
               summary: "The weekly rebuild found a delivery projection that differs from its ledger"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayprojectiondifference
+              runbook_url: runbooks/projection-difference.md
       - eval_time: 8d2h
         alertname: RelayProjectionDifference
         exp_alerts: []
@@ -180,7 +180,7 @@ tests:
           - exp_labels: {severity: warning, decision: PC-50}
             exp_annotations:
               summary: "The frequency counter is unavailable and frequency caps fail open"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayfrequencycounterunavailable
+              runbook_url: runbooks/frequency-counter-unavailable.md
       - eval_time: 15m
         alertname: RelayFrequencyCounterUnavailable
         exp_alerts: []
@@ -198,7 +198,7 @@ tests:
           - exp_labels: {severity: page, decision: TN-29}
             exp_annotations:
               summary: "The key store cannot sign push provider tokens; the last token has at most an hour of runway"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaypushsigningunavailable
+              runbook_url: runbooks/push-signing-unavailable.md
       - eval_time: 15m
         alertname: RelayPushSigningUnavailable
         exp_alerts: []
@@ -215,7 +215,7 @@ tests:
           - exp_labels: {severity: page, decision: DS-36, channel: sms, provider: twilio}
             exp_annotations:
               summary: "Accepted deliveries on sms/twilio never reached the queue"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayfunneldataloss
+              runbook_url: runbooks/funnel-data-loss.md
   - interval: 1m
     input_series:
       - series: 'relay_breaker_open{provider="apns"}'
@@ -230,7 +230,7 @@ tests:
           - exp_labels: {severity: page, decision: OP-37, provider: apns}
             exp_annotations:
               summary: "The apns breaker has been open for ten minutes"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayproviderbreakeropen
+              runbook_url: runbooks/provider-breaker-open.md
   - interval: 1m
     input_series:
       - series: 'relay_queue_oldest_job_age_seconds{lane="l0"}'
@@ -247,7 +247,7 @@ tests:
           - exp_labels: {severity: page, decision: OP-37, lane: l0}
             exp_annotations:
               summary: "The oldest job of l0 waits longer than the lane's threshold"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayqueueoldestjob
+              runbook_url: runbooks/queue-oldest-job.md
   - interval: 1m
     input_series:
       - series: 'relay_slo_kill_switch_total{good="false",platform="false"}'
@@ -259,7 +259,7 @@ tests:
           - exp_labels: {severity: page, decision: TN-44, platform: "false"}
             exp_annotations:
               summary: "A kill switch took longer than 90 seconds from the stop to the last queued job paused"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaykillswitchslow
+              runbook_url: runbooks/kill-switch-slow.md
   - interval: 1m
     input_series:
       - series: 'relay_noisy_neighbour_share{signal="queue_tenant",queue="l2"}'
@@ -271,7 +271,7 @@ tests:
           - exp_labels: {severity: warning, decision: TN-62, signal: queue_tenant, queue: l2}
             exp_annotations:
               summary: "One tenant or API client makes up more than half of queue_tenant on l2"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaynoisyneighbour
+              runbook_url: runbooks/noisy-neighbour.md
   - interval: 1m
     input_series:
       - series: 'relay_vm_atom_count'
@@ -285,7 +285,7 @@ tests:
           - exp_labels: {severity: page, decision: T-48}
             exp_annotations:
               summary: "The atom table is more than 80% full"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayatomlimit
+              runbook_url: runbooks/beam-atoms.md
   - interval: 1m
     input_series:
       - series: 'relay_policy_quiet_hour_violation_total{channel="sms"}'
@@ -297,7 +297,7 @@ tests:
           - exp_labels: {severity: page, decision: OP-37, channel: sms}
             exp_annotations:
               summary: "A sms delivery was handed off inside the recipient's quiet hours"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayquiethourviolation
+              runbook_url: runbooks/quiet-hour-violation.md
   - interval: 1m
     input_series:
       - series: 'relay_slo_accept_total{class="security",good="false"}'
@@ -313,7 +313,7 @@ tests:
           - exp_labels: {severity: page, decision: OP-36, class: security}
             exp_annotations:
               summary: "Accept latency of security burns its error budget 14.4x"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysloacceptfastburn
+              runbook_url: runbooks/slo-accept-burn.md
   - interval: 1m
     input_series:
       - series: 'relay_funnel_total{stage="provider_accepted",channel="email",provider="ses"}'
@@ -332,7 +332,7 @@ tests:
           - exp_labels: {severity: page, decision: OP-36, channel: email, provider: ses}
             exp_annotations:
               summary: "Proven delivery rate on email/ses fell by more than 40% in an hour"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayprovendeliverydrop
+              runbook_url: runbooks/proven-delivery-drop.md
       - eval_time: 125m
         alertname: RelayEspEventsSilent
         exp_alerts: []
@@ -347,7 +347,7 @@ tests:
           - exp_labels: {severity: page, decision: CH-47, provider: ses}
             exp_annotations:
               summary: "ses accepted email for an hour without sending any delivery event"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayespeventssilent
+              runbook_url: runbooks/esp-events.md
   - interval: 1m
     input_series:
       - series: 'relay_reconciliation_drift_total{channel="sms",provider="twilio",mode="status"}'
@@ -361,14 +361,14 @@ tests:
           - exp_labels: {severity: warning, decision: OP-42, channel: sms, provider: twilio}
             exp_annotations:
               summary: "Reconciliation of sms/twilio found deliveries whose projection differs from the provider"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayreconciliationdrift
+              runbook_url: runbooks/reconciliation-drift.md
       - eval_time: 12m
         alertname: RelayReconciliationLag
         exp_alerts:
           - exp_labels: {severity: warning, decision: DS-41, channel: sms, provider: twilio}
             exp_annotations:
               summary: "Reconciliation of sms/twilio is more than 30 minutes behind"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayreconciliationlag
+              runbook_url: runbooks/reconciliation-lag.md
   - interval: 1m
     input_series:
       - series: 'relay_access_subscriber_token_key_activated_timestamp_seconds'
@@ -380,7 +380,7 @@ tests:
           - exp_labels: {severity: ticket, decision: IN-51}
             exp_annotations:
               summary: "The subscriber token signing key has not been rotated for 90 days"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relaysubscribertokenkeyrotationdue
+              runbook_url: runbooks/subscriber-token-key-rotation.md
   - interval: 1m
     input_series:
       - series: 'relay_inbox_counter_drift_total{source="nightly"}'
@@ -392,7 +392,7 @@ tests:
           - exp_labels: {severity: warning, decision: IN-18}
             exp_annotations:
               summary: "The nightly inbox reconciliation found counters that drifted from their items"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayinboxcounterdrift
+              runbook_url: runbooks/inbox-counter-drift.md
   - interval: 1m
     input_series:
       - series: 'relay_access_pairing_unpaired_access_environments'
@@ -407,7 +407,7 @@ tests:
           - exp_labels: {severity: warning, decision: E-101}
             exp_annotations:
               summary: "Access environments of the Access tenants stay unpaired with Access after three runs in a row"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayaccessenvironmentsunpaired
+              runbook_url: runbooks/access-environments-unpaired.md
       - eval_time: 8m
         alertname: RelayAccessEnvironmentsUnpaired
         exp_alerts: []
@@ -431,7 +431,7 @@ tests:
           - exp_labels: {severity: warning, decision: PC-33}
             exp_annotations:
               summary: "The local copy of İYS of a brand has not synchronised for six hours"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiyscopystale
+              runbook_url: runbooks/iys-copy-stale.md
       - eval_time: 3m
         alertname: RelayIysCopyStopped
         exp_alerts: []
@@ -441,7 +441,7 @@ tests:
           - exp_labels: {severity: page, decision: PC-33}
             exp_annotations:
               summary: "The local copy of İYS of a brand is a day old and its marketing is held"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiyscopystopped
+              runbook_url: runbooks/iys-copy-stale.md
       - eval_time: 6m
         alertname: RelayIysCopyStopped
         exp_alerts: []
@@ -451,7 +451,7 @@ tests:
           - exp_labels: {severity: warning, decision: PC-62}
             exp_annotations:
               summary: "An integrator brand holds more than 80% of the İYS direct access threshold"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysdirectaccesswarning
+              runbook_url: runbooks/iys-direct-access.md
       - eval_time: 2m
         alertname: RelayIysDirectAccessReached
         exp_alerts: []
@@ -461,7 +461,7 @@ tests:
           - exp_labels: {severity: ticket, decision: PC-62}
             exp_annotations:
               summary: "An integrator brand reached the İYS direct access threshold"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysdirectaccessreached
+              runbook_url: runbooks/iys-direct-access.md
   - interval: 30m
     input_series:
       - series: 'relay_iys_reconciliation_drift'
@@ -476,7 +476,7 @@ tests:
           - exp_labels: {severity: warning, decision: OP-42}
             exp_annotations:
               summary: "The İYS reconciliation keeps finding movements the local copy does not hold"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysreconciliationdrift
+              runbook_url: runbooks/iys-reconciliation-drift.md
       - eval_time: 4h
         alertname: RelayIysReconciliationDrift
         exp_alerts: []
@@ -494,7 +494,7 @@ tests:
           - exp_labels: {severity: ticket, decision: AG-71}
             exp_annotations:
               summary: "More than 50 waitpoints have been open or stalled without a state change for a day"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentsilentwaitpoints
+              runbook_url: runbooks/agent-silent-waitpoints.md
       - eval_time: 50m
         alertname: RelayAgentSilentWaitpoints
         exp_alerts: []
@@ -526,7 +526,7 @@ tests:
           - exp_labels: {severity: ticket, decision: AG-71}
             exp_annotations:
               summary: "Waitpoints are answered in a median of under two seconds, the mark of an automatic accept"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentautoaccept
+              runbook_url: runbooks/agent-auto-accept.md
       - eval_time: 3m
         alertname: RelayAgentAutoAccept
         exp_alerts: []
@@ -542,7 +542,7 @@ tests:
           - exp_labels: {severity: ticket, decision: AG-71}
             exp_annotations:
               summary: "The waitpoint response rate fell by 20 points while twice as many waitpoints were opened"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentresponseratedrop
+              runbook_url: runbooks/agent-response-rate-drop.md
       - eval_time: 3m
         alertname: RelayAgentResponseRateDrop
         exp_alerts: []
@@ -558,7 +558,7 @@ tests:
           - exp_labels: {severity: ticket, decision: AG-50}
             exp_annotations:
               summary: "Agent notifications are held because the agent ceiling counter cannot be read"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayagentceilingcounterunreadable
+              runbook_url: runbooks/agent-ceiling-counter-unreadable.md
   - interval: 1m
     input_series:
       - series: 'relay_access_event_unresolved_total{kind="suspended"}'
@@ -573,7 +573,25 @@ tests:
           - exp_labels: {severity: ticket, decision: E-104}
             exp_annotations:
               summary: "Access account events named a person Relay cannot map to a pairwise sub and were not applied"
-              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayaccessaccountunresolved
+              runbook_url: runbooks/access-account-unresolved.md
       - eval_time: 75m
         alertname: RelayAccessAccountUnresolved
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'up{job="relay"}'
+        values: "1x600"
+    alert_rule_test:
+      - eval_time: 8h55m
+        alertname: RelayWakeUpTest
+        exp_alerts: []
+      - eval_time: 9h5m
+        alertname: RelayWakeUpTest
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-78}
+            exp_annotations:
+              summary: "Weekly wake-up test of the paging path; acknowledge it, nothing is broken"
+              runbook_url: runbooks/wake-up-test.md
+      - eval_time: 9h15m
+        alertname: RelayWakeUpTest
         exp_alerts: []

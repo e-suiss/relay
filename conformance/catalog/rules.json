@@ -10244,7 +10244,7 @@
     "section": "§20",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 15
   },
   {
     "acceptance": "pending",
@@ -10260,7 +10260,7 @@
     "section": "§20",
     "status": "central",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 15
   },
   {
     "acceptance": "pending",
@@ -10268,7 +10268,7 @@
     "section": "§20",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 15
   },
   {
     "acceptance": "pending",
@@ -10300,7 +10300,7 @@
     "section": "§20",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 15
   },
   {
     "acceptance": "pending",

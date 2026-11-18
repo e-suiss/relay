@@ -665,8 +665,10 @@ defmodule Relay.Delivery do
   # DS-35
   # TN-18
   # WF-50
-  @doc "Reads a report (`:deliveries`, `:skips`, `:costs` or `:variants`) of the UTC days `from` to `to` (exclusive) on the report pool; see `Relay.Delivery.Reports.Store.read/4`."
-  @spec report(Scope.t(), :deliveries | :skips | :costs | :variants, Date.t(), Date.t()) ::
+  # TP-26
+  # TP-41
+  @doc "Reads a report (`:deliveries`, `:skips`, `:costs`, `:variants` or `:render_problems`) of the UTC days `from` to `to` (exclusive) on the report pool; see `Relay.Delivery.Reports.Store.read/4`."
+  @spec report(Scope.t(), Relay.Delivery.Reports.Store.kind(), Date.t(), Date.t()) ::
           result([map()])
   defdelegate report(scope, kind, from, to), to: Relay.Delivery.Reports.Store, as: :read
 

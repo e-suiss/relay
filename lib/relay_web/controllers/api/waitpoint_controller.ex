@@ -37,6 +37,11 @@ defmodule RelayWeb.Api.WaitpointController do
     end
   end
 
+  # AG-54
+  # AG-49
+  @spec stats(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def stats(conn, _params), do: Work.answer(conn, Waitpoints.stats(conn.assigns.scope))
+
   # AG-46
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"waitpoint_id" => text}) do

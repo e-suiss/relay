@@ -65,6 +65,9 @@ public static partial class Operations
     /// <summary>Update subscriber preferences</summary>
     public static readonly Operation UpdateSubscriberPreferences = new("updateSubscriberPreferences", "PATCH", "/v1/subscribers/{subscriber_id}/preferences", IdempotencyMode.Required, IfMatchMode.None, BodyMode.Required, "application/json", ResponseKind.Json);
 
+    /// <summary>Mint a hosted preference page link</summary>
+    public static readonly Operation CreatePreferencePageLink = new("createPreferencePageLink", "POST", "/v1/subscribers/{subscriber_id}/preference_page_links", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>List subscriber consents</summary>
     public static readonly Operation ListSubscriberConsents = new("listSubscriberConsents", "GET", "/v1/subscribers/{subscriber_id}/consents", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -382,6 +385,15 @@ public static partial class Operations
 
     /// <summary>List the simulated results of the fake provider</summary>
     public static readonly Operation ListSimulatedResults = new("listSimulatedResults", "GET", "/v1/test/simulated-results", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>List the seed recipients of the test plane</summary>
+    public static readonly Operation ListSeedRecipients = new("listSeedRecipients", "GET", "/v1/test/seed-recipients", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Reset the seed recipients of the test plane</summary>
+    public static readonly Operation ResetSeedRecipients = new("resetSeedRecipients", "POST", "/v1/test/seed-recipients/reset", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>List the test inbox</summary>
+    public static readonly Operation ListTestInboxMessages = new("listTestInboxMessages", "GET", "/v1/test/inbox", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
     /// <summary>List waitpoints</summary>
     public static readonly Operation ListWaitpoints = new("listWaitpoints", "GET", "/v1/waitpoints", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
@@ -793,6 +805,7 @@ public static partial class Operations
         BulkUpsertSubscribers,
         GetSubscriberPreferences,
         UpdateSubscriberPreferences,
+        CreatePreferencePageLink,
         ListSubscriberConsents,
         ListSubscriberDevices,
         RegisterSubscriberDevice,
@@ -899,6 +912,9 @@ public static partial class Operations
         GetVirtualClock,
         AdvanceVirtualClock,
         ListSimulatedResults,
+        ListSeedRecipients,
+        ResetSeedRecipients,
+        ListTestInboxMessages,
         ListWaitpoints,
         CreateWaitpoint,
         GetWaitpoint,

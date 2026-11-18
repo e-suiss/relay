@@ -210,6 +210,20 @@ export const serverOperations = {
     paginated: false,
     contentType: null,
   },
+  checkTemplatePublication: {
+    method: "GET",
+    path: "/v1/templates/{template_key}/publication_check",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
+  checkWorkflowPublication: {
+    method: "GET",
+    path: "/v1/workflows/{workflow_key}/publication_check",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   completeMessagingInstallation: {
     method: "GET",
     path: "/v1/messaging_installations/callback",
@@ -300,6 +314,13 @@ export const serverOperations = {
     idempotency: "required",
     paginated: false,
     contentType: "application/json",
+  },
+  createPreferencePageLink: {
+    method: "POST",
+    path: "/v1/subscribers/{subscriber_id}/preference_page_links",
+    idempotency: "required",
+    paginated: false,
+    contentType: null,
   },
   createProviderInvoice: {
     method: "POST",
@@ -574,6 +595,13 @@ export const serverOperations = {
     paginated: false,
     contentType: null,
   },
+  getEscalationPolicyUsage: {
+    method: "GET",
+    path: "/v1/escalation_policies/{policy_key}/usage",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   getEvent: {
     method: "GET",
     path: "/v1/events/{event_id}",
@@ -735,9 +763,23 @@ export const serverOperations = {
     paginated: false,
     contentType: null,
   },
+  getRenderProblemReport: {
+    method: "GET",
+    path: "/v1/reports/render_problems",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   getRoute: {
     method: "GET",
     path: "/v1/routes/{route_key}",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
+  getRouteUsage: {
+    method: "GET",
+    path: "/v1/routes/{route_key}/usage",
     idempotency: "none",
     paginated: false,
     contentType: null,
@@ -805,6 +847,13 @@ export const serverOperations = {
     paginated: false,
     contentType: null,
   },
+  getTenantSettings: {
+    method: "GET",
+    path: "/v1/settings",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   getTimingSettings: {
     method: "GET",
     path: "/v1/timing_settings",
@@ -819,6 +868,13 @@ export const serverOperations = {
     paginated: false,
     contentType: null,
   },
+  getVariantReport: {
+    method: "GET",
+    path: "/v1/reports/variants",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   getVirtualClock: {
     method: "GET",
     path: "/v1/virtual_clock",
@@ -829,6 +885,13 @@ export const serverOperations = {
   getWaitpoint: {
     method: "GET",
     path: "/v1/waitpoints/{waitpoint_id}",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
+  getWaitpointStats: {
+    method: "GET",
+    path: "/v1/waitpoint_stats",
     idempotency: "none",
     paginated: false,
     contentType: null,
@@ -1141,6 +1204,20 @@ export const serverOperations = {
     paginated: true,
     contentType: null,
   },
+  listRules: {
+    method: "GET",
+    path: "/v1/rules",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
+  listSeedRecipients: {
+    method: "GET",
+    path: "/v1/test/seed-recipients",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   listSenderIdentities: {
     method: "GET",
     path: "/v1/sender_identities",
@@ -1214,6 +1291,13 @@ export const serverOperations = {
   listTemplateVersions: {
     method: "GET",
     path: "/v1/templates/{template_key}/versions",
+    idempotency: "none",
+    paginated: true,
+    contentType: null,
+  },
+  listTestInboxMessages: {
+    method: "GET",
+    path: "/v1/test/inbox",
     idempotency: "none",
     paginated: true,
     contentType: null,
@@ -1343,6 +1427,13 @@ export const serverOperations = {
     idempotency: "none",
     paginated: true,
     contentType: null,
+  },
+  lookupSubscribers: {
+    method: "POST",
+    path: "/v1/subscriber_lookups",
+    idempotency: "none",
+    paginated: false,
+    contentType: "application/json",
   },
   pauseWebhookEndpoint: {
     method: "POST",
@@ -1669,6 +1760,13 @@ export const serverOperations = {
   resendWebhookMessage: {
     method: "POST",
     path: "/v1/webhook_messages/{webhook_message_id}/resend",
+    idempotency: "required",
+    paginated: false,
+    contentType: null,
+  },
+  resetSeedRecipients: {
+    method: "POST",
+    path: "/v1/test/seed-recipients/reset",
     idempotency: "required",
     paginated: false,
     contentType: null,

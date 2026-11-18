@@ -108,11 +108,37 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # X-51
+  # X-22
+  # PC-18
+  scope "/bildirim-tercihleri", RelayWeb do
+    pipe_through :links
+
+    get "/:token", PreferencePageController, :show
+    post "/:token", PreferencePageController, :create
+  end
+
+  # X-51
+  # X-22
+  # PC-18
+  scope "/notification-preferences", RelayWeb do
+    pipe_through :links
+
+    get "/:token", PreferencePageController, :show
+    post "/:token", PreferencePageController, :create
+  end
+
   # DS-37
   scope "/exports", RelayWeb do
     pipe_through :downloads
 
     get "/:token", ExportDownloadController, :show
+  end
+
+  # TP-24
+  # TP-39
+  scope "/sandbox", RelayWeb do
+    get "/:token", PreviewSandboxController, :show
   end
 
   # CH-46
@@ -236,6 +262,9 @@ defmodule RelayWeb.Router do
     patch "/subscribers/:subscriber_id/preferences", PreferenceController, :update,
       private: %{relay_operation: "updateSubscriberPreferences"}
 
+    post "/subscribers/:subscriber_id/preference_page_links", PreferenceController, :link,
+      private: %{relay_operation: "createPreferencePageLink"}
+
     get "/subscribers/:subscriber_id/consents", PreferenceController, :consents,
       private: %{relay_operation: "listSubscriberConsents"}
 
@@ -322,6 +351,31 @@ defmodule RelayWeb.Router do
     get "/reports/skips", ReportController, :skips, private: %{relay_operation: "getSkipReport"}
 
     get "/reports/costs", ReportController, :costs, private: %{relay_operation: "getCostReport"}
+
+    # WF-50
+    get "/reports/variants", ReportController, :variants,
+      private: %{relay_operation: "getVariantReport"}
+
+    # TP-26
+    # TP-41
+    get "/reports/render_problems", ReportController, :render_problems,
+      private: %{relay_operation: "getRenderProblemReport"}
+
+    # X-12
+    post "/subscriber_lookups", SubscriberController, :lookup,
+      private: %{relay_operation: "lookupSubscribers"}
+
+    # X-12
+    # DS-47
+    get "/rules", SettingsController, :rules, private: %{relay_operation: "listRules"}
+
+    # TN-2
+    # OP-19
+    get "/settings", SettingsController, :show, private: %{relay_operation: "getTenantSettings"}
+
+    # AG-54
+    get "/waitpoint_stats", WaitpointController, :stats,
+      private: %{relay_operation: "getWaitpointStats"}
 
     get "/campaigns", CampaignController, :index, private: %{relay_operation: "listCampaigns"}
 
@@ -448,6 +502,9 @@ defmodule RelayWeb.Router do
     put "/routes/:route_key", RouteController, :replace,
       private: %{relay_operation: "replaceRoute"}
 
+    get "/routes/:route_key/usage", RouteController, :usage,
+      private: %{relay_operation: "getRouteUsage"}
+
     post "/routes/:route_key/archive", RouteController, :archive,
       private: %{relay_operation: "archiveRoute"}
 
@@ -463,6 +520,9 @@ defmodule RelayWeb.Router do
     get "/escalation_policies/:policy_key/versions", EscalationPolicyController, :versions,
       private: %{relay_operation: "listEscalationPolicyVersions"}
 
+    get "/escalation_policies/:policy_key/usage", EscalationPolicyController, :usage,
+      private: %{relay_operation: "getEscalationPolicyUsage"}
+
     post "/escalation_policies/:policy_key/archive", EscalationPolicyController, :archive,
       private: %{relay_operation: "archiveEscalationPolicy"}
 
@@ -471,6 +531,9 @@ defmodule RelayWeb.Router do
 
     get "/workflows/:workflow_key", WorkflowController, :show,
       private: %{relay_operation: "getWorkflow"}
+
+    get "/workflows/:workflow_key/publication_check", WorkflowController, :publication_check,
+      private: %{relay_operation: "checkWorkflowPublication"}
 
     put "/workflows/:workflow_key", WorkflowController, :replace,
       private: %{relay_operation: "replaceWorkflowDraft"}
@@ -737,6 +800,9 @@ defmodule RelayWeb.Router do
     put "/templates/:template_key", TemplateController, :replace,
       private: %{relay_operation: "replaceTemplateDraft"}
 
+    get "/templates/:template_key/publication_check", TemplateController, :publication_check,
+      private: %{relay_operation: "checkTemplatePublication"}
+
     post "/templates/:template_key/publish", TemplateController, :publish,
       private: %{relay_operation: "publishTemplate"}
 
@@ -909,6 +975,15 @@ defmodule RelayWeb.Router do
 
     get "/test/simulated-results", SimulatedResultController, :index,
       private: %{relay_operation: "listSimulatedResults"}
+
+    get "/test/seed-recipients", TestPlaneController, :seeds,
+      private: %{relay_operation: "listSeedRecipients"}
+
+    post "/test/seed-recipients/reset", TestPlaneController, :reset,
+      private: %{relay_operation: "resetSeedRecipients"}
+
+    get "/test/inbox", TestPlaneController, :inbox,
+      private: %{relay_operation: "listTestInboxMessages"}
 
     get "/inbound/whatsapp/:provider_account_id", WhatsappWebhookController, :verify,
       private: %{relay_operation: "verifyWhatsappWebhook"}
@@ -1178,6 +1253,12 @@ defmodule RelayWeb.Router do
     put "/send_modes", TenantController, :set_send_mode,
       private: %{relay_operation: "setSendMode"}
 
+    # TN-2
+    # OP-19
+    # TN-21
+    put "/settings", SettingsController, :update,
+      private: %{relay_operation: "updateTenantSettings"}
+
     get "/api_version", TenantController, :api_version,
       private: %{relay_operation: "getApiVersion"}
 
@@ -1301,6 +1382,12 @@ defmodule RelayWeb.Router do
     pipe_through :panel
 
     oban_dashboard("/queues", resolver: RelayWeb.Operator.Panel, oban_name: Oban)
+  end
+
+  # X-47
+  scope "/console", RelayWeb do
+    get "/", ConsoleController, :show
+    get "/*path", ConsoleController, :show
   end
 
   # API-36

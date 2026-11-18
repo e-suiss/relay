@@ -166,6 +166,10 @@ done
 curl -fsSI "$base/livez" | grep -qi '^correlation-id: ' || fail "correlation id header missing"
 curl -fsS "$base/.well-known/security.txt" | grep -q '^Contact: ' || fail "security.txt missing"
 
+# X-47
+curl -fsS "$base/console/why" | grep -q '<div id="root"></div>' || fail "the console is not served"
+curl -fsSI "$base/console/" | grep -qi "^content-security-policy: default-src 'none'" || fail "the console has no strict content security policy"
+
 # E-91
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$base/.well-known/relay-configuration")" = 400 ] || fail "plain HTTP was served"
 curl -fsS -H 'X-Forwarded-Proto: https' -H 'X-Forwarded-Host: relay.example' "$base/.well-known/relay-configuration" \

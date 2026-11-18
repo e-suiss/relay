@@ -21,6 +21,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: write
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
@@ -53,6 +54,28 @@ jobs:
         with:
           version-file: .tool-versions
           version-type: strict
+      - name: toolchain python
+        if: hashFiles('sdks/python/regenerate.sh') != ''
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.15.2"
+      - name: toolchain go
+        if: hashFiles('sdks/go/regenerate.sh') != ''
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.3"
+          cache: false
+      - name: toolchain ruby
+        if: hashFiles('sdks/ruby/regenerate.sh') != ''
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: "4.0.9"
+      - name: toolchain php
+        if: hashFiles('sdks/php/regenerate.sh') != ''
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.5"
+          tools: composer
       - name: toolchain node
         if: hashFiles('web/regenerate.sh') != ''
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -104,6 +127,21 @@ jobs:
             if [ -z "$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number')" ]; then
               gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$MESSAGE" --body "Regenerates the code generated from contracts/ on main: every sdks/*/regenerate.sh and web/regenerate.sh."
             fi
+            gh workflow run ci.yml --repo "$REPO" --ref "$BRANCH"
+            cut -f2 "$RUNNER_TEMP/changes" | awk -F/ '$1 == "sdks" { print $1 "/" $2; next } { print $1 }' | sort -u > "$RUNNER_TEMP/dirs"
+            for workflow in .github/workflows/*.yml; do
+              name=$(basename "$workflow")
+              case "$name" in
+                ci.yml | sdk-regenerate.yml | image.yml | release*.yml | *-release.yml) continue ;;
+              esac
+              grep -q "workflow_dispatch" "$workflow" || continue
+              while read -r dir; do
+                if grep -qF "\"$dir/**\"" "$workflow"; then
+                  gh workflow run "$name" --repo "$REPO" --ref "$BRANCH"
+                  break
+                fi
+              done < "$RUNNER_TEMP/dirs"
+            done
           fi
           if [ -s "$RUNNER_TEMP/failed" ]; then
             cat "$RUNNER_TEMP/failed"

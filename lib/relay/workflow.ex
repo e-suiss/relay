@@ -176,8 +176,7 @@ defmodule Relay.Workflow do
     Store.in_scope(scope, fn _status ->
       case Store.version(version_id) do
         %{"state" => "pending", "definition" => definition} ->
-          errors = Definition.gate(definition) ++ named_routes(definition)
-          {outcome, errors} = gate_outcome(errors)
+          {outcome, errors} = gate_outcome(gate_errors(definition))
           digest = digest(scope, "workflow.published", Relay.Id.to_string(version_id))
           Store.publish_complete(version_id, outcome, errors, digest, @gate)
 
@@ -186,6 +185,26 @@ defmodule Relay.Workflow do
       end
     end)
   end
+
+  # WF-6
+  # X-10
+  @doc "Runs the publication gate on a workflow's draft without publishing or writing anything, in its own read transaction: `nil` for an unknown key, `:no_draft` for a workflow without a draft, else the field errors the gate would reject the draft with (none when it would publish it)."
+  @spec check_draft(Scope.t(), String.t()) :: result([map()] | :no_draft | nil)
+  def check_draft(%Scope{} = scope, key) do
+    Store.in_scope(scope, fn _status ->
+      case Store.get(key) do
+        nil -> nil
+        %{"id" => id} -> draft_errors(Store.draft(id))
+      end
+    end)
+  end
+
+  defp draft_errors(nil), do: :no_draft
+
+  defp draft_errors(%{"definition" => definition}),
+    do: definition |> gate_errors() |> Enum.map(&stringify/1)
+
+  defp gate_errors(definition), do: Definition.gate(definition) ++ named_routes(definition)
 
   # WF-14
   # WF-18
@@ -1025,6 +1044,23 @@ defmodule Relay.Workflow do
   @spec get_route(Scope.t(), String.t()) :: result(map() | nil)
   def get_route(%Scope{} = scope, key),
     do: Store.in_scope(scope, fn _status -> RouteStore.get(key) end)
+
+  # WF-14
+  # X-10
+  @doc "Where a named route is used, in its own read transaction: `nil` for an unknown key, else the active workflows whose published version, draft or pending publication name it in a channel step (see `Relay.Workflow.Store.using_route/1`) and the active categories that name it as their default route."
+  @spec route_usage(Scope.t(), String.t()) ::
+          result(%{workflows: [map()], categories: [String.t()]} | nil)
+  def route_usage(%Scope{} = scope, key) do
+    Store.in_scope(scope, fn _status ->
+      case RouteStore.get(key) do
+        nil ->
+          nil
+
+        _route ->
+          %{workflows: Store.using_route(key), categories: RouteStore.categories_using(key)}
+      end
+    end)
+  end
 
   # WF-13
   @doc "Reads a route by key inside the caller's scoped transaction; `nil` when the key is unknown."

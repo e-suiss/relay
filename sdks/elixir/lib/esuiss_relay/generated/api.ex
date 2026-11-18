@@ -1131,6 +1131,19 @@ defmodule EsuissRelay.Api do
         opts
       )
 
+  @doc "Mint a hosted preference page link.\n\n`POST /v1/subscribers/{subscriber_id}/preference_page_links`"
+  @spec create_preference_page_link(Client.t(), String.t() | integer(), keyword()) ::
+          Client.result()
+  def create_preference_page_link(client, subscriber_id, opts \\ []),
+    do:
+      Client.call(
+        client,
+        Operations.fetch!(:create_preference_page_link),
+        [subscriber_id],
+        nil,
+        opts
+      )
+
   @doc "Get subscriber preferences.\n\n`GET /v1/subscribers/{subscriber_id}/preferences`"
   @spec get_subscriber_preferences(Client.t(), String.t() | integer(), keyword()) ::
           Client.result()
@@ -1309,6 +1322,21 @@ defmodule EsuissRelay.Api do
         nil,
         opts
       )
+
+  @doc "List the test inbox.\n\n`GET /v1/test/inbox`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
+  @spec list_test_inbox_messages(Client.t(), keyword()) :: Client.result()
+  def list_test_inbox_messages(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:list_test_inbox_messages), [], nil, opts)
+
+  @doc "List the seed recipients of the test plane.\n\n`GET /v1/test/seed-recipients`"
+  @spec list_seed_recipients(Client.t(), keyword()) :: Client.result()
+  def list_seed_recipients(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:list_seed_recipients), [], nil, opts)
+
+  @doc "Reset the seed recipients of the test plane.\n\n`POST /v1/test/seed-recipients/reset`"
+  @spec reset_seed_recipients(Client.t(), keyword()) :: Client.result()
+  def reset_seed_recipients(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:reset_seed_recipients), [], nil, opts)
 
   @doc "List the simulated results of the fake provider.\n\n`GET /v1/test/simulated-results`"
   @spec list_simulated_results(Client.t(), keyword()) :: Client.result()

@@ -25,6 +25,8 @@
   value: {{ required "valkey.url is required" .Values.valkey.url | quote }}
 - name: RELAY_HOST
   value: {{ .Values.host | quote }}
+- name: RELAY_PREVIEW_HOST
+  value: {{ .Values.previewHost | quote }}
 - name: RELAY_ACCESS_ISSUER
   value: {{ required "access.issuer is required" .Values.access.issuer | quote }}
 - name: RELAY_ACCESS_CLIENT_ID

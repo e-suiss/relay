@@ -2408,6 +2408,108 @@ paths:
       x-relay-step-up: false
       x-relay-choice: true
       x-relay-choice-note: "The list body and applying every write of one request atomically are chosen by the contract."
+  "/v1/subscribers/{subscriber_id}/preference_page_links":
+    post:
+      operationId: createPreferencePageLink
+      tags:
+        - subscribers
+      summary: Mint a hosted preference page link
+      description: "Mints a link to the hosted preference page of a subscriber (X-51, PC-18) for an e-mail footer or any message: a page served by Relay without JavaScript and without signing in. The link carries a signed token that opens only this page, only for this subscriber and only in the environment of the credential; it expires after x-relay-limits preference_page_link_lifetime_seconds and an expired link shows that it has expired. The page renders the same cells as getSubscriberPreferences: locked categories as a label with whom the lock serves, the administrator's and the device settings' states, the three choices Instant, Digest and Never with none preselected when a digestible cell is changed, the channel switches, muted workflows and scope keys and quiet hours. The subscriber's consents are shown read only from Relay's consent copy, with a link to Access where they are changed (X-44); the page never asks for consent. Every change on the page is written as the subscriber's own preference."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/SubscriberId"
+      security:
+        - access_bearer:
+            - subscribers
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: The link.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/PreferencePageLink"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - validation_failed
+        - subscriber_not_found
+      x-relay-scopes:
+        - subscribers
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-choice: true
+      x-relay-choice-note: "X-51 fixes the hosted page and its signed, expiring, single-purpose token; minting its link through the server API is chosen by the contract."
   "/v1/subscribers/{subscriber_id}/consents":
     get:
       operationId: listSubscriberConsents
@@ -14032,6 +14134,280 @@ paths:
       x-relay-step-up: false
       x-relay-environment: test
       x-relay-stage: 6
+  "/v1/test/seed-recipients":
+    get:
+      operationId: listSeedRecipients
+      tags:
+        - test-plane
+      summary: List the seed recipients of the test plane
+      description: "The seven ready-made recipients every test plane has: seed_no_consent (no marketing consent), seed_opted_out (consent revoked on e-mail and SMS), seed_quiet_hours (quiet hours cover the whole day, e-mail included), seed_capped (global frequency cap full), seed_bounced (e-mail suppressed after a hard bounce), seed_no_device (no push device) and seed_fallback_timezone (no time zone). The external id is the seed name; the e-mail address is <seed>@seed.relay.test and the phone number +9905551000NN in seed order, both in the fake provider's table and refused on the live plane. They are set up when the tenant is created and by resetSeedRecipients; set_up is false until that job ran. Test environment only; a live client gets auth_environment_mismatch. The list is fixed and not paginated."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - subscribers
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The seed recipients in seed order.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/SeedRecipientList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - auth_invalid_session
+        - auth_insufficient_role
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - subscribers
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-environment: test
+      x-relay-stage: 14
+  "/v1/test/seed-recipients/reset":
+    post:
+      operationId: resetSeedRecipients
+      tags:
+        - test-plane
+      summary: Reset the seed recipients of the test plane
+      description: "Queues the setup of the test plane again: each seed recipient gets back what its profile defines (addresses, locale, time zone, delivery profile, its consent state, its suppression, its full frequency cap), so a manual change is undone; the sample workflow is created only when the plane has none. Idempotent; the answer comes before the job runs. Test environment only; a live client gets auth_environment_mismatch."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      security:
+        - access_bearer:
+            - subscribers
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "202":
+          description: The reset is queued.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/SeedReset"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - auth_environment_mismatch
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - validation_failed
+      x-relay-scopes:
+        - subscribers
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-environment: test
+      x-relay-stage: 14
+  "/v1/test/inbox":
+    get:
+      operationId: listTestInboxMessages
+      tags:
+        - test-plane
+      summary: List the test inbox
+      description: "Every notification of the test plane, newest first, with its decision chain (each delivery's status, rule_id and the rule dictionary's sentence) and, for each delivery that was rendered, the rendered output kept sealed with it for the test plane's retention. A security_subtype or retention none message was kept as its digest only: output is null and digest_only names the reason. The live plane keeps no rendered content for this purpose and has no test inbox; a live client gets auth_environment_mismatch. Rendered e-mail HTML is shown only in the sandboxed preview."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/Limit"
+        - "$ref": "./components/parameters.yaml#/StartingAfter"
+        - "$ref": "./components/parameters.yaml#/EndingBefore"
+      security:
+        - access_bearer:
+            - read
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: A page of the test inbox.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/TestInboxMessageList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
+      x-relay-scopes:
+        - read
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-environment: test
+      x-relay-stage: 14
   "/v1/access/events":
     post:
       operationId: receiveAccessEvent
@@ -28241,6 +28617,949 @@ paths:
       x-relay-stage: 8
       x-relay-choice: true
       x-relay-choice-note: "Path and response shape chosen by the contract (API-69); a reset is a POST action on the key."
+  "/v1/subscriber_lookups":
+    post:
+      operationId: lookupSubscribers
+      tags:
+        - subscribers
+      summary: Find a subscriber by phone or e-mail
+      description: "Finds the subscribers whose active e-mail address or phone number is the one sent, through the address blind index, so the support screen can open a subscriber's decisions (listSubscriberDecisions) from a phone or an e-mail. The address travels in the body, never in the URL. Exactly one of email and phone is sent; an e-mail is compared trimmed and lower case, a phone in E.164. At most x-relay-limits subscriber_lookup.max_matches subscribers come back, with masked personal fields like every subscriber read; truncated says that more matched. There is no listing by partial address and an unknown address is an empty result, not an error."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/SubscriberLookupRequest"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - subscribers
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The matching subscribers.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/SubscriberLookup"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_csrf_failed
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - unknown_field
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - subscribers
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "The spec asks for a phone or e-mail entry to the why-didn't-I-receive screen without naming its path; a POST keeps the address out of URLs and logs."
+  "/v1/rules":
+    get:
+      operationId: listRules
+      tags:
+        - query
+      summary: List the rule dictionary
+      description: "Every rule of the rule dictionary in force: its rule_id, reason, kind, outcome, the detail fields a decision records for it, whether it is deprecated and its one sentence explanation in every language the dictionary carries. Every surface shows these sentences for a rule_id and never writes its own text."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - access_bearer:
+            - publish
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The rule dictionary.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/RuleDictionary"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+        - publish
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "The spec makes the dictionary the single source of the sentences without naming a read path."
+  "/v1/settings":
+    get:
+      operationId: getTenantSettings
+      tags:
+        - usage
+      summary: Get the tenant settings
+      description: "The tenant settings of the console: the region, which never changes, the default time zone and locale, the last links of the time zone and locale chains, and the retention period of each record class with the legal period of the tenant's region and sector it may only extend. The operator API changes them (updateTenantSettings)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The tenant settings.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/TenantSettings"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "The spec lists retention, default_timezone and default_locale under the console settings without naming a path."
+  "/v1/routes/{route_key}/usage":
+    get:
+      operationId: getRouteUsage
+      tags:
+        - routes
+      summary: Where a route is used
+      description: "The places that name the route: the channel steps of each active workflow's published version, draft and pending publication that use it by key, and the active categories that name it as their default route. A change to the route applies to every decision these make after it; a notification already created keeps its tree."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/RouteKey"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The route's uses.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/RouteUsage"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+        - route_policy_not_found
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "The spec asks the console to show where a route is used and what a change affects without naming a path."
+  "/v1/escalation_policies/{policy_key}/usage":
+    get:
+      operationId: getEscalationPolicyUsage
+      tags:
+        - agents
+      summary: Where an escalation policy is used
+      description: "The open and stalled waitpoints that pinned a version of the policy, by version. A waitpoint keeps the version it pinned, so a new version applies only to waitpoints opened after it."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/EscalationPolicyKey"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - agents
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The policy's uses.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/EscalationPolicyUsage"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+        - escalation_policy_not_found
+      x-relay-scopes:
+        - read
+        - agents
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "The spec asks the console to show where an escalation policy is used and what a change affects without naming a path."
+  "/v1/workflows/{workflow_key}/publication_check":
+    get:
+      operationId: checkWorkflowPublication
+      tags:
+        - workflows
+      summary: Run the publication gate on the draft without publishing
+      description: "Runs the workflow publication gate on the draft and returns its field errors without requesting a publication or writing anything, so the editor shows them before the publish button. publishable is true when the gate would publish the draft. A workflow without a draft is 409 resource_conflict."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/WorkflowKey"
+      security:
+        - access_bearer:
+            - config
+        - access_bearer:
+            - read
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The gate's result.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/WorkflowPublicationCheck"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+        - workflow_not_found
+        - resource_conflict
+      x-relay-scopes:
+        - config
+        - read
+      x-relay-role: tenant_operator
+      x-relay-weight: 10
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "The spec has the editor show the gate's results before publication without naming a path."
+  "/v1/templates/{template_key}/publication_check":
+    get:
+      operationId: checkTemplatePublication
+      tags:
+        - templates
+      summary: Run the publication gate on the draft without publishing
+      description: "Runs the template publication gate on the draft, with the worst-case boundary sample, and returns every finding without publishing or writing anything. publishable is true when no hard finding blocks the draft; warnings still need accept_warnings at publication. checksum names the draft the findings were computed on."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/TemplateKey"
+        - "$ref": "./components/parameters.yaml#/TemplateSubtenant"
+      security:
+        - access_bearer:
+            - config
+        - access_bearer:
+            - read
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The gate's findings.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/TemplatePublicationCheck"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+        - template_not_found
+        - template_archived
+        - template_protected
+        - template_no_draft
+        - layout_not_published
+        - partial_not_published
+      x-relay-scopes:
+        - config
+        - read
+      x-relay-role: tenant_operator
+      x-relay-weight: 10
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "The spec has the editor show the gate's results before publication without naming a path."
+  "/v1/waitpoint_stats":
+    get:
+      operationId: getWaitpointStats
+      tags:
+        - agents
+      summary: Get the waitpoint figures
+      description: "The waitpoint figures of the console's pending requests screen for the tenant environment: open and stalled waitpoints, those whose state has not changed for x-relay-limits agent_operations.silent_after, the waitpoints resolved in the last seven days and how many of them a responder added by an escalation resolved, the evidence levels of the responses of the last seven days and the notifications held at an agent ceiling. Counts are exact; rates are left to the reader."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - agents
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The waitpoint figures.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/WaitpointStats"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - agents
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "The spec asks the panel to show the stalled count, the share resolved by escalation and the evidence level distribution without naming a path."
+  "/v1/reports/variants":
+    get:
+      operationId: getVariantReport
+      tags:
+        - reports
+      summary: Get the A/B variant report
+      description: "Per UTC day of delivery creation, workflow, channel step, variant, channel and test flag: the deliveries accepted, sent, delivered and seen, and the human and likely bot clicks apart, from the variant rollups recomputed with the other reports. from and to are UTC dates, to exclusive, at most 92 days apart."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/ReportFrom"
+        - "$ref": "./components/parameters.yaml#/ReportTo"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The report.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/VariantReport"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "Paths and row shapes of the ready-made reports are chosen by the contract; rows hold exact counts and the reader derives rates."
+  "/v1/reports/render_problems":
+    get:
+      operationId: getRenderProblemReport
+      tags:
+        - reports
+      summary: Get the render and locale problem report
+      description: "Per UTC day of delivery creation, channel, template and test flag: the deliveries that failed to render, by failure_reason (missing_variable, render_timeout, output_too_large, schema_violation, inbox_item_too_large), and the deliveries that fell back to the tenant default locale (template_locale_missing). Deliveries that were not rendered because no variant or locale existed are skips and appear in the skip report with their rule_id. from and to are UTC dates, to exclusive, at most 92 days apart."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/ReportFrom"
+        - "$ref": "./components/parameters.yaml#/ReportTo"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The report.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/RenderProblemReport"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - auth_environment_mismatch
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "Paths and row shapes of the ready-made reports are chosen by the contract; rows hold exact counts and the reader derives rates."
 components:
   securitySchemes:
     access_bearer:
@@ -28724,6 +30043,7 @@ x-relay-limits:
   subscriber_token_lifetime_seconds: 900
   connector_message_max_bytes: 1048576
   operator_step_up_window_seconds: 300
+  preference_page_link_lifetime_seconds: 2592000
   support_delegation:
     default: PT4H
     min: PT15M
@@ -29001,4 +30321,8 @@ x-relay-limits:
     silent_after: PT24H
     x-relay-choice: true
     x-relay-choice-note: "AG-70 sets the agent ceiling at 100 notifications an hour and 1000 a day for each agent; a tenant may only lower them (settings agents.ceiling.per_hour and agents.ceiling.per_day). AG-71 counts an open or stalled waitpoint as silent once its state has not changed for silent_after; the counts, rates and waits of the three agent operations alarms are in the alert rules."
+  subscriber_lookup:
+    max_matches: 5
+    x-relay-choice: true
+    x-relay-choice-note: "X-5 forbids pulling a customer list from the panel; a phone or e-mail lookup answers at most five subscribers that share the address, a contract choice."
 x-relay-error-catalog: "../errors.yaml"

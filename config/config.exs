@@ -120,11 +120,16 @@ config :relay, Relay.Access,
   consent_handler: Relay.Preferences.AccessConsentHandler,
   relationship_handler: Relay.Operators.AccessRelationshipHandler
 
+config :relay, Relay.Tenancy.Provisioning, test_plane: Relay.Api.TestPlane
+
 config :relay, Relay.Iys, runtime: Relay.Iys.Live
 
 config :relay, Relay.Policy.IysGate, impl: Relay.Iys.Gate
 
-config :relay, Relay.Preferences, consent_sink: Relay.Iys.Live
+config :relay, Relay.Preferences,
+  consent_sink: Relay.Iys.Live,
+  page_link_key: "preference-link",
+  page_link_verify_keys: []
 
 config :relay, Relay.Compliance,
   refusals: Relay.Compliance.Refusals,

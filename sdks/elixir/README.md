@@ -85,7 +85,9 @@ end
 | `EsuissRelay.NotFoundError`, `EsuissRelay.ConflictError`, `EsuissRelay.ApiError` | 404; 409, 412, 428; anything else |
 | `EsuissRelay.ConnectionError` | no answer arrived |
 
-Errors carry the problem details Relay returned: `code`, `title`, `detail`, `request_id`, `retryable` and `retry_after`. The client retries an error only when it is retryable, at most `:max_retries` times (default 3).
+Errors carry the problem details Relay returned: `code`, `title`, `detail`, `request_id`, `retryable` and `retry_after`, and a `category` shared by every Relay SDK: `:auth`, `:validation`, `:rate_limit`, `:idempotency` or `:server` (`:connection` when no answer arrived). The client retries an error only when it is retryable, at most `:max_retries` times (default 3), waiting for `Retry-After` (seconds or an HTTP date, at most 60 seconds) or else a random delay under an exponential ceiling of 0.5 to 8 seconds.
+
+Pass `raw: true` to get an `EsuissRelay.Response` with the status, the headers and `replayed`, which is true when Relay answered with the stored response of an earlier request with the same idempotency key.
 
 ## Pagination
 

@@ -1,16 +1,19 @@
 defmodule RelayDev.Seed do
   @moduledoc """
-  Sample data of the local environment (T-65 (1)): a sample tenant with its `live` and `test` environments and keys, a recipient in the test plane, the bundled data set versions, the link to the local Access stand-in (`RelayDev.Access`), a test plane API client trace with every server scope, the `account` category and a published `welcome` workflow, so a single request to `POST /v1/events` works right after `just dev`. `mix relay.dev.token` prints a token of the sample client. Running it again changes nothing.
+  Sample data of the local environment (T-65 (1)): a sample tenant with its `live` and `test` environments and keys, a recipient in the test plane, the bundled data set versions, the link to the local Access stand-in (`RelayDev.Access`), a test plane API client trace with every server scope and the test plane's own setup run at once (`Relay.Api.TestPlane.seed/1`): the seven seed recipients and the published sample workflow `welcome` with its inbox and e-mail steps (X-43, X-35), so a single request to `POST /v1/events` works right after `just dev`. `mix relay.dev.token` prints a token of the sample client. Running it again changes nothing.
   """
+
+  alias Relay.Api.TestPlane
 
   @tenant "dev-sample-tenant"
   @recipient "dev-sample-recipient"
   @client "dev-sample-client"
-  @workflow "welcome"
   @scopes ~w(publish read subscribers config kill_switch)
   @upserted ["created", "updated", "unchanged"]
 
   # T-65 (1)
+  # X-35
+  # X-43
   @doc "Seeds the sample data and returns the external identifiers it wrote."
   @spec run() :: {:ok, map()} | {:error, term()}
   def run do
@@ -27,14 +30,15 @@ defmodule RelayDev.Seed do
            }),
          :ok <- RelayDev.Access.link(),
          {:ok, client_id} <- client(test),
-         {:ok, version} <- workflow(test, actor) do
+         :ok <- TestPlane.seed(test),
+         {:ok, version} <- workflow_version(test) do
       {:ok,
        %{
          tenant: Relay.ExternalId.encode("ten", tenant_id),
          environments: [:live, :test],
          recipient: @recipient,
          api_client: Relay.ExternalId.encode("cli", client_id),
-         workflow: @workflow,
+         workflow: TestPlane.sample_workflow(),
          workflow_version: version
        }}
     end
@@ -51,41 +55,14 @@ defmodule RelayDev.Seed do
     end
   end
 
+  # X-35
   @doc "The body of a sample `POST /v1/events` request to the sample workflow."
   @spec sample_event() :: map()
   def sample_event do
-    %{"workflow" => @workflow, "to" => [@recipient], "data" => %{"first_name" => "Ayşe"}}
-  end
-
-  @doc "The definition of the sample workflow: one inbox step."
-  @spec definition() :: map()
-  def definition do
     %{
-      "name" => "Welcome",
-      "category" => "account",
-      "message_class" => "transactional",
-      "event_schema" => %{
-        "type" => "object",
-        "properties" => %{"first_name" => %{"type" => "string"}},
-        "required" => ["first_name"]
-      },
-      "steps" => [
-        %{"type" => "channel", "key" => "inbox", "channel" => "in_app", "template" => "welcome"}
-      ]
-    }
-  end
-
-  defp category do
-    %{
-      key: "account",
-      name: "Account",
-      message_class: "transactional",
-      locked: false,
-      enabled: true,
-      channel_defaults: %{},
-      default_expires_in: nil,
-      frequency: nil,
-      digest_allowed: false
+      "workflow" => TestPlane.sample_workflow(),
+      "to" => [@recipient],
+      "data" => %{"first_name" => "Ayşe"}
     }
   end
 
@@ -125,41 +102,10 @@ defmodule RelayDev.Seed do
     end
   end
 
-  # WF-5
   # WF-6
-  defp workflow(test, actor) do
-    case Relay.Workflow.resolve_published(test, @workflow) do
+  defp workflow_version(test) do
+    case Relay.Workflow.resolve_published(test, TestPlane.sample_workflow()) do
       {:ok, {:ok, published}} -> {:ok, published["version_no"]}
-      {:ok, :not_found} -> with :ok <- create(test, actor), do: publish(test, actor)
-      {:ok, :not_published} -> publish(test, actor)
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  # PC-57 (3)
-  defp create(test, actor) do
-    work = fn _status ->
-      _ = Relay.Preferences.create_category(test, category(), actor)
-      Relay.Workflow.create(test, @workflow, definition(), actor)
-    end
-
-    case Relay.Repo.in_scope(test, work) do
-      {:ok, {:ok, {:created, _id, _version}}} -> :ok
-      other -> {:error, other}
-    end
-  end
-
-  defp publish(test, actor) do
-    work = fn _status ->
-      Relay.Workflow.request_publication(test, @workflow, nil, "dev seed", actor)
-    end
-
-    with {:ok, {:ok, {result, version_id}}} when result in [:pending, :already_pending] <-
-           Relay.Repo.in_scope(test, work),
-         {:ok, {:published, _errors}} <- Relay.Workflow.run_gate(test, version_id),
-         {:ok, {:ok, published}} <- Relay.Workflow.resolve_published(test, @workflow) do
-      {:ok, published["version_no"]}
-    else
       other -> {:error, other}
     end
   end

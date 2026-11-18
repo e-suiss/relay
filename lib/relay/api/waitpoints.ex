@@ -134,6 +134,38 @@ defmodule Relay.Api.Waitpoints do
       else: {:error, error("/tag", "invalid_format", "not a tag")}
   end
 
+  # AG-54
+  # AG-49
+  @doc "The waitpoint figures of the caller's tenant environment (`getWaitpointStats`)."
+  @spec stats(Scope.t()) :: answer()
+  def stats(%Scope{} = scope) do
+    now = Relay.Clock.utc_now()
+
+    case Relay.Agents.waitpoint_stats(scope, now) do
+      {:ok, row} ->
+        {:ok,
+         {200, [],
+          %{
+            "object" => "waitpoint_stats",
+            "as_of" => now,
+            "open" => row["open"],
+            "stalled" => row["stalled"],
+            "silent" => row["silent"],
+            "resolved_last_7_days" => row["resolved"],
+            "resolved_by_escalation_last_7_days" => row["resolved_by_escalation"],
+            "evidence_levels_last_7_days" => %{
+              "channel_claim" => row["channel_claim"],
+              "relay_session" => row["relay_session"],
+              "access_aas_ref" => row["access_aas_ref"]
+            },
+            "held_notifications" => row["held"]
+          }}}
+
+      {:error, _reason} ->
+        {:error, Relay.Error.new(:service_unavailable, "try again", %{retry_after: 1})}
+    end
+  end
+
   # AG-46
   # API-56
   @doc "Lists waitpoints, newest first."

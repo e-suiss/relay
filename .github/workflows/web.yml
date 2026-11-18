@@ -1,0 +1,123 @@
+name: web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web/**"
+      - "contracts/openapi/**"
+      - ".github/workflows/web.yml"
+  pull_request:
+    paths:
+      - "web/**"
+      - "contracts/openapi/**"
+      - ".github/workflows/web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  console:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      # T-76
+      - id: lock
+        name: lockfile matches package.json
+        continue-on-error: true
+        run: |
+          npm install --package-lock-only --no-audit
+          git add --intent-to-add package-lock.json
+          git diff --exit-code -- package-lock.json
+      - id: ci
+        run: npm ci --no-audit
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm audit --omit=dev
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm audit --audit-level=critical
+      # X-53
+      - id: scope
+        name: Console folder or workflow changed
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request) range="origin/$BASE_REF...HEAD" ;;
+            push) range="$BEFORE..HEAD" ;;
+            *) echo "own=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          if git diff --name-only "$range" -- ":/web" ":/.github/workflows/web.yml" | grep -q .; then
+            echo "own=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "own=false" >> "$GITHUB_OUTPUT"
+          fi
+      # X-47
+      - id: types
+        if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        name: contract types match the OpenAPI contracts
+        continue-on-error: true
+        run: |
+          sh regenerate.sh
+          git add --intent-to-add src/api/generated
+          git diff --exit-code --stat -- src/api/generated
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run typecheck
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run lint
+      - id: format
+        if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        name: prettier
+        continue-on-error: true
+        run: |
+          if ! npm run format:check; then
+            npx prettier --write .
+            git diff -- . ':!src/api/generated' ':!package-lock.json' > "$RUNNER_TEMP/format.patch"
+            cp "$RUNNER_TEMP/format.patch" format.patch
+            exit 1
+          fi
+      - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm test
+      - id: build
+        if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
+        run: npm run build
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npx playwright install --with-deps chromium
+      - if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: npm run e2e
+      - name: generated files are committed
+        if: ${{ !cancelled() }}
+        env:
+          LOCK: ${{ steps.lock.outcome }}
+          TYPES: ${{ steps.types.outcome }}
+          OWN: ${{ steps.scope.outputs.own }}
+          FORMAT: ${{ steps.format.outcome }}
+        run: test "$LOCK" = success && { test "$TYPES" = success || test "$OWN" = false; } && test "$FORMAT" = success
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: web-fixups
+          path: |
+            web/package-lock.json
+            web/src/api/generated
+            web/format.patch
+            web/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7

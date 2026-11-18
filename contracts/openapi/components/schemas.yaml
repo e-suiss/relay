@@ -5918,7 +5918,14 @@ ChannelRender:
       oneOf:
         - type: object
         - type: "null"
-      description: "Rendered fields of the channel; raw HTML is returned for the sandboxed preview origin only."
+      description: "Rendered fields of the channel. The e-mail `html` of a `raw_html` cell or of a template that allows `| raw` is null here and is shown only through `sandbox_url`."
+    sandbox_url:
+      oneOf:
+        - type: string
+          format: uri
+          maxLength: 2048
+        - type: "null"
+      description: "E-mail renders only: the link of the rendered HTML on the sandboxed preview origin, a host of its own that is never the API host. The page needs no credential, is readable for five minutes, forbids scripts, forms and connections in its Content-Security-Policy with the `sandbox` directive, and may be framed only by Relay's own origin; display it in an `iframe` with an empty `sandbox` attribute. Null when the installation has no preview host or the link could not be stored, with a `sandbox_unconfigured` or `sandbox_unavailable` warning when the HTML was withheld."
     failure_reason:
       oneOf:
         - type: string

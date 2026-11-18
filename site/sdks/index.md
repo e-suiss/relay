@@ -6,16 +6,16 @@ Every SDK is generated from Relay's OpenAPI contract with a pinned generator, wi
 
 For your backend. They authenticate with your Access API client and DPoP-bound tokens.
 
-| Language               | Package                  | Guide                      |
-| ---------------------- | ------------------------ | -------------------------- |
-| TypeScript and Node.js | `@esuiss/relay`          | [TypeScript](./typescript) |
-| Python                 | `esuiss-relay`           | [Python](./python)         |
-| Go                     | `github.com/e-suiss/relay/sdks/go` | [Go](./go)       |
-| .NET                   | `Esuiss.Relay`           | [.NET](./dotnet)           |
-| Java                   | `app.suiss:esuiss-relay` | [Java](./java)             |
-| Elixir                 | `esuiss_relay`           | [Elixir](./elixir)         |
-| PHP                    | `esuiss/relay`           | [PHP](./php)               |
-| Ruby                   | `esuiss-relay`           | [Ruby](./ruby)             |
+| Language               | Package                            | Guide                      |
+| ---------------------- | ---------------------------------- | -------------------------- |
+| TypeScript and Node.js | `@esuiss/relay`                    | [TypeScript](./typescript) |
+| Python                 | `esuiss-relay`                     | [Python](./python)         |
+| Go                     | `github.com/e-suiss/relay/sdks/go` | [Go](./go)                 |
+| .NET                   | `Esuiss.Relay`                     | [.NET](./dotnet)           |
+| Java                   | `app.suiss:esuiss-relay`           | [Java](./java)             |
+| Elixir                 | `esuiss_relay`                     | [Elixir](./elixir)         |
+| PHP                    | `esuiss/relay`                     | [PHP](./php)               |
+| Ruby                   | `esuiss-relay`                     | [Ruby](./ruby)             |
 
 Every server SDK:
 

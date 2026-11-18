@@ -127,7 +127,7 @@ npm run generate
 npm run typecheck && npm run lint && npm test
 ```
 
-Models are generated from the subscriber API contract and the error catalog and committed under `src/generated/`; CI regenerates them and fails on any difference.
+Models are generated from the subscriber API contract and the error catalog and committed under `src/generated/`. `./regenerate.sh` regenerates them in place with the pinned generator. When this package or its workflow changes, CI regenerates them and fails on any difference; a contract change alone is picked up by a regeneration pull request.
 
 ## License
 

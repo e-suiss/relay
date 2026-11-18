@@ -32,16 +32,40 @@ jobs:
         working-directory: sdks/react-native
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.22.1
+      # X-53
+      - id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          own=true
+          range=""
+          if [ "$EVENT" = "pull_request" ]; then
+            range="origin/$BASE_REF...HEAD"
+          elif [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            range="$BEFORE..HEAD"
+          fi
+          if [ -n "$range" ] && [ -z "$(git diff --name-only "$range" -- . ../../.github/workflows/sdk-react-native.yml)" ]; then
+            own=false
+          fi
+          echo "own=$own" >> "$GITHUB_OUTPUT"
       # T-78
       - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
       - run: test -f package-lock.json || npm install --package-lock-only --ignore-scripts
       - run: npm ci
-      - run: npm run generate
-      - run: npx prettier --write . > /dev/null
+      # X-48
+      - if: steps.scope.outputs.own == 'true'
+        run: npm run generate
+      - if: steps.scope.outputs.own == 'true'
+        run: npx prettier --write . > /dev/null
       - id: drift
+        if: steps.scope.outputs.own == 'true'
         run: |
           git add -N .
           git diff --output="$RUNNER_TEMP/react-native-sync.patch" -- .

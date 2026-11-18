@@ -276,6 +276,11 @@ table relay.fanouts relay_archive SELECT
 table relay.fanouts relay_maint SELECT
 table relay.fanouts relay_owner INSERT,SELECT,UPDATE
 table relay.fanouts relay_report SELECT
+table relay.fault_injections relay_app SELECT
+table relay.fault_injections relay_archive SELECT
+table relay.fault_injections relay_maint SELECT
+table relay.fault_injections relay_owner INSERT,SELECT,UPDATE
+table relay.fault_injections relay_report SELECT
 table relay.first_contact_tokens relay_app SELECT
 table relay.first_contact_tokens relay_archive SELECT
 table relay.first_contact_tokens relay_maint SELECT

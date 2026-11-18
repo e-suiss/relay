@@ -24,6 +24,8 @@ None while the region has no tenants. A region opened without acceptance can put
 
 ## Diagnosis
 
+The `region-acceptance` workflow (GitHub Actions, run by hand with the region's base URL and the drill credentials as secrets) runs the isolation, shadow send, failover, archive restore and kill switch drills against the region and keeps their times in its `acceptance-report.json` artifact; attach that report to the acceptance record.
+
 Every check below is read-only. Run them against the new region's own endpoints and databases.
 
 The installation's region, as stored and as published:

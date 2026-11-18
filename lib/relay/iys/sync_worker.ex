@@ -1,6 +1,6 @@
 defmodule Relay.Iys.SyncWorker do
   @moduledoc """
-  The job that runs the İYS read path of one scope (PC-32, OP-42): the pull of consent movements, the verifications, the rejections that came from İYS and the reconciliation (`Relay.Iys.sync/2`). The synchronisation sweep queues one per configured scope; its arguments carry the scope only (T-15). A brand whose pull did not finish is tried again by the next job, so a failed pull does not fail the job.
+  The job that runs the İYS read path of one scope (PC-32, OP-42): the pull of consent movements, the verifications, the rejections that came from İYS and the reconciliation (`Relay.Iys.sync/2`). The synchronisation sweep queues one per configured scope; its arguments carry the scope only (T-15). A brand whose pull did not finish is tried again by the next job, so a failed pull does not fail the job. While an `iys_pull_stalled` fault injection applies to the scope the job ends without pulling (OP-92).
   """
 
   use Relay.Worker, queue: :maintenance, max_attempts: 3, timeout: 600_000
@@ -12,11 +12,16 @@ defmodule Relay.Iys.SyncWorker do
 
   # PC-32
   # OP-42
+  # OP-92
   @impl Oban.Worker
   def perform(%Oban.Job{args: args}) do
     with {:ok, scope} <- Relay.Scope.from_job_args(args),
+         false <- Relay.FaultInjection.iys_pull_stalled?(scope),
          {:ok, _reports} <- Relay.Iys.sync(scope, Relay.Clock.utc_now()) do
       :ok
+    else
+      true -> :ok
+      other -> other
     end
   end
 end

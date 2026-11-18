@@ -316,5 +316,6 @@
   {"file": "20270112000100_create_archive_manifests.exs", "sha256": "f25213789b22c3c31d332d9a9fdba3681de617efe648049ca9cef0c060ed05a8"},
   {"file": "20270113000000_add_tenant_key_custody.exs", "sha256": "1efe552ec8e62f02591ffe5daf2b19374c90613e596ae03be2218446b1f59b8d"},
   {"file": "20270113000100_validate_tenant_key_ref_check.exs", "sha256": "2bb61fffccfb785fe19983ce86fe9449dd54f09dd06e49ac074450fcc4721644"},
-  {"file": "20270113000200_create_tenant_closures.exs", "sha256": "c42bc1058147c9a9e44b314c34884d06cad4cf49a1b007d1cd954abc2a82d2ae"}
+  {"file": "20270113000200_create_tenant_closures.exs", "sha256": "c42bc1058147c9a9e44b314c34884d06cad4cf49a1b007d1cd954abc2a82d2ae"},
+  {"file": "20270115000000_create_fault_injections.exs", "sha256": "fb956e7f8fb96d7027f239cc2032dcda7792e66f01173cf18a189a5b1d549c69"}
 ]

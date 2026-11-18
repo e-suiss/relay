@@ -3983,16 +3983,27 @@ CategorySubtenantSettingWrite:
   additionalProperties: false
 PreferenceCell:
   type: object
-  description: "One category and channel of a subscriber. web_push follows push and voice follows sms."
+  description: "One category and channel of a subscriber. web_push follows push and voice follows sms. The embeddable preference component, the hosted preference page and an app's own notification settings screen render the same cell (X-18, X-51)."
   required:
     - category
+    - category_name
     - channel
     - value
     - effective
     - source
+    - locked
+    - lock_beneficiary
+    - digest_allowed
+    - disabled_by_admin
+    - disabled_in_device_settings
   properties:
     category:
       "$ref": "#/CategoryKey"
+    category_name:
+      type: string
+      minLength: 1
+      maxLength: 200
+      description: "The category's name as the tenant wrote it, the label of the row."
     channel:
       "$ref": "#/Channel"
     value:
@@ -4002,7 +4013,29 @@ PreferenceCell:
       description: Whether the channel is open for this category after every level is applied.
     source:
       "$ref": "#/PreferenceSource"
+    locked:
+      type: boolean
+      description: "Whether the category is locked (PC-6): the cell is shown as a label, not a switch, and the last open channel of the category cannot be closed."
+    lock_beneficiary:
+      description: "Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked."
+      oneOf:
+        - type: string
+          enum:
+            - subscriber
+            - tenant
+        - type: "null"
+    digest_allowed:
+      type: boolean
+      description: "Whether the subscriber may receive this category as a digest: always for social, for operational when the category allows it (PC-17). Closing such a cell offers the three choices Instant, Digest and Never, none preselected."
+    disabled_by_admin:
+      type: boolean
+      description: "The tenant turned this cell off: it turned the category off or wrote opt_out on the subscriber's behalf (PC-15). Shown as \"your administrator turned this off\"; the subscriber cannot turn it on."
+    disabled_in_device_settings:
+      type: boolean
+      description: "For push and web_push: the subscriber has devices on the channel and the operating system permission of none of them allows this category (PC-16). Shown as \"turned off in device settings\"; the preference itself is kept and applies again once the permission is back."
   additionalProperties: false
+  x-relay-choice: true
+  x-relay-choice-note: "X-51 adds the lock beneficiary, the administrator's and the device settings' states; carrying them, the category name and the digest choice on every cell is chosen by the contract so every surface renders from one read."
 ChannelPreference:
   type: object
   description: Channel-level switch across all categories.
@@ -4147,6 +4180,28 @@ SubscriberPreferences:
   additionalProperties: false
   x-relay-choice: true
   x-relay-choice-note: "subscriber_id is added so a client can match the response to the subscriber."
+PreferencePageLink:
+  type: object
+  description: "A link to the hosted preference page of one subscriber (X-51, PC-18): a page that works without JavaScript and without signing in, opened by a signed, expiring token that only opens this page for this subscriber in the environment of the credential that minted it."
+  required:
+    - object
+    - subscriber_id
+    - url
+    - expires_at
+  properties:
+    object:
+      type: string
+      const: preference_page_link
+    subscriber_id:
+      "$ref": "#/Id_sub"
+    url:
+      type: string
+      format: uri
+      maxLength: 2048
+      description: "The page's address on Relay's public root, on its self-explanatory path: /bildirim-tercihleri/ for a Turkish subscriber, /notification-preferences/ otherwise."
+    expires_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
 PreferenceWrite:
   type: object
   description: "One preference switch. category_channel needs category and channel; channel needs channel only; workflow needs workflow; scope_key needs scope_key."

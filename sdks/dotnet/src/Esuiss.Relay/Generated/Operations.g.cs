@@ -65,6 +65,9 @@ public static partial class Operations
     /// <summary>Update subscriber preferences</summary>
     public static readonly Operation UpdateSubscriberPreferences = new("updateSubscriberPreferences", "PATCH", "/v1/subscribers/{subscriber_id}/preferences", IdempotencyMode.Required, IfMatchMode.None, BodyMode.Required, "application/json", ResponseKind.Json);
 
+    /// <summary>Mint a hosted preference page link</summary>
+    public static readonly Operation CreatePreferencePageLink = new("createPreferencePageLink", "POST", "/v1/subscribers/{subscriber_id}/preference_page_links", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>List subscriber consents</summary>
     public static readonly Operation ListSubscriberConsents = new("listSubscriberConsents", "GET", "/v1/subscribers/{subscriber_id}/consents", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -802,6 +805,7 @@ public static partial class Operations
         BulkUpsertSubscribers,
         GetSubscriberPreferences,
         UpdateSubscriberPreferences,
+        CreatePreferencePageLink,
         ListSubscriberConsents,
         ListSubscriberDevices,
         RegisterSubscriberDevice,

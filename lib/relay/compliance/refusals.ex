@@ -221,6 +221,18 @@ defmodule Relay.Compliance.Refusals do
     with {:ok, claims} <- Relay.Compliance.verify_unsubscribe_token(token), do: read(claims)
   end
 
+  # X-51
+  # PC-36
+  @doc "The scope, recipient and locale of a valid unsubscribe link, for the hosted preference page its page leads to; changes nothing."
+  @spec link_recipient(term()) ::
+          {:ok, Scope.t(), Relay.Id.t(), String.t() | nil} | {:error, :invalid | :unavailable}
+  def link_recipient(token) do
+    with {:ok, claims} <- Relay.Compliance.verify_unsubscribe_token(token),
+         {:ok, link} <- read(claims) do
+      {:ok, claims.scope, claims.recipient_id, link.locale}
+    end
+  end
+
   defp read(claims) do
     result =
       Store.in_scope(claims.scope, fn _status ->

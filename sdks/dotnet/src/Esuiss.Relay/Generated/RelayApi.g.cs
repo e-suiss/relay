@@ -254,6 +254,16 @@ public sealed partial class RelayApi
         return _client.SendJsonAsync(Operations.UpdateSubscriberPreferences, [subscriberId], query, body, options, cancellationToken);
     }
 
+    /// <summary>Mint a hosted preference page link</summary>
+    public Task<JsonNode> CreatePreferencePageLinkAsync(
+        string subscriberId,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.CreatePreferencePageLink, [subscriberId], query, null, options, cancellationToken);
+    }
+
     /// <summary>List subscriber consents</summary>
     public Task<Page> ListSubscriberConsentsAsync(
         string subscriberId,

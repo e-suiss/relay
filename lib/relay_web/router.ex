@@ -108,6 +108,26 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # X-51
+  # X-22
+  # PC-18
+  scope "/bildirim-tercihleri", RelayWeb do
+    pipe_through :links
+
+    get "/:token", PreferencePageController, :show
+    post "/:token", PreferencePageController, :create
+  end
+
+  # X-51
+  # X-22
+  # PC-18
+  scope "/notification-preferences", RelayWeb do
+    pipe_through :links
+
+    get "/:token", PreferencePageController, :show
+    post "/:token", PreferencePageController, :create
+  end
+
   # DS-37
   scope "/exports", RelayWeb do
     pipe_through :downloads
@@ -235,6 +255,9 @@ defmodule RelayWeb.Router do
 
     patch "/subscribers/:subscriber_id/preferences", PreferenceController, :update,
       private: %{relay_operation: "updateSubscriberPreferences"}
+
+    post "/subscribers/:subscriber_id/preference_page_links", PreferenceController, :link,
+      private: %{relay_operation: "createPreferencePageLink"}
 
     get "/subscribers/:subscriber_id/consents", PreferenceController, :consents,
       private: %{relay_operation: "listSubscriberConsents"}
@@ -1310,6 +1333,12 @@ defmodule RelayWeb.Router do
     pipe_through :panel
 
     oban_dashboard("/queues", resolver: RelayWeb.Operator.Panel, oban_name: Oban)
+  end
+
+  # X-47
+  scope "/console", RelayWeb do
+    get "/", ConsoleController, :show
+    get "/*path", ConsoleController, :show
   end
 
   # API-36

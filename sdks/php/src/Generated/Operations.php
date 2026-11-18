@@ -4656,6 +4656,75 @@ trait Operations
     }
 
     /**
+     * Get the status of a provider account.
+     *
+     * @return array<string, mixed>
+     */
+    public function getProviderAccountStatus(
+        string $providerAccountId,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/provider_accounts/{provider_account_id}/status',
+            pathParams: ['provider_account_id' => $providerAccountId],
+            options: $options,
+        ));
+    }
+
+    /**
+     * Check the sending domains of an e-mail provider account.
+     *
+     * @return array<string, mixed>
+     */
+    public function getProviderAccountEmailDomains(
+        string $providerAccountId,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/provider_accounts/{provider_account_id}/email_domains',
+            pathParams: ['provider_account_id' => $providerAccountId],
+            options: $options,
+        ));
+    }
+
+    /**
+     * List the e-mail warm-up plans.
+     *
+     * @return array<string, mixed>
+     */
+    public function listEmailWarmupPlans(
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/email_warmup_plans',
+            options: $options,
+        ));
+    }
+
+    /**
+     * Quote the cost of a paid channel.
+     *
+     * @return array<string, mixed>
+     */
+    public function quoteChannelCost(
+        string $channel,
+        string $country,
+        ?string $category = null,
+        ?int $quantity = null,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/channel_costs',
+            query: ['channel' => $channel, 'country' => $country, 'category' => $category, 'quantity' => $quantity],
+            options: $options,
+        ));
+    }
+
+    /**
      * List provider invoices.
      *
      * @return Page<array<string, mixed>>

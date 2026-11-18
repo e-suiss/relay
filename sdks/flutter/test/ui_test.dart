@@ -24,6 +24,12 @@ Map<String, Object?> prefs({String pushSource = 'user', bool pushOn = true}) =>
           'value': 'unset',
           'effective': pushOn,
           'source': pushSource,
+          'category_name': 'orders',
+          'locked': false,
+          'lock_beneficiary': null,
+          'digest_allowed': true,
+          'disabled_by_admin': false,
+          'disabled_in_device_settings': false,
         },
         <String, Object?>{
           'category': 'orders',
@@ -31,6 +37,12 @@ Map<String, Object?> prefs({String pushSource = 'user', bool pushOn = true}) =>
           'value': 'unset',
           'effective': true,
           'source': 'class_default',
+          'category_name': 'orders',
+          'locked': false,
+          'lock_beneficiary': null,
+          'digest_allowed': true,
+          'disabled_by_admin': false,
+          'disabled_in_device_settings': false,
         },
         <String, Object?>{
           'category': 'security',
@@ -38,6 +50,12 @@ Map<String, Object?> prefs({String pushSource = 'user', bool pushOn = true}) =>
           'value': 'unset',
           'effective': true,
           'source': 'locked',
+          'category_name': 'security',
+          'locked': true,
+          'lock_beneficiary': null,
+          'digest_allowed': true,
+          'disabled_by_admin': false,
+          'disabled_in_device_settings': false,
         },
       ],
       'channels': <Object?>[],
@@ -484,10 +502,10 @@ void main() {
         expect(server.calls, <String>[
           'POST /v1/subscriber/waitpoints/$wp1/response',
         ]);
-        expect(
-          jsonDecode(server.requests.single.body),
-          <String, Object?>{'response': 'yes', 'subject_digest': digest1},
-        );
+        expect(jsonDecode(server.requests.single.body), <String, Object?>{
+          'response': 'yes',
+          'subject_digest': digest1,
+        });
         expect(
           server.requests.single.headers.containsKey('Idempotency-Key'),
           isFalse,

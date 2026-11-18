@@ -104,9 +104,8 @@ class _RelayInboxListState extends State<RelayInboxList> {
       if (mounted) setState(() => _receipts[waitpoint.id] = receipt);
     } on Object {
       if (mounted) {
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          SnackBar(content: Text(l10n.text('error_generic'))),
-        );
+        ScaffoldMessenger.maybeOf(context)
+            ?.showSnackBar(SnackBar(content: Text(l10n.text('error_generic'))));
       }
     } finally {
       if (mounted) setState(() => _responding.remove(waitpoint.id));

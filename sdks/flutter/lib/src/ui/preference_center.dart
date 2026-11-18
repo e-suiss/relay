@@ -217,10 +217,7 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
     );
   }
 
-  List<Widget> _consentSection(
-    RelayThemeData theme,
-    RelayLocalizations l10n,
-  ) {
+  List<Widget> _consentSection(RelayThemeData theme, RelayLocalizations l10n) {
     final List<Consent>? loaded = _consents;
     if (loaded == null && !_consentsFailed) return const <Widget>[];
     final List<Consent> consents = <Consent>[
@@ -253,9 +250,7 @@ class _RelayPreferenceCenterState extends State<RelayPreferenceCenter> {
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: Text(
-          l10n.text(
-            _consentsFailed ? 'consents_unavailable' : 'consents_hint',
-          ),
+          l10n.text(_consentsFailed ? 'consents_unavailable' : 'consents_hint'),
           style: TextStyle(color: theme.onSurfaceMuted, fontSize: 14),
         ),
       ),

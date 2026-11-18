@@ -11,6 +11,18 @@ enum RelayOperation {
     idempotencyRequired: true,
     scopes: <String>['preferences'],
   ),
+  listMyConsents(
+    'GET',
+    '/v1/subscriber/consents',
+    idempotencyRequired: false,
+    scopes: <String>['preferences'],
+  ),
+  getMyPushContent(
+    'GET',
+    '/v1/subscriber/push_content/{delivery_id}',
+    idempotencyRequired: false,
+    scopes: <String>['inbox:read'],
+  ),
   registerMyDevice(
     'POST',
     '/v1/subscriber/devices',
@@ -69,6 +81,12 @@ enum RelayOperation {
     'POST',
     '/v1/subscriber/inbox/items/{item_id}/intents',
     idempotencyRequired: true,
+    scopes: <String>['inbox:write'],
+  ),
+  respondToMyWaitpoint(
+    'POST',
+    '/v1/subscriber/waitpoints/{waitpoint_id}/response',
+    idempotencyRequired: false,
     scopes: <String>['inbox:write'],
   ),
   getMyInboxCounters(

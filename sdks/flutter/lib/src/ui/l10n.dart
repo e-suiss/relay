@@ -119,8 +119,7 @@ const Map<String, Map<String, String>> relayStrings =
         'channel_webhook': 'Webhook',
         'cell_label': '{category}, {channel}: {state}',
         'consents_title': 'Marketing permissions',
-        'consents_hint':
-            'Your marketing permissions are kept in your account and changed there.',
+        'consents_hint': 'Your marketing permissions are kept in your account and changed there.',
         'consents_unavailable': 'Permission details are not shown here.',
         'manage_consents': 'Manage permissions in your account',
         'consent_label': '{channel}: {status}',
@@ -184,6 +183,5 @@ class RelayLocalizations {
   String channel(Channel channel) => text('channel_${channel.wire}');
 
   /// The name of a consent status.
-  String consentStatus(ConsentStatus status) =>
-      text('consent_${status.wire}');
+  String consentStatus(ConsentStatus status) => text('consent_${status.wire}');
 }

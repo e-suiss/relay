@@ -193,8 +193,8 @@ Map<String, Object?> item(
   'activity_count': 1,
   'actor_count': 0,
   'expires_at': null,
-  if (senderType != null) 'sender_type': senderType,
-  if (approval != null) 'approval': approval,
+  'sender_type': ?senderType,
+  'approval': ?approval,
   'waitpoint': waitpoint,
 };
 

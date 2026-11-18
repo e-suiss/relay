@@ -37,17 +37,36 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          fetch-depth: 0
+      # X-53
+      - id: changes
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          run=true
+          if [ "$EVENT" != "workflow_dispatch" ] && [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            if [ -z "$(git diff --name-only "$BASE" HEAD -- sdks/go .github/workflows/sdk-go.yml)" ]; then
+              run=false
+            fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+      - if: steps.changes.outputs.run == 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: 1.27.3
           cache-dependency-path: sdks/go/internal/codegen/go.sum
-      - working-directory: sdks/go/internal/codegen
+      - if: steps.changes.outputs.run == 'true'
+        working-directory: sdks/go/internal/codegen
         run: |
           go mod verify
           test -z "$(gofmt -l .)"
           go vet ./...
-          go run . -contracts ../../../../contracts -out ../..
-      - run: |
+      - if: steps.changes.outputs.run == 'true'
+        run: sdks/go/regenerate.sh
+      - if: steps.changes.outputs.run == 'true'
+        run: |
           git status --porcelain -- sdks/go
           git diff --stat -- sdks/go
           test -z "$(git status --porcelain -- sdks/go)"

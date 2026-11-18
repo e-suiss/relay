@@ -10,6 +10,7 @@ defmodule Relay.TenantLifecycle do
       Relay.Audit,
       Relay.Delivery,
       Relay.Keys.Erasure,
+      Relay.Parquet,
       Relay.Subscribers,
       Relay.Tenancy
     ],

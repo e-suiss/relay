@@ -89,7 +89,7 @@ defmodule Relay.TenantLifecycle.ClosureTest do
     test "OP-86: the request closes the tenant, queues its export and is audited", %{
       tenant: tenant
     } do
-      assert {:ok, %{"state" => "exporting", "formats" => ["jsonl", "csv"]}} =
+      assert {:ok, %{"state" => "exporting", "formats" => ["jsonl", "csv", "parquet"]}} =
                TenantLifecycle.request_closure(
                  tenant.id,
                  %{reason: "contract ended"},
@@ -130,17 +130,17 @@ defmodule Relay.TenantLifecycle.ClosureTest do
       closure = exported(tenant)
       assert closure["state"] == "export_ready"
       files = closure["files"]
-      assert length(files) == 2 * 4 * 2
+      assert length(files) == 2 * 4 * 3
 
       for file <- files do
-        assert file["format"] in ["jsonl", "csv"]
+        assert file["format"] in ["jsonl", "csv", "parquet"]
         assert file["environment"] in ["live", "test"]
         assert file["url"] =~ "X-Amz-Signature="
         assert file["url"] =~ "X-Amz-Expires=86400"
         assert file["sha256"] =~ ~r/^[0-9a-f]{64}$/
       end
 
-      assert [%{"rows" => 1}, %{"rows" => 1}] =
+      assert [%{"rows" => 1}, %{"rows" => 1}, %{"rows" => 1}] =
                Enum.filter(files, &(&1["kind"] == "subscribers" and &1["environment"] == "live"))
 
       prefix = "/relay-exports/" <> closure["export_prefix"]
@@ -157,6 +157,14 @@ defmodule Relay.TenantLifecycle.ClosureTest do
 
       assert [%{"id" => "sub_" <> _, "state" => "active"}] =
                first |> String.split("\n", trim: true) |> Enum.map(&Jason.decode!/1)
+
+      parquet_part = prefix <> "live/subscribers/part-00001.parquet"
+      [{_parquet, parquet}] = Enum.filter(written, fn {path, _} -> path == parquet_part end)
+      name = "closure-" <> Base.encode16(:crypto.strong_rand_bytes(6))
+      path = Path.join(System.tmp_dir!(), name)
+      File.write!(path, parquet)
+      on_exit(fn -> File.rm(path) end)
+      assert {:ok, ["id" | _], [["sub_" <> _ | _]]} = Relay.Parquet.reduce(path, [], &(&2 ++ &1))
 
       assert "tenant.export_ready" in actions(tenant.id, "live")
     end

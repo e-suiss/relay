@@ -2177,6 +2177,46 @@ public final class RelayApi {
           Operation.Presence.NONE,
           "application/json",
           Operation.Response.JSON);
+  private static final Operation GET_PROVIDER_ACCOUNT_STATUS =
+      new Operation(
+          "getProviderAccountStatus",
+          "GET",
+          "/v1/provider_accounts/{provider_account_id}/status",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_PROVIDER_ACCOUNT_EMAIL_DOMAINS =
+      new Operation(
+          "getProviderAccountEmailDomains",
+          "GET",
+          "/v1/provider_accounts/{provider_account_id}/email_domains",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation LIST_EMAIL_WARMUP_PLANS =
+      new Operation(
+          "listEmailWarmupPlans",
+          "GET",
+          "/v1/email_warmup_plans",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation QUOTE_CHANNEL_COST =
+      new Operation(
+          "quoteChannelCost",
+          "GET",
+          "/v1/channel_costs",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
   private static final Operation LIST_PROVIDER_INVOICES =
       new Operation(
           "listProviderInvoices",
@@ -8165,6 +8205,106 @@ public final class RelayApi {
    */
   public JsonNode verifyProviderAccount(String providerAccountId) {
     return verifyProviderAccount(providerAccountId, RequestOptions.none());
+  }
+
+  /**
+   * Get the status of a provider account.
+   *
+   * <p>{@code GET /v1/provider_accounts/{provider_account_id}/status}
+   *
+   * @param providerAccountId the {@code provider_account_id} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getProviderAccountStatus(String providerAccountId, RequestOptions options) {
+    return requester.json(
+        GET_PROVIDER_ACCOUNT_STATUS, List.of(providerAccountId), null, null, options);
+  }
+
+  /**
+   * Get the status of a provider account.
+   *
+   * <p>{@code GET /v1/provider_accounts/{provider_account_id}/status}
+   *
+   * @param providerAccountId the {@code provider_account_id} path parameter
+   * @return the response body
+   */
+  public JsonNode getProviderAccountStatus(String providerAccountId) {
+    return getProviderAccountStatus(providerAccountId, RequestOptions.none());
+  }
+
+  /**
+   * Check the sending domains of an e-mail provider account.
+   *
+   * <p>{@code GET /v1/provider_accounts/{provider_account_id}/email_domains}
+   *
+   * @param providerAccountId the {@code provider_account_id} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getProviderAccountEmailDomains(String providerAccountId, RequestOptions options) {
+    return requester.json(
+        GET_PROVIDER_ACCOUNT_EMAIL_DOMAINS, List.of(providerAccountId), null, null, options);
+  }
+
+  /**
+   * Check the sending domains of an e-mail provider account.
+   *
+   * <p>{@code GET /v1/provider_accounts/{provider_account_id}/email_domains}
+   *
+   * @param providerAccountId the {@code provider_account_id} path parameter
+   * @return the response body
+   */
+  public JsonNode getProviderAccountEmailDomains(String providerAccountId) {
+    return getProviderAccountEmailDomains(providerAccountId, RequestOptions.none());
+  }
+
+  /**
+   * List the e-mail warm-up plans.
+   *
+   * <p>{@code GET /v1/email_warmup_plans}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode listEmailWarmupPlans(RequestOptions options) {
+    return requester.json(LIST_EMAIL_WARMUP_PLANS, List.of(), null, null, options);
+  }
+
+  /**
+   * List the e-mail warm-up plans.
+   *
+   * <p>{@code GET /v1/email_warmup_plans}
+   *
+   * @return the response body
+   */
+  public JsonNode listEmailWarmupPlans() {
+    return listEmailWarmupPlans(RequestOptions.none());
+  }
+
+  /**
+   * Quote the cost of a paid channel.
+   *
+   * <p>{@code GET /v1/channel_costs}
+   *
+   * @param params the query parameters
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode quoteChannelCost(QuoteChannelCostParams params, RequestOptions options) {
+    return requester.json(QUOTE_CHANNEL_COST, List.of(), params, null, options);
+  }
+
+  /**
+   * Quote the cost of a paid channel.
+   *
+   * <p>{@code GET /v1/channel_costs}
+   *
+   * @param params the query parameters
+   * @return the response body
+   */
+  public JsonNode quoteChannelCost(QuoteChannelCostParams params) {
+    return quoteChannelCost(params, RequestOptions.none());
   }
 
   /**

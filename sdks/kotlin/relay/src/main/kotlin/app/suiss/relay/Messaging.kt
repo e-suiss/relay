@@ -26,6 +26,7 @@ public data class RelayShownNotification(
     val title: String,
     val body: String,
     val fetched: Boolean,
+    val subtitle: String? = null,
 )
 
 // CH-33
@@ -33,8 +34,8 @@ public data class RelayShownNotification(
 
 /**
  * Handles Relay FCM or HMS data messages from the app's messaging service. A sync signal refreshes the
- * counters and runs a delta sync; a content-free push fetches its content over TLS and shows it, or
- * shows the generic text when the content cannot be read. The content never falls back into the
+ * counters and runs a delta sync; a content-free push fetches its content by its delivery id over TLS
+ * and shows it, or shows the generic text when the content cannot be read. The content never falls back into the
  * push payload.
  */
 public class RelayDataMessageHandler internal constructor(
@@ -55,8 +56,11 @@ public class RelayDataMessageHandler internal constructor(
             return null
         }
         payload.deliveryId?.let { runCatching { push.record(RelayReceipt.DISPLAYED, it) } }
-        val item = push.content(payload)
-        val fetched = item != null && (item.title != null || item.body != null)
+        val content = push.pushContent(payload)
+        val item = if (content == null) push.content(payload) else null
+        val title = content?.title ?: item?.title
+        val body = content?.body ?: item?.body
+        val fetched = title != null || body != null
         val category = item?.category?.takeIf { fetched } ?: RelayNotificationChannels.GENERAL_CATEGORY
         val manager = context.getSystemService(NotificationManager::class.java)
         val preferred = RelayNotificationChannels.channelId(category, RelayInterruptionLevel.ACTIVE)
@@ -70,9 +74,10 @@ public class RelayDataMessageHandler internal constructor(
             RelayShownNotification(
                 tag = payload.id ?: "relay",
                 channelId = channelId,
-                title = if (fetched) item?.title.orEmpty() else payload.neutralTitle ?: RelayNeutralText.title(locale),
-                body = if (fetched) item?.body.orEmpty() else payload.neutralBody ?: RelayNeutralText.body(locale),
+                title = if (fetched) title.orEmpty() else payload.neutralTitle ?: RelayNeutralText.title(locale),
+                body = if (fetched) body.orEmpty() else payload.neutralBody ?: RelayNeutralText.body(locale),
                 fetched = fetched,
+                subtitle = content?.subtitle?.takeIf { fetched },
             )
         val builder =
             NotificationCompat
@@ -83,8 +88,10 @@ public class RelayDataMessageHandler internal constructor(
                 .setAutoCancel(true)
                 .setGroup(payload.topic ?: item?.groupKey)
                 .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+        shown.subtitle?.let { builder.setSubText(it) }
         launchIntent()?.let { intent ->
             data.forEach { (key, value) -> if (key.startsWith("relay_")) intent.putExtra(key, value) }
+            content?.url?.takeIf { fetched && "relay_url" !in data }?.let { intent.putExtra("relay_url", it) }
             val pending =
                 PendingIntent.getActivity(
                     context,

@@ -61,6 +61,23 @@ class PushTest {
             assertEquals("token", body.get("token").asString)
             assertNull(body.get("previous_token"))
             assertNull(body.get("android_channels"))
+            assertNull(body.get("interruption_permissions"))
+        }
+
+    @Test
+    fun `CH-65 registration reports the DND access the device knows`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val storage = MemoryDeviceStorage()
+            val settings = RelayNotificationSettings(RelayPermission.GRANTED, true, RelayInterruptionPermission.GRANTED)
+            val push = RelayPushApi(harness.http, storage, { settings }) { emptyList() }
+            harness.server.enqueue("POST /v1/subscriber/devices", Reply.json(201, Fixtures.device()))
+            push.register("token")
+            val body = harness.server.requests("POST /v1/subscriber/devices").single().json
+            val permissions = body.getAsJsonObject("interruption_permissions")
+            assertEquals("granted", permissions.get("dnd_access").asString)
+            assertNull(permissions.get("critical_alerts"))
+            assertNull(permissions.get("time_sensitive"))
         }
 
     @Test
@@ -173,9 +190,66 @@ class PushTest {
         shadowOf(manager).setNotificationPolicyAccessGranted(false)
         val settings = SystemNotificationSettingsReader(context).read()
         assertFalse(settings.dndAccessGranted)
+        assertEquals(RelayInterruptionPermission.DENIED, settings.dndAccess)
         shadowOf(manager).setNotificationPolicyAccessGranted(true)
-        assertTrue(SystemNotificationSettingsReader(context).read().dndAccessGranted)
+        val granted = SystemNotificationSettingsReader(context).read()
+        assertTrue(granted.dndAccessGranted)
+        assertEquals(RelayInterruptionPermission.GRANTED, granted.dndAccess)
+        assertNull(RelayNotificationSettings(RelayPermission.GRANTED).dndAccess)
     }
+
+    @Test
+    fun `CH-33 a content-free push fetches its content by the delivery id`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val client = harness.client()
+            harness.server.enqueue(
+                "POST /v1/subscriber/push_receipts",
+                Reply.json(202, """{"object":"push_receipt","delivery_id":"${Fixtures.DELIVERY_ID}","receipt":"displayed"}"""),
+            )
+            harness.server.enqueue(
+                "GET /v1/subscriber/push_content/${Fixtures.DELIVERY_ID}",
+                Reply.json(
+                    200,
+                    """{"object":"push_content","delivery_id":"${Fixtures.DELIVERY_ID}",""" +
+                        """"notification_id":"ntf_01j9zq3k4m5n6p7q8r9s0t1v2w","channel":"push","locale":"en",""" +
+                        """"content":{"title":"Order shipped","subtitle":"Order 1","body":"On its way","url":"https://shop.test/o/1"}}""",
+                ),
+            )
+            val shown = client.messaging.handle(mapOf("relay_id" to Fixtures.DELIVERY_ID, "relay_neutral_title" to "New"))
+            assertNotNull(shown)
+            assertTrue(shown!!.fetched)
+            assertEquals("Order shipped", shown.title)
+            assertEquals("On its way", shown.body)
+            assertEquals("Order 1", shown.subtitle)
+            val request = harness.server.requests("GET /v1/subscriber/push_content/${Fixtures.DELIVERY_ID}").single()
+            assertEquals("Bearer subscriber-token-1", request.header("Authorization"))
+            assertTrue(harness.server.requests("GET /v1/subscriber/inbox/items/${Fixtures.DELIVERY_ID}").isEmpty())
+            val content = client.push.pushContent(RelayPushPayload(id = Fixtures.ITEM_ID))
+            assertNull(content)
+        }
+
+    @Test
+    fun `CH-33 delivery_not_found keeps the generic text and never reads the payload`() =
+        runBlocking<Unit> {
+            val harness = Harness()
+            val client = harness.client()
+            harness.server.enqueue(
+                "GET /v1/subscriber/push_content/${Fixtures.DELIVERY_ID}",
+                Reply.problem(404, "delivery_not_found", retryable = false),
+            )
+            val shown =
+                client.messaging.handle(
+                    mapOf("relay_id" to Fixtures.DELIVERY_ID, "title" to "Secret", "body" to "Secret body"),
+                    Locale.forLanguageTag("en-US"),
+                )
+            assertNotNull(shown)
+            assertFalse(shown!!.fetched)
+            assertEquals("New notification", shown.title)
+            assertEquals("You have a new notification.", shown.body)
+            assertNull(shown.subtitle)
+            assertEquals(1, harness.server.requests("GET /v1/subscriber/push_content/${Fixtures.DELIVERY_ID}").size)
+        }
 
     @Test
     fun `CH-33 a content-free push shows the fetched content`() =

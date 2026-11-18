@@ -27,6 +27,7 @@ import app.suiss.relay.api.model.InboxItem
 import app.suiss.relay.api.model.InboxItemActionsInner
 import app.suiss.relay.api.model.InboxItemDataInner
 import app.suiss.relay.api.model.InboxItemState
+import app.suiss.relay.api.model.InboxWaitpoint
 
 import com.google.gson.annotations.SerializedName
 
@@ -46,6 +47,7 @@ import com.google.gson.annotations.SerializedName
  * @param seen
  * @param stateVersion
  * @param tags
+ * @param approval true for an approval item: its only action is the deep link to the Access approval surface and it is never answered here (IN-6, AG-32).
  * @param archivedAt RFC 3339 timestamp in UTC.
  * @param avatarUrl
  * @param body
@@ -57,10 +59,12 @@ import com.google.gson.annotations.SerializedName
  * @param locale BCP 47 language tag.
  * @param readAt RFC 3339 timestamp in UTC.
  * @param seenAt RFC 3339 timestamp in UTC.
+ * @param senderType Who produced the notification, shown on every surface (C-24, AG-34); absent on an announcement.
  * @param severity
  * @param snoozedUntil RFC 3339 timestamp in UTC.
  * @param title
  * @param url The target of the item: the event's primary link (E-83).
+ * @param waitpoint The decision request the item is about, or null (AG-35).
  */
 
 
@@ -115,6 +119,10 @@ data class InboxChangeItem (
     @SerializedName("tags")
     val tags: kotlin.collections.List<kotlin.String>,
 
+    /* true for an approval item: its only action is the deep link to the Access approval surface and it is never answered here (IN-6, AG-32). */
+    @SerializedName("approval")
+    val approval: kotlin.Boolean? = null,
+
     /* RFC 3339 timestamp in UTC. */
     @SerializedName("archived_at")
     val archivedAt: kotlin.String? = null,
@@ -154,6 +162,10 @@ data class InboxChangeItem (
     @SerializedName("seen_at")
     val seenAt: kotlin.String? = null,
 
+    /* Who produced the notification, shown on every surface (C-24, AG-34); absent on an announcement. */
+    @SerializedName("sender_type")
+    val senderType: InboxChangeItem.SenderType? = null,
+
     @SerializedName("severity")
     val severity: kotlin.String? = null,
 
@@ -166,7 +178,11 @@ data class InboxChangeItem (
 
     /* The target of the item: the event's primary link (E-83). */
     @SerializedName("url")
-    val url: kotlin.String? = null
+    val url: kotlin.String? = null,
+
+    /* The decision request the item is about, or null (AG-35). */
+    @SerializedName("waitpoint")
+    val waitpoint: InboxWaitpoint? = null
 
 ) {
 
@@ -192,6 +208,16 @@ data class InboxChangeItem (
     enum class Kind(val value: kotlin.String) {
         @SerializedName(value = "personal") PERSONAL("personal"),
         @SerializedName(value = "announcement") ANNOUNCEMENT("announcement");
+    }
+    /**
+     * Who produced the notification, shown on every surface (C-24, AG-34); absent on an announcement.
+     *
+     * Values: HUMAN,SYSTEM,AGENT
+     */
+    enum class SenderType(val value: kotlin.String) {
+        @SerializedName(value = "human") HUMAN("human"),
+        @SerializedName(value = "system") SYSTEM("system"),
+        @SerializedName(value = "agent") AGENT("agent");
     }
 
 }

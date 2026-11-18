@@ -26,6 +26,7 @@ package app.suiss.relay.api.model
 import app.suiss.relay.api.model.AndroidChannel
 import app.suiss.relay.api.model.ApnsEnvironment
 import app.suiss.relay.api.model.DeviceDisabledReason
+import app.suiss.relay.api.model.DeviceInterruptionPermissions
 import app.suiss.relay.api.model.DevicePermission
 import app.suiss.relay.api.model.DevicePlatform
 import app.suiss.relay.api.model.DeviceState
@@ -51,6 +52,7 @@ import com.google.gson.annotations.SerializedName
  * @param apnsEnvironment
  * @param deletedAt RFC 3339 timestamp in UTC.
  * @param disabledReason
+ * @param interruptionPermissions The interruption permissions the device reported with its last registration; null when it reported none.
  * @param locale BCP 47 language tag.
  * @param timezone The IANA time zone the device reported with its registration; null when it reported none or one Relay does not know.
  */
@@ -113,6 +115,10 @@ data class Device (
 
     @SerializedName("disabled_reason")
     val disabledReason: DeviceDisabledReason? = null,
+
+    /* The interruption permissions the device reported with its last registration; null when it reported none. */
+    @SerializedName("interruption_permissions")
+    val interruptionPermissions: DeviceInterruptionPermissions? = null,
 
     /* BCP 47 language tag. */
     @SerializedName("locale")

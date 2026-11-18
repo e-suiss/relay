@@ -193,18 +193,33 @@ object Fixtures {
     const val ITEM_ID = "inb_01j9zq3k4m5n6p7q8r9s0t1v2w"
     const val DEVICE_ID = "dev_01j9zq3k4m5n6p7q8r9s0t1v2w"
     const val DELIVERY_ID = "dlv_01j9zq3k4m5n6p7q8r9s0t1v2w"
+    const val WAITPOINT_ID = "wp_01j9zq3k4m5n6p7q8r9s0t1v2w"
+    const val SUBSCRIBER_ID = "sub_01j9zq3k4m5n6p7q8r9s0t1v2w"
+    const val DIGEST = "abababababababababababababababababababababababababababababababab"
+
+    fun waitpoint(
+        kind: String = "response",
+        status: String = "awaiting",
+        approvalUrl: String? = null,
+    ): String {
+        val url = approvalUrl?.let { "\"$it\"" } ?: "null"
+        return """{"id":"$WAITPOINT_ID","kind":"$kind","status":"$status","subject_digest":"$DIGEST",""" +
+            """"options":[{"label":"Yes","value":"yes"},{"label":"No","value":"no"}],"responder":null,""" +
+            """"responded_at":null,"approval_url":$url}"""
+    }
 
     fun item(
         id: String = ITEM_ID,
         version: Int = 1,
         read: Boolean = false,
+        extra: String = "",
     ): String =
         """{"object":"inbox_item","kind":"personal","id":"$id","state_version":$version,"seen":$read,"read":$read,""" +
             """"archived":false,"hidden":false,"expired":false,"snoozed_until":null,"seen_at":null,"read_at":null,""" +
             """"archived_at":null,"created_at":"2026-11-01T09:30:00Z","last_activity_at":"2026-11-01T09:30:00Z",""" +
             """"category":"orders","tags":[],"severity":null,"group_key":"order-1","title":"Order shipped",""" +
             """"body":"Your order is on its way","avatar_url":null,"url":"https://shop.test/orders/1","actions":[],""" +
-            """"data":[],"locale":"en","dir":null,"activity_count":1,"actor_count":0,"expires_at":null}"""
+            """"data":[],"locale":"en","dir":null,"activity_count":1,"actor_count":0,"expires_at":null$extra}"""
 
     fun state(
         id: String = ITEM_ID,

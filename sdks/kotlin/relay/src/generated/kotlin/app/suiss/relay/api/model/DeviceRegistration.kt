@@ -25,6 +25,7 @@ package app.suiss.relay.api.model
 
 import app.suiss.relay.api.model.AndroidChannel
 import app.suiss.relay.api.model.ApnsEnvironment
+import app.suiss.relay.api.model.DeviceInterruptionPermissions
 import app.suiss.relay.api.model.DevicePermission
 import app.suiss.relay.api.model.DevicePlatform
 import app.suiss.relay.api.model.WebPushKeys
@@ -40,6 +41,7 @@ import com.google.gson.annotations.SerializedName
  * @param token The push token: an APNs device token, an FCM or HMS registration token, or the push service endpoint URL of a Web Push or UnifiedPush subscription. Relay stores it encrypted, finds it by a keyed digest and never returns it; logs and responses carry only its fingerprint.
  * @param androidChannels
  * @param apnsEnvironment Required for apns; not allowed for other platforms.
+ * @param interruptionPermissions
  * @param propertyKeys Required for web_push and unified_push; not allowed for other platforms.
  * @param locale BCP 47 language tag.
  * @param previousToken The push token: an APNs device token, an FCM or HMS registration token, or the push service endpoint URL of a Web Push or UnifiedPush subscription. Relay stores it encrypted, finds it by a keyed digest and never returns it; logs and responses carry only its fingerprint.
@@ -69,6 +71,9 @@ data class DeviceRegistration (
     /* Required for apns; not allowed for other platforms. */
     @SerializedName("apns_environment")
     val apnsEnvironment: ApnsEnvironment? = null,
+
+    @SerializedName("interruption_permissions")
+    val interruptionPermissions: DeviceInterruptionPermissions? = null,
 
     /* Required for web_push and unified_push; not allowed for other platforms. */
     @SerializedName("keys")

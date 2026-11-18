@@ -43,7 +43,7 @@ const sdkLanguages = new Set([
   "rb",
   "ruby",
 ]);
-const runnable = /^examples\/(curl|typescript)\//;
+const runnable = /^examples\/(curl|typescript|python)\//;
 const errors: string[] = [];
 
 function walk(dir: string, found: string[] = []): string[] {
@@ -121,9 +121,9 @@ for (const page of pages) {
 }
 
 for (const file of files) {
-  if (!runnable.test(file) || file.endsWith(".run.ts") || file.endsWith("credentials.ts")) continue;
+  if (!runnable.test(file) || /(\.run\.ts|_run\.py|credentials\.(ts|py))$/.test(file)) continue;
   if (file === "examples/curl/env.sh") continue;
-  if (!/\.(sh|ts)$/.test(file)) continue;
+  if (!/\.(sh|ts|py)$/.test(file)) continue;
   if (!imported.has(file)) errors.push(`${file} is run in CI but no page shows it`);
 }
 

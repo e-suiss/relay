@@ -16,7 +16,8 @@ just dev
 
 - a tenant with its `default_timezone` and `default_locale`, and its `live` and `test` environments,
 - a `test` API client with every server scope,
-- a published sample workflow called `welcome`,
+- a published sample workflow called `welcome`, with an inbox step and an email step,
+- seven seed recipients that trigger common rules,
 - the fake provider of the test plane, so no channel credentials are needed.
 
 The test plane runs the same pipeline as `live`; only the last step, the provider call, is simulated. Rule ids and decisions are identical on both.
@@ -37,15 +38,21 @@ The recipient is given in the request, with an `id` and an `email`. Relay create
 
 Relay answers `202 Accepted` with one notification per recipient. Acceptance is not delivery: everything after this point is decided and recorded asynchronously.
 
-## 4. See what happened
+## 4. See it in the test inbox
 
-<<< @/examples/curl/decisions.sh
+<<< @/examples/curl/test-inbox.sh
 
-Each item is one notification with its deliveries. For every delivery you see the channel, the status, whether the policy gates `passed`, `stopped` or `deferred`, and every decision recorded on the way. A decision carries a `rule_id` and a one-sentence explanation in English and Turkish, so a skipped message always tells you which rule skipped it and why.
+Every message sent on the test plane lands in the test inbox with what Relay decided and what it rendered. For each delivery you see the channel, the status, whether the policy gates `passed`, `stopped` or `deferred`, every decision recorded on the way and the rendered output, kept sealed for the test plane's retention. The console's test inbox shows the same thing. Security messages, such as one-time codes, are kept as a digest only.
 
-Try sending at night in the subscriber's time zone, or after opting the subscriber out, and read the decisions again: the delivery is `skipped` with the rule that stopped it. See [Why didn't they get it?](./decisions) for the full picture.
+## 5. Watch a rule decide
 
-## 5. Do it from code
+Every test plane comes with seven seed recipients set up to trigger the rules people ask about most: `seed_no_consent`, `seed_opted_out`, `seed_quiet_hours`, `seed_capped`, `seed_bounced`, `seed_no_device` and `seed_fallback_timezone`. Their addresses go to the fake provider. Send the welcome message to the one whose quiet hours cover the whole day:
+
+<<< @/examples/curl/seed-quiet-hours.sh
+
+Read the test inbox again: the email delivery is held, with the `rule_id` of the quiet hours rule and its one-sentence explanation. A decision is never an error, and a skipped or held message always tells you which rule did it. See [Why didn't they get it?](./decisions) for the full picture.
+
+## 6. Do it from code
 
 The same two calls with the TypeScript SDK:
 

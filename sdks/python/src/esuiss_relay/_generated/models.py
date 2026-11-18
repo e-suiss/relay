@@ -1319,6 +1319,7 @@ SimulatedResult = _t.TypedDict(
         "phone": str,
         "token": str,
         "description": str,
+        "seed_recipients": _t.NotRequired[list[str]],
     },
 )
 
@@ -1328,6 +1329,99 @@ SimulatedResultList = _t.TypedDict(
     {
         "object": _t.Literal["list"],
         "data": list["SimulatedResult"],
+        "has_more": bool,
+        "next_cursor": _t.Union["Cursor", None],
+        "previous_cursor": _t.NotRequired[_t.Union["Cursor", None]],
+    },
+)
+
+
+SeedRecipient = _t.TypedDict(
+    "SeedRecipient",
+    {
+        "object": _t.Literal["seed_recipient"],
+        "external_id": _t.Literal["seed_no_consent", "seed_opted_out", "seed_quiet_hours", "seed_capped", "seed_bounced", "seed_no_device", "seed_fallback_timezone"],
+        "email": str,
+        "phone": str,
+        "email_result": str,
+        "description": str,
+        "set_up": bool,
+    },
+)
+
+
+SeedRecipientList = _t.TypedDict(
+    "SeedRecipientList",
+    {
+        "object": _t.Literal["list"],
+        "data": list["SeedRecipient"],
+        "has_more": bool,
+        "next_cursor": _t.Union["Cursor", None],
+        "previous_cursor": _t.NotRequired[_t.Union["Cursor", None]],
+    },
+)
+
+
+SeedReset = _t.TypedDict(
+    "SeedReset",
+    {
+        "object": _t.Literal["seed_reset"],
+        "status": _t.Literal["queued"],
+    },
+)
+
+
+TestRender = _t.TypedDict(
+    "TestRender",
+    {
+        "content_digest": str,
+        "digest_only": _t.Union[_t.Literal["security_subtype", "retention_none"], None],
+        "locale": _t.Union["Locale", None],
+        "output": _t.Union[dict[str, _t.Any], None],
+        "sandbox_url": _t.NotRequired[_t.Union[str, None]],
+        "rendered_at": "Timestamp",
+    },
+)
+
+
+TestInboxDelivery = _t.TypedDict(
+    "TestInboxDelivery",
+    {
+        "delivery_id": "Id_dlv",
+        "channel": "Channel",
+        "status": "DeliveryStatus",
+        "reason": _t.NotRequired[_t.Union[str, None]],
+        "rule_id": _t.NotRequired[_t.Union["RuleId", None]],
+        "gates": _t.Literal["passed", "stopped", "deferred"],
+        "deferred_until": _t.NotRequired[_t.Union["Timestamp", None]],
+        "decisions": list["DecisionStep"],
+        "render": _t.Union["TestRender", None],
+    },
+)
+
+
+TestInboxMessage = _t.TypedDict(
+    "TestInboxMessage",
+    {
+        "object": _t.Literal["test_inbox_message"],
+        "notification_id": "Id_ntf",
+        "event_id": _t.NotRequired[_t.Union["Id_evt", None]],
+        "recipient_id": str,
+        "workflow": "WorkflowRef",
+        "message_class": _t.NotRequired["MessageClass"],
+        "state": _t.Literal["active", "cancelled", "expired"],
+        "close_rule_id": _t.NotRequired[_t.Union["RuleId", None]],
+        "created_at": "Timestamp",
+        "deliveries": list["TestInboxDelivery"],
+    },
+)
+
+
+TestInboxMessageList = _t.TypedDict(
+    "TestInboxMessageList",
+    {
+        "object": _t.Literal["list"],
+        "data": list["TestInboxMessage"],
         "has_more": bool,
         "next_cursor": _t.Union["Cursor", None],
         "previous_cursor": _t.NotRequired[_t.Union["Cursor", None]],
@@ -1578,6 +1672,33 @@ CategoryList = _t.TypedDict(
 )
 
 
+Subtenant = _t.TypedDict(
+    "Subtenant",
+    {
+        "object": _t.Literal["subtenant"],
+        "id": "Id_stn",
+        "access_organization_id": str,
+        "name": str,
+        "state": _t.Literal["active", "archived"],
+        "archived_at": _t.Union["Timestamp", None],
+        "created_at": "Timestamp",
+        "updated_at": "Timestamp",
+    },
+)
+
+
+SubtenantList = _t.TypedDict(
+    "SubtenantList",
+    {
+        "object": _t.Literal["list"],
+        "data": list["Subtenant"],
+        "has_more": bool,
+        "next_cursor": _t.Union["Cursor", None],
+        "previous_cursor": _t.NotRequired[_t.Union["Cursor", None]],
+    },
+)
+
+
 CategoryCreate = _t.TypedDict(
     "CategoryCreate",
     {
@@ -1644,10 +1765,16 @@ PreferenceCell = _t.TypedDict(
     "PreferenceCell",
     {
         "category": "CategoryKey",
+        "category_name": str,
         "channel": "Channel",
         "value": "PreferenceValue",
         "effective": bool,
         "source": "PreferenceSource",
+        "locked": bool,
+        "lock_beneficiary": _t.Union[_t.Literal["subscriber", "tenant"], None],
+        "digest_allowed": bool,
+        "disabled_by_admin": bool,
+        "disabled_in_device_settings": bool,
     },
 )
 
@@ -1714,6 +1841,17 @@ SubscriberPreferences = _t.TypedDict(
         "workflows": list["WorkflowPreference"],
         "scope_keys": list["ScopeKeyPreference"],
         "profile": "PreferenceProfile",
+    },
+)
+
+
+PreferencePageLink = _t.TypedDict(
+    "PreferencePageLink",
+    {
+        "object": _t.Literal["preference_page_link"],
+        "subscriber_id": "Id_sub",
+        "url": str,
+        "expires_at": "Timestamp",
     },
 )
 
@@ -2534,6 +2672,7 @@ ChannelRender = _t.TypedDict(
         "locale": "Locale",
         "locale_fallback": _t.NotRequired[bool],
         "content": _t.NotRequired[_t.Union[dict[str, _t.Any], None]],
+        "sandbox_url": _t.NotRequired[_t.Union[str, None]],
         "failure_reason": _t.NotRequired[_t.Union[_t.Literal["missing_variable", "render_timeout", "output_too_large", "schema_violation"], None]],
         "warnings": list["PreviewWarning"],
         "measures": _t.NotRequired["ChannelRender_Measures"],
@@ -5978,6 +6117,219 @@ IysUploadList = _t.TypedDict(
 )
 
 
+SubscriberLookupRequest = _t.TypedDict(
+    "SubscriberLookupRequest",
+    {
+        "email": _t.NotRequired["Email"],
+        "phone": _t.NotRequired["E164"],
+    },
+)
+
+
+SubscriberLookup = _t.TypedDict(
+    "SubscriberLookup",
+    {
+        "object": _t.Literal["subscriber_lookup"],
+        "data": list["Subscriber"],
+        "truncated": bool,
+    },
+)
+
+
+RuleEntry = _t.TypedDict(
+    "RuleEntry",
+    {
+        "rule_id": "RuleId",
+        "reason": str,
+        "kind": _t.Literal["gate", "filter", "shaper", "terminal", "admission"],
+        "outcome": _t.Literal["skip", "defer", "expire", "cancel", "pause", "reject", "fail", "resume", "alarm"],
+        "detail": list[str],
+        "deprecated": bool,
+        "description": dict[str, str],
+    },
+)
+
+
+RuleDictionary = _t.TypedDict(
+    "RuleDictionary",
+    {
+        "object": _t.Literal["rule_dictionary"],
+        "data": list["RuleEntry"],
+    },
+)
+
+
+RetentionSetting = _t.TypedDict(
+    "RetentionSetting",
+    {
+        "retention_class": _t.Literal["commercial_message", "commercial_consent", "delivery_record"],
+        "legal_days": _t.Union[int, None],
+        "days": _t.Union[int, None],
+        "effective_days": _t.Union[int, None],
+    },
+)
+
+
+TenantSettings = _t.TypedDict(
+    "TenantSettings",
+    {
+        "object": _t.Literal["tenant_settings"],
+        "region": "Region",
+        "default_timezone": "TimeZone",
+        "default_locale": "Locale",
+        "version": int,
+        "retention": list["RetentionSetting"],
+    },
+)
+
+
+RouteUsageWorkflow = _t.TypedDict(
+    "RouteUsageWorkflow",
+    {
+        "key": "WorkflowKey",
+        "state": _t.Literal["published", "draft", "pending"],
+        "version": _t.Union[int, None],
+        "steps": list[str],
+    },
+)
+
+
+RouteUsage = _t.TypedDict(
+    "RouteUsage",
+    {
+        "object": _t.Literal["route_usage"],
+        "route_key": "RouteKey",
+        "workflows": list["RouteUsageWorkflow"],
+        "categories": list["CategoryKey"],
+    },
+)
+
+
+EscalationPolicyUsageVersion = _t.TypedDict(
+    "EscalationPolicyUsageVersion",
+    {
+        "version": int,
+        "open": int,
+        "stalled": int,
+    },
+)
+
+
+EscalationPolicyUsage = _t.TypedDict(
+    "EscalationPolicyUsage",
+    {
+        "object": _t.Literal["escalation_policy_usage"],
+        "policy_key": "EscalationPolicyKey",
+        "latest_version": int,
+        "versions": list["EscalationPolicyUsageVersion"],
+    },
+)
+
+
+WorkflowPublicationCheck = _t.TypedDict(
+    "WorkflowPublicationCheck",
+    {
+        "object": _t.Literal["workflow_publication_check"],
+        "publishable": bool,
+        "errors": list["FieldError"],
+    },
+)
+
+
+TemplatePublicationCheck = _t.TypedDict(
+    "TemplatePublicationCheck",
+    {
+        "object": _t.Literal["template_publication_check"],
+        "publishable": bool,
+        "checksum": str,
+        "findings": list["GateFinding"],
+    },
+)
+
+
+WaitpointStats = _t.TypedDict(
+    "WaitpointStats",
+    {
+        "object": _t.Literal["waitpoint_stats"],
+        "as_of": "Timestamp",
+        "open": int,
+        "stalled": int,
+        "silent": int,
+        "resolved_last_7_days": int,
+        "resolved_by_escalation_last_7_days": int,
+        "evidence_levels_last_7_days": "WaitpointStats_EvidenceLevelsLast7Days",
+        "held_notifications": int,
+    },
+)
+
+
+VariantReportRow = _t.TypedDict(
+    "VariantReportRow",
+    {
+        "day": str,
+        "workflow": "WorkflowKey",
+        "step": str,
+        "variant": str,
+        "channel": "Channel",
+        "is_test": bool,
+        "accepted": int,
+        "sent": int,
+        "delivered": int,
+        "seen": int,
+        "human_clicks": int,
+        "bot_clicks": int,
+        "recomputed_at": "Timestamp",
+    },
+)
+
+
+VariantReport = _t.TypedDict(
+    "VariantReport",
+    {
+        "object": _t.Literal["variant_report"],
+        "from": str,
+        "to": str,
+        "rows": list["VariantReportRow"],
+    },
+)
+
+
+RenderProblemReportRow = _t.TypedDict(
+    "RenderProblemReportRow",
+    {
+        "day": str,
+        "channel": "Channel",
+        "template": _t.Union["TemplateKey", None],
+        "is_test": bool,
+        "problem": _t.Literal["render_failed", "template_locale_missing"],
+        "reason": _t.Union[_t.Literal["missing_variable", "render_timeout", "output_too_large", "schema_violation", "inbox_item_too_large"], None],
+        "deliveries": int,
+    },
+)
+
+
+RenderProblemReport = _t.TypedDict(
+    "RenderProblemReport",
+    {
+        "object": _t.Literal["render_problem_report"],
+        "from": str,
+        "to": str,
+        "rows": list["RenderProblemReportRow"],
+    },
+)
+
+
+TenantSettingsUpdate = _t.TypedDict(
+    "TenantSettingsUpdate",
+    {
+        "version": int,
+        "default_timezone": _t.NotRequired["TimeZone"],
+        "default_locale": _t.NotRequired["Locale"],
+        "retention": _t.NotRequired["TenantSettingsUpdate_Retention"],
+    },
+)
+
+
 Problem = _t.TypedDict(
     "Problem",
     {
@@ -6619,6 +6971,26 @@ IysConnectionTest_Subscription = _t.TypedDict(
         "status": _t.NotRequired[_t.Union[str, None]],
         "consent_limit": _t.NotRequired[_t.Union[int, None]],
         "used_consent_limit": _t.NotRequired[_t.Union[int, None]],
+    },
+)
+
+
+WaitpointStats_EvidenceLevelsLast7Days = _t.TypedDict(
+    "WaitpointStats_EvidenceLevelsLast7Days",
+    {
+        "channel_claim": int,
+        "relay_session": int,
+        "access_aas_ref": int,
+    },
+)
+
+
+TenantSettingsUpdate_Retention = _t.TypedDict(
+    "TenantSettingsUpdate_Retention",
+    {
+        "commercial_message": _t.NotRequired[_t.Union[int, None]],
+        "commercial_consent": _t.NotRequired[_t.Union[int, None]],
+        "delivery_record": _t.NotRequired[_t.Union[int, None]],
     },
 )
 

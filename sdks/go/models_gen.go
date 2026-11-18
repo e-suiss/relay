@@ -695,6 +695,7 @@ type ChannelRender struct {
 	Locale         Locale                 `json:"locale"`
 	LocaleFallback *bool                  `json:"locale_fallback,omitempty"`
 	Content        map[string]any         `json:"content,omitempty"`
+	SandboxURL     *string                `json:"sandbox_url,omitempty"`
 	FailureReason  *string                `json:"failure_reason,omitempty"`
 	Warnings       []PreviewWarning       `json:"warnings"`
 	Measures       *ChannelRenderMeasures `json:"measures,omitempty"`
@@ -1226,6 +1227,21 @@ type EscalationPolicyKey = string
 
 // EscalationPolicyState is generated from the Relay API contract.
 type EscalationPolicyState = string
+
+// EscalationPolicyUsage: The open and stalled waitpoints that pinned a version of the policy.
+type EscalationPolicyUsage struct {
+	Object        string                         `json:"object"`
+	PolicyKey     EscalationPolicyKey            `json:"policy_key"`
+	LatestVersion int64                          `json:"latest_version"`
+	Versions      []EscalationPolicyUsageVersion `json:"versions"`
+}
+
+// EscalationPolicyUsageVersion is generated from the Relay API contract.
+type EscalationPolicyUsageVersion struct {
+	Version int64 `json:"version"`
+	Open    int64 `json:"open"`
+	Stalled int64 `json:"stalled"`
+}
 
 // EscalationPolicyVersion: An immutable escalation policy version.
 type EscalationPolicyVersion struct {
@@ -2324,15 +2340,29 @@ type PartialVersion struct {
 
 // PreferenceCell: One category and channel of a subscriber.
 type PreferenceCell struct {
-	Category  CategoryKey      `json:"category"`
-	Channel   Channel          `json:"channel"`
-	Value     PreferenceValue  `json:"value"`
-	Effective bool             `json:"effective"`
-	Source    PreferenceSource `json:"source"`
+	Category                 CategoryKey      `json:"category"`
+	CategoryName             string           `json:"category_name"`
+	Channel                  Channel          `json:"channel"`
+	Value                    PreferenceValue  `json:"value"`
+	Effective                bool             `json:"effective"`
+	Source                   PreferenceSource `json:"source"`
+	Locked                   bool             `json:"locked"`
+	LockBeneficiary          *string          `json:"lock_beneficiary"`
+	DigestAllowed            bool             `json:"digest_allowed"`
+	DisabledByAdmin          bool             `json:"disabled_by_admin"`
+	DisabledInDeviceSettings bool             `json:"disabled_in_device_settings"`
 }
 
 // PreferenceLevel is generated from the Relay API contract.
 type PreferenceLevel = string
+
+// PreferencePageLink: A link to the hosted preference page of one subscriber (X-51, PC-18): a page that works without JavaScript and without signing in, opened by a signed, expiring token that only opens this page for ...
+type PreferencePageLink struct {
+	Object       string    `json:"object"`
+	SubscriberID IDSub     `json:"subscriber_id"`
+	URL          string    `json:"url"`
+	ExpiresAt    Timestamp `json:"expires_at"`
+}
 
 // PreferenceProfile: The subscriber's delivery profile.
 type PreferenceProfile struct {
@@ -2701,10 +2731,37 @@ type RelayConfiguration struct {
 	WebhookEndpointsEndpoint   *string           `json:"webhook_endpoints_endpoint,omitempty"`
 }
 
+// RenderProblemReport: The render and locale problem report of a period of the tenant environment.
+type RenderProblemReport struct {
+	Object string                   `json:"object"`
+	From   string                   `json:"from"`
+	To     string                   `json:"to"`
+	Rows   []RenderProblemReportRow `json:"rows"`
+}
+
+// RenderProblemReportRow: The deliveries created on one UTC day for one channel, template and test flag that failed to render for one failure_reason (problem render_failed) or fell back to the tenant default locale (problem ...
+type RenderProblemReportRow struct {
+	Day        string       `json:"day"`
+	Channel    Channel      `json:"channel"`
+	Template   *TemplateKey `json:"template"`
+	IsTest     bool         `json:"is_test"`
+	Problem    string       `json:"problem"`
+	Reason     *string      `json:"reason"`
+	Deliveries int64        `json:"deliveries"`
+}
+
 // Responder: A responder of a waitpoint or an escalation tier.
 type Responder struct {
 	Kind string `json:"kind"`
 	ID   string `json:"id"`
+}
+
+// RetentionSetting: The retention period of one record class in days: the legal period of the tenant's region and sector, the tenant's longer period when set, and the period in force.
+type RetentionSetting struct {
+	RetentionClass string `json:"retention_class"`
+	LegalDays      *int64 `json:"legal_days"`
+	Days           *int64 `json:"days"`
+	EffectiveDays  *int64 `json:"effective_days"`
 }
 
 // Route: Named route policy.
@@ -2742,6 +2799,39 @@ type RouteReplace struct {
 
 // RouteState is generated from the Relay API contract.
 type RouteState = string
+
+// RouteUsage: Where a route is used.
+type RouteUsage struct {
+	Object     string               `json:"object"`
+	RouteKey   RouteKey             `json:"route_key"`
+	Workflows  []RouteUsageWorkflow `json:"workflows"`
+	Categories []CategoryKey        `json:"categories"`
+}
+
+// RouteUsageWorkflow: A version of an active workflow whose channel steps name the route.
+type RouteUsageWorkflow struct {
+	Key     WorkflowKey `json:"key"`
+	State   string      `json:"state"`
+	Version *int64      `json:"version"`
+	Steps   []string    `json:"steps"`
+}
+
+// RuleDictionary: Every rule of the rule dictionary in force, by rule_id.
+type RuleDictionary struct {
+	Object string      `json:"object"`
+	Data   []RuleEntry `json:"data"`
+}
+
+// RuleEntry: One rule of the rule dictionary with its sentence in every language the dictionary carries.
+type RuleEntry struct {
+	RuleID      RuleID            `json:"rule_id"`
+	Reason      string            `json:"reason"`
+	Kind        string            `json:"kind"`
+	Outcome     string            `json:"outcome"`
+	Detail      []string          `json:"detail"`
+	Deprecated  bool              `json:"deprecated"`
+	Description map[string]string `json:"description"`
+}
 
 // RuleID: Identifier from the single rule dictionary.
 type RuleID = string
@@ -2843,6 +2933,32 @@ type SecuritySignals struct {
 // SecuritySubtype is generated from the Relay API contract.
 type SecuritySubtype = string
 
+// SeedRecipient: One seed recipient of the test plane.
+type SeedRecipient struct {
+	Object      string `json:"object"`
+	ExternalID  string `json:"external_id"`
+	Email       string `json:"email"`
+	Phone       string `json:"phone"`
+	EmailResult string `json:"email_result"`
+	Description string `json:"description"`
+	SetUp       bool   `json:"set_up"`
+}
+
+// SeedRecipientList: Cursor-paginated list.
+type SeedRecipientList struct {
+	Object         string          `json:"object"`
+	Data           []SeedRecipient `json:"data"`
+	HasMore        bool            `json:"has_more"`
+	NextCursor     *Cursor         `json:"next_cursor"`
+	PreviousCursor *Cursor         `json:"previous_cursor,omitempty"`
+}
+
+// SeedReset is generated from the Relay API contract.
+type SeedReset struct {
+	Object string `json:"object"`
+	Status string `json:"status"`
+}
+
 // SendMode is generated from the Relay API contract.
 type SendMode = string
 
@@ -2906,12 +3022,13 @@ type SignedMicros = string
 
 // SimulatedResult: One result of the fake provider with the addresses that produce it on each kind of target.
 type SimulatedResult struct {
-	Object      string `json:"object"`
-	Result      string `json:"result"`
-	Email       string `json:"email"`
-	Phone       string `json:"phone"`
-	Token       string `json:"token"`
-	Description string `json:"description"`
+	Object         string   `json:"object"`
+	Result         string   `json:"result"`
+	Email          string   `json:"email"`
+	Phone          string   `json:"phone"`
+	Token          string   `json:"token"`
+	Description    string   `json:"description"`
+	SeedRecipients []string `json:"seed_recipients,omitempty"`
 }
 
 // SimulatedResultList: Cursor-paginated list.
@@ -3019,6 +3136,19 @@ type SubscriberDeletion struct {
 	Status       string     `json:"status"`
 	CreatedAt    Timestamp  `json:"created_at"`
 	CompletedAt  *Timestamp `json:"completed_at,omitempty"`
+}
+
+// SubscriberLookup: The subscribers whose active address is the one sent, with masked personal fields; at most x-relay-limits subscriber_lookup.max_matches.
+type SubscriberLookup struct {
+	Object    string       `json:"object"`
+	Data      []Subscriber `json:"data"`
+	Truncated bool         `json:"truncated"`
+}
+
+// SubscriberLookupRequest: The address to find subscribers by: exactly one of email and phone.
+type SubscriberLookupRequest struct {
+	Email *Email `json:"email,omitempty"`
+	Phone *E164  `json:"phone,omitempty"`
 }
 
 // SubscriberPatch: JSON Merge Patch: null clears a field, an absent field is left untouched.
@@ -3200,6 +3330,14 @@ type TemplatePreviewRequest struct {
 	Locale   *Locale        `json:"locale,omitempty"`
 }
 
+// TemplatePublicationCheck: The template publication gate's findings on the draft, computed without publishing.
+type TemplatePublicationCheck struct {
+	Object      string        `json:"object"`
+	Publishable bool          `json:"publishable"`
+	Checksum    string        `json:"checksum"`
+	Findings    []GateFinding `json:"findings"`
+}
+
 // TemplatePublishRequest: Publication of the draft.
 type TemplatePublishRequest struct {
 	AcceptWarnings *bool   `json:"accept_warnings,omitempty"`
@@ -3255,6 +3393,43 @@ type TemplateVersion struct {
 	PublishedBy        string             `json:"published_by"`
 }
 
+// TenantSettings: The tenant settings of the console.
+type TenantSettings struct {
+	Object          string             `json:"object"`
+	Region          Region             `json:"region"`
+	DefaultTimezone TimeZone           `json:"default_timezone"`
+	DefaultLocale   Locale             `json:"default_locale"`
+	Version         int64              `json:"version"`
+	Retention       []RetentionSetting `json:"retention"`
+}
+
+// TestInboxDelivery: A delivery of a test plane message: its decision chain and its render.
+type TestInboxDelivery struct {
+	DeliveryID    IDDlv          `json:"delivery_id"`
+	Channel       Channel        `json:"channel"`
+	Status        DeliveryStatus `json:"status"`
+	Reason        *string        `json:"reason,omitempty"`
+	RuleID        *RuleID        `json:"rule_id,omitempty"`
+	Gates         string         `json:"gates"`
+	DeferredUntil *Timestamp     `json:"deferred_until,omitempty"`
+	Decisions     []DecisionStep `json:"decisions"`
+	Render        *TestRender    `json:"render"`
+}
+
+// TestInboxMessage: One message of the test inbox: a test plane notification with its decisions and renders.
+type TestInboxMessage struct {
+	Object         string              `json:"object"`
+	NotificationID IDNtf               `json:"notification_id"`
+	EventID        *IDEvt              `json:"event_id,omitempty"`
+	RecipientID    string              `json:"recipient_id"`
+	Workflow       WorkflowRef         `json:"workflow"`
+	MessageClass   *MessageClass       `json:"message_class,omitempty"`
+	State          string              `json:"state"`
+	CloseRuleID    *RuleID             `json:"close_rule_id,omitempty"`
+	CreatedAt      Timestamp           `json:"created_at"`
+	Deliveries     []TestInboxDelivery `json:"deliveries"`
+}
+
 // TestRecipient: A person or one of their devices on the tenant's test recipient list.
 type TestRecipient struct {
 	Object       string             `json:"object"`
@@ -3285,6 +3460,16 @@ type TestRecipientList struct {
 
 // TestRecipientState: pending until the subscriber confirms it with its own subscriber token within the verification window; verified once confirmed; expired when the window passed unconfirmed; removed once removed or ...
 type TestRecipientState = string
+
+// TestRender: The rendered output of a delivery kept sealed in the test plane.
+type TestRender struct {
+	ContentDigest string         `json:"content_digest"`
+	DigestOnly    *string        `json:"digest_only"`
+	Locale        *Locale        `json:"locale"`
+	Output        map[string]any `json:"output"`
+	SandboxURL    *string        `json:"sandbox_url,omitempty"`
+	RenderedAt    Timestamp      `json:"rendered_at"`
+}
 
 // ThrottleKey: A tenant-wide throttle key as the throttle step renders it (WF-32); stored as a digest only.
 type ThrottleKey = string
@@ -3399,6 +3584,31 @@ type TransferBasis = string
 
 // TrustLabel: The trust label of an incoming message (C-77, AG-38, AG-69), the first that holds: blocked (the sender is on the recipient's block list or suspended in Access), spam (the carrying channel or provider ...
 type TrustLabel = string
+
+// VariantReport: The A/B variant report of a period of the tenant environment.
+type VariantReport struct {
+	Object string             `json:"object"`
+	From   string             `json:"from"`
+	To     string             `json:"to"`
+	Rows   []VariantReportRow `json:"rows"`
+}
+
+// VariantReportRow: Exact counts of the deliveries created on one UTC day for one variant of a workflow channel step, channel and test flag.
+type VariantReportRow struct {
+	Day          string      `json:"day"`
+	Workflow     WorkflowKey `json:"workflow"`
+	Step         string      `json:"step"`
+	Variant      string      `json:"variant"`
+	Channel      Channel     `json:"channel"`
+	IsTest       bool        `json:"is_test"`
+	Accepted     int64       `json:"accepted"`
+	Sent         int64       `json:"sent"`
+	Delivered    int64       `json:"delivered"`
+	Seen         int64       `json:"seen"`
+	HumanClicks  int64       `json:"human_clicks"`
+	BotClicks    int64       `json:"bot_clicks"`
+	RecomputedAt Timestamp   `json:"recomputed_at"`
+}
 
 // VirtualClock: Virtual clock of the test environment.
 type VirtualClock struct {
@@ -3578,6 +3788,26 @@ type WaitpointResponse struct {
 
 // WaitpointState is generated from the Relay API contract.
 type WaitpointState = string
+
+// WaitpointStats: Exact waitpoint figures of the tenant environment at as_of.
+type WaitpointStats struct {
+	Object                        string                                `json:"object"`
+	AsOf                          Timestamp                             `json:"as_of"`
+	Open                          int64                                 `json:"open"`
+	Stalled                       int64                                 `json:"stalled"`
+	Silent                        int64                                 `json:"silent"`
+	ResolvedLast7Days             int64                                 `json:"resolved_last_7_days"`
+	ResolvedByEscalationLast7Days int64                                 `json:"resolved_by_escalation_last_7_days"`
+	EvidenceLevelsLast7Days       WaitpointStatsEvidenceLevelsLast7Days `json:"evidence_levels_last_7_days"`
+	HeldNotifications             int64                                 `json:"held_notifications"`
+}
+
+// WaitpointStatsEvidenceLevelsLast7Days is generated from the Relay API contract.
+type WaitpointStatsEvidenceLevelsLast7Days struct {
+	ChannelClaim int64 `json:"channel_claim"`
+	RelaySession int64 `json:"relay_session"`
+	AccessAasRef int64 `json:"access_aas_ref"`
+}
 
 // WaitpointTag is generated from the Relay API contract.
 type WaitpointTag = string
@@ -4222,6 +4452,13 @@ type WorkflowPreviewStep struct {
 	Reason    *string        `json:"reason"`
 	RuleID    *RuleID        `json:"rule_id"`
 	Render    *ChannelRender `json:"render"`
+}
+
+// WorkflowPublicationCheck: The workflow publication gate's result on the draft, computed without publishing.
+type WorkflowPublicationCheck struct {
+	Object      string       `json:"object"`
+	Publishable bool         `json:"publishable"`
+	Errors      []FieldError `json:"errors"`
 }
 
 // WorkflowRef is generated from the Relay API contract.

@@ -520,7 +520,8 @@ defmodule Relay.Channels.Live do
       platform: device.platform,
       app: device.app,
       apns_environment: device.apns_environment,
-      keys: device.keys
+      keys: device.keys,
+      interruption_permissions: Map.get(device, :interruption_permissions)
     }
   end
 

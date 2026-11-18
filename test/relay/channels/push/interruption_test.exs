@@ -187,4 +187,25 @@ defmodule Relay.Channels.Push.InterruptionTest do
       assert %{lock_screen: :content, content_free: false} = resolve(:security, nil)
     end
   end
+
+  describe "CH-65 device interruption permissions" do
+    test "CH-65 (3): a level the device cannot take goes one level lower, never dropped" do
+      denied = %{"critical_alerts" => "denied", "time_sensitive" => "granted"}
+      assert Interruption.permitted(:critical, "apns", denied) == :time_sensitive
+
+      both = %{"critical_alerts" => "not_determined", "time_sensitive" => "denied"}
+      assert Interruption.permitted(:critical, "apns", both) == :active
+
+      assert Interruption.permitted(:time_sensitive, "apns", %{"time_sensitive" => "denied"}) ==
+               :active
+
+      granted = %{"critical_alerts" => "granted"}
+      assert Interruption.permitted(:critical, "apns", granted) == :critical
+      no_dnd = %{"dnd_access" => "denied"}
+      assert Interruption.permitted(:critical, "fcm", no_dnd) == :time_sensitive
+      assert Interruption.permitted(:critical, "fcm", %{"dnd_access" => "granted"}) == :critical
+      assert Interruption.permitted(:critical, "apns", nil) == :critical
+      assert Interruption.permitted(:active, "fcm", %{"dnd_access" => "denied"}) == :active
+    end
+  end
 end

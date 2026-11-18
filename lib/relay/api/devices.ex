@@ -24,6 +24,7 @@ defmodule Relay.Api.Devices do
       "android_channels" => d["android_channels"],
       "locale" => d["locale"],
       "timezone" => d["time_zone"],
+      "interruption_permissions" => d["interruption_permissions"],
       "state" => d["state"],
       "disabled_reason" => d["disabled_reason"],
       "registered_at" => d["registered_at"],

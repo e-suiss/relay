@@ -75,6 +75,21 @@ defmodule Relay.Channels.Push.Interruption do
   def name(level) when is_map_key(@rank, level), do: Atom.to_string(level)
 
   # CH-65 (3)
+  @doc "The level a device can take, from the interruption permissions it reported: on APNs `critical` needs Critical Alerts granted and `time_sensitive` falls to `active` when time-sensitive is denied; on FCM and HMS `critical` needs Do Not Disturb access granted. A level the device cannot take is delivered one level lower, never dropped; a device that reported nothing keeps the level."
+  @spec permitted(level() | nil, String.t() | nil, map() | nil) :: level() | nil
+  def permitted(:critical, "apns", %{"critical_alerts" => granted} = permissions)
+      when granted != "granted",
+      do: permitted(:time_sensitive, "apns", permissions)
+
+  def permitted(:time_sensitive, "apns", %{"time_sensitive" => "denied"}), do: :active
+
+  def permitted(:critical, platform, %{"dnd_access" => granted})
+      when platform in ["fcm", "hms"] and granted != "granted",
+      do: :time_sensitive
+
+  def permitted(level, _platform, _permissions), do: level
+
+  # CH-65 (3)
   @doc "The Web Push `Urgency` of a level, never above the class urgency of the table: Relay only lowers."
   @spec web_push_urgency(level() | nil, atom() | nil) :: atom() | nil
   def web_push_urgency(nil, _table), do: nil

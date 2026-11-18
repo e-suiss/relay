@@ -24,6 +24,7 @@ defmodule Relay.Devices.Token do
           android_channels: [map()],
           locale: String.t() | nil,
           time_zone: Relay.TimeZone.t() | nil,
+          interruption_permissions: %{String.t() => String.t()} | nil,
           previous_token: String.t() | nil
         }
 
@@ -81,6 +82,7 @@ defmodule Relay.Devices.Token do
            android_channels: body["android_channels"] || [],
            locale: body["locale"],
            time_zone: time_zone(body["timezone"]),
+           interruption_permissions: body["interruption_permissions"],
            previous_token: previous(platform, body["previous_token"])
          }}
 

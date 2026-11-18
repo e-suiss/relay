@@ -42,7 +42,8 @@ defmodule Relay.Devices do
           android_channels: [map()],
           locale: String.t() | nil,
           permission: String.t(),
-          fingerprint: String.t()
+          fingerprint: String.t(),
+          interruption_permissions: map() | nil
         }
   @type reason :: :unregistered | :logout | :removed
   @type sweep_result :: %{
@@ -89,6 +90,7 @@ defmodule Relay.Devices do
          android_channels: registration.android_channels,
          locale: registration.locale,
          time_zone: registration.time_zone,
+         interruption_permissions: registration.interruption_permissions,
          previous_digests: previous
        }}
     end
@@ -143,6 +145,7 @@ defmodule Relay.Devices do
     case Store.register(plan, limit()) do
       {result, id} = registered when result in [:created, :updated, :reassigned] ->
         _ = Store.time_zone(id, Map.get(plan, :time_zone))
+        _ = Store.interruption_permissions(id, Map.get(plan, :interruption_permissions))
         registered
 
       refused ->
@@ -266,6 +269,7 @@ defmodule Relay.Devices do
       android_channels: row["android_channels"],
       locale: row["locale"],
       permission: row["permission"],
+      interruption_permissions: row["interruption_permissions"],
       fingerprint: row["fingerprint"]
     }
   end

@@ -7,7 +7,8 @@ defmodule Relay.Devices.Store do
 
   @select """
   SELECT d.id, d.recipient_id, d.platform, d.app, d.token_ct, d.fingerprint, d.apns_environment,
-    d.permission, d.android_channels, d.locale, d.time_zone, d.state, d.disabled_reason,
+    d.permission, d.android_channels, d.locale, d.time_zone, d.interruption_permissions, d.state,
+    d.disabled_reason,
     d.registered_at,
     d.last_seen_at, d.deleted_at, d.created_at, d.updated_at
   FROM relay.devices d
@@ -52,6 +53,14 @@ defmodule Relay.Devices.Store do
   def time_zone(device_id, time_zone) do
     [row] = Repo.call!("relay_fn.device_time_zone_set", [device_id, time_zone])
     Repo.code!(row["device_time_zone_set"], [:set, :unchanged, :not_found])
+  end
+
+  # CH-65
+  @doc "Records the interruption permissions a device reported with its registration (iOS Critical Alerts and time-sensitive, Android Do Not Disturb access) through `relay_fn.device_interruption_permissions_set`; `nil` clears them."
+  @spec interruption_permissions(Relay.Id.t(), map() | nil) :: :set | :unchanged | :not_found
+  def interruption_permissions(device_id, permissions) do
+    [row] = Repo.call!("relay_fn.device_interruption_permissions_set", [device_id, permissions])
+    Repo.code!(row["device_interruption_permissions_set"], [:set, :unchanged, :not_found])
   end
 
   # CH-11

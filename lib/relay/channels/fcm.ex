@@ -233,7 +233,7 @@ defmodule Relay.Channels.Fcm do
       ttl: ttl,
       collapse_key: push.collapse && push.collapse.fcm,
       topic: push.collapse && push.collapse.topic,
-      channel_id: channel(push),
+      channel_id: channel(%{push | level: permitted(request, push)}),
       notification: if(data_only, do: nil, else: Map.take(fields, ["title", "body"])),
       data: link(%{"relay_id" => Common.content_id(request)}, Common.link(request)),
       data_only: data_only,
@@ -242,6 +242,17 @@ defmodule Relay.Channels.Fcm do
       override_apns: Common.override(request, "fcm", "apns"),
       override_webpush: Common.override(request, "fcm", "webpush")
     }
+  end
+
+  # CH-65 (3)
+  defp permitted(request, push) do
+    device = Common.device(request)
+
+    Relay.Channels.Push.Interruption.permitted(
+      push.level,
+      device[:platform],
+      device[:interruption_permissions]
+    )
   end
 
   # E-83

@@ -2865,6 +2865,8 @@ extension Components {
             }
             /// - Remark: Generated from `#/components/schemas/InboxWaitpoint/status`.
             public var status: Components.Schemas.InboxWaitpoint.StatusPayload
+            /// The digest of the subject the request is about, in the form respondToMyWaitpoint takes back.
+            ///
             /// - Remark: Generated from `#/components/schemas/InboxWaitpoint/subject_digest`.
             public var subjectDigest: Swift.String?
             /// Creates a new `InboxWaitpoint`.
@@ -2877,7 +2879,7 @@ extension Components {
             ///   - respondedAt:
             ///   - responder:
             ///   - status:
-            ///   - subjectDigest:
+            ///   - subjectDigest: The digest of the subject the request is about, in the form respondToMyWaitpoint takes back.
             public init(
                 approvalUrl: Swift.String? = nil,
                 id: Components.Schemas.IdWp,
@@ -4819,16 +4821,18 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/WaitpointResponseRequest/response`.
             public var response: OpenAPIRuntime.OpenAPIValueContainer
+            /// The digest of the subject the response is about, as the inbox item's waitpoint carries it: sha256: and 64 lowercase hexadecimal characters. The 64 hexadecimal characters alone are accepted too.
+            ///
             /// - Remark: Generated from `#/components/schemas/WaitpointResponseRequest/subject_digest`.
-            public var subjectDigest: Components.Schemas.Sha256Digest
+            public var subjectDigest: Swift.String
             /// Creates a new `WaitpointResponseRequest`.
             ///
             /// - Parameters:
             ///   - response: The response value; it follows the waitpoint's response_schema and is at most x-relay-limits waitpoint.max_response_bytes.
-            ///   - subjectDigest:
+            ///   - subjectDigest: The digest of the subject the response is about, as the inbox item's waitpoint carries it: sha256: and 64 lowercase hexadecimal characters. The 64 hexadecimal characters alone are accepted too.
             public init(
                 response: OpenAPIRuntime.OpenAPIValueContainer,
-                subjectDigest: Components.Schemas.Sha256Digest
+                subjectDigest: Swift.String
             ) {
                 self.response = response
                 self.subjectDigest = subjectDigest
@@ -4844,7 +4848,7 @@ extension Components {
                     forKey: .response
                 )
                 self.subjectDigest = try container.decode(
-                    Components.Schemas.Sha256Digest.self,
+                    Swift.String.self,
                     forKey: .subjectDigest
                 )
                 try decoder.ensureNoAdditionalProperties(knownKeys: [

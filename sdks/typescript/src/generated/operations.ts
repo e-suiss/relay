@@ -623,6 +623,13 @@ export const serverOperations = {
     paginated: false,
     contentType: null,
   },
+  getFallbackTimezoneReport: {
+    method: "GET",
+    path: "/v1/reports/fallback_timezones",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   getInboxAnnouncement: {
     method: "GET",
     path: "/v1/inbox/announcements/{announcement_id}",

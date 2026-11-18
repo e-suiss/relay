@@ -1837,6 +1837,12 @@ export interface components {
             released_at?: components["schemas"]["Timestamp"] | null;
             released_by?: string | null;
             release_reason?: string | null;
+            /** @description When the kill switch took effect (TN-44): effect_delay_ms from its engaging transaction to the end of its queue sweep, the deliveries it holds paused in its own scope and when the sweep ended; null until the sweep ended. A platform record shows the paused deliveries of its own scope only. */
+            effect?: {
+                paused_count: number;
+                effect_delay_ms: number;
+                effective_at: components["schemas"]["Timestamp"];
+            } | null;
             created_at: components["schemas"]["Timestamp"];
         };
         KillSwitchList: components["schemas"]["ListEnvelope"] & {

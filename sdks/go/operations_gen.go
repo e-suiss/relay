@@ -5848,3 +5848,27 @@ func (c *Client) GetRenderProblemReport(ctx context.Context, params *GetRenderPr
 	}
 	return out, nil
 }
+
+// GetFallbackTimezoneReportParams holds the query and header parameters of GetFallbackTimezoneReport.
+type GetFallbackTimezoneReportParams struct {
+	From string
+	To   string
+}
+
+// GetFallbackTimezoneReport calls GET /v1/reports/fallback_timezones: Get the fallback time zone report
+func (c *Client) GetFallbackTimezoneReport(ctx context.Context, params *GetFallbackTimezoneReportParams, opts ...RequestOption) (*FallbackTimezoneReport, error) {
+	r := newRequest("GET", "/v1/reports/fallback_timezones", false)
+	if params != nil {
+		r.addQuery("from", formatValue(params.From))
+		r.addQuery("to", formatValue(params.To))
+	}
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(FallbackTimezoneReport)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

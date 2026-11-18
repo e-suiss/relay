@@ -1180,6 +1180,7 @@ KillSwitch = _t.TypedDict(
         "released_at": _t.NotRequired[_t.Union["Timestamp", None]],
         "released_by": _t.NotRequired[_t.Union[str, None]],
         "release_reason": _t.NotRequired[_t.Union[str, None]],
+        "effect": _t.NotRequired[_t.Union["KillSwitch_EffectOption1", None]],
         "created_at": "Timestamp",
     },
 )
@@ -6334,6 +6335,17 @@ RenderProblemReport = _t.TypedDict(
 )
 
 
+FallbackTimezoneReport = _t.TypedDict(
+    "FallbackTimezoneReport",
+    {
+        "object": _t.Literal["fallback_timezone_report"],
+        "from": str,
+        "to": str,
+        "rows": list["FallbackTimezoneReport_RowsItem"],
+    },
+)
+
+
 TenantSettingsUpdate = _t.TypedDict(
     "TenantSettingsUpdate",
     {
@@ -6437,6 +6449,16 @@ WorkflowDefinition_ContentDedup = _t.TypedDict(
     "WorkflowDefinition_ContentDedup",
     {
         "window": str,
+    },
+)
+
+
+KillSwitch_EffectOption1 = _t.TypedDict(
+    "KillSwitch_EffectOption1",
+    {
+        "paused_count": int,
+        "effect_delay_ms": int,
+        "effective_at": "Timestamp",
     },
 )
 
@@ -6996,6 +7018,16 @@ WaitpointStats_EvidenceLevelsLast7Days = _t.TypedDict(
         "channel_claim": int,
         "relay_session": int,
         "access_aas_ref": int,
+    },
+)
+
+
+FallbackTimezoneReport_RowsItem = _t.TypedDict(
+    "FallbackTimezoneReport_RowsItem",
+    {
+        "day": str,
+        "source": _t.Literal["device", "country", "tenant_default"],
+        "deliveries": int,
     },
 )
 

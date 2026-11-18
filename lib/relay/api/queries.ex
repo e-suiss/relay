@@ -439,13 +439,27 @@ defmodule Relay.Api.Queries do
     }
 
     case Relay.Tenancy.decrypt_field(field, ct) do
-      {:ok, plain} -> Map.put(s, "output", output(plain))
+      {:ok, plain} -> sandboxed(scope, Map.put(s, "output", output(plain)))
       {:error, _erased} -> Map.put(s, "output", nil)
     end
   end
 
   defp retention_class("commercial_message"), do: :commercial_message
   defp retention_class(_content), do: :notification_content
+
+  # TP-24
+  # TP-39
+  defp sandboxed(scope, %{"output" => %{"html" => html} = output} = s) when is_binary(html) do
+    url =
+      case Relay.Api.PreviewSandbox.put(scope, html) do
+        {:ok, url} -> url
+        _unconfigured_or_unavailable -> nil
+      end
+
+    s |> Map.put("output", Map.delete(output, "html")) |> Map.put("sandbox_url", url)
+  end
+
+  defp sandboxed(_scope, s), do: s
 
   defp output(plain) do
     case Jason.decode(Relay.Redacted.expose(plain)) do
@@ -483,6 +497,7 @@ defmodule Relay.Api.Queries do
       "digest_only" => s["digest_reason"],
       "locale" => s["locale"],
       "output" => s["output"],
+      "sandbox_url" => s["sandbox_url"],
       "rendered_at" => s["created_at"]
     }
   end

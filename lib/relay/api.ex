@@ -89,6 +89,7 @@ defmodule Relay.Api do
       Takedowns,
       TestSends,
       TestPlane,
+      Subtenants,
       ProviderInvoices,
       Reports,
       Exports,

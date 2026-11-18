@@ -307,8 +307,7 @@ defmodule Relay.Api.TestPlane do
       "attributes" => nil
     }
 
-    with {:ok, plan} <- Relay.Api.Subscribers.prepare(scope, seed["seed"], fields, :replace),
-         {:ok, id} <- upsert(scope, plan),
+    with {:ok, id} <- replace(scope, seed["seed"], fields, 2),
          :ok <- profile(scope, id, seed["seed"]),
          :ok <- consents(scope, id, seed["seed"]),
          :ok <- suppression(scope, seed, actor) do
@@ -316,12 +315,20 @@ defmodule Relay.Api.TestPlane do
     end
   end
 
-  defp upsert(scope, plan) do
-    write = fn _status -> Relay.Subscribers.upsert(plan, nil) end
+  defp replace(scope, external_id, fields, attempts) do
+    with {:ok, plan} <- Relay.Api.Subscribers.prepare(scope, external_id, fields, :replace) do
+      write = fn _status -> Relay.Subscribers.upsert(plan, nil) end
 
-    case Relay.Preferences.in_scope(scope, write) do
-      {:ok, {result, id, _version}} when result in [:created, :updated, :unchanged] -> {:ok, id}
-      other -> {:error, other}
+      case Relay.Preferences.in_scope(scope, write) do
+        {:ok, {result, id, _version}} when result in [:created, :updated, :unchanged] ->
+          {:ok, id}
+
+        {:ok, {:exists, _id, _version}} when attempts > 1 ->
+          replace(scope, external_id, fields, attempts - 1)
+
+        other ->
+          {:error, other}
+      end
     end
   end
 

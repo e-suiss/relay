@@ -45,6 +45,25 @@ defmodule RelayWeb.ConsoleControllerTest do
     end
   end
 
+  test "X-47 TP-39: the console may frame only the configured preview host", %{
+    conn: conn,
+    root: root
+  } do
+    File.write!(Path.join(root, "index.html"), @index)
+    previous = Application.get_env(:relay, Relay.Api.PreviewSandbox)
+    Application.put_env(:relay, Relay.Api.PreviewSandbox, host: "preview.relay.test")
+
+    on_exit(fn ->
+      if previous,
+        do: Application.put_env(:relay, Relay.Api.PreviewSandbox, previous),
+        else: Application.delete_env(:relay, Relay.Api.PreviewSandbox)
+    end)
+
+    assert [policy] = conn |> get("/console") |> get_resp_header("content-security-policy")
+    assert policy =~ "frame-src https://preview.relay.test"
+    refute policy =~ "frame-src *"
+  end
+
   test "X-47: a missing asset is not answered with the application", %{conn: conn, root: root} do
     File.write!(Path.join(root, "index.html"), @index)
 

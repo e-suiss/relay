@@ -30,13 +30,19 @@ import app.suiss.relay.api.model.PreferenceValue
 import com.google.gson.annotations.SerializedName
 
 /**
- * One category and channel of a subscriber. web_push follows push and voice follows sms.
+ * One category and channel of a subscriber. web_push follows push and voice follows sms. The embeddable preference component, the hosted preference page and an app's own notification settings screen render the same cell (X-18, X-51).
  *
  * @param category Tenant category key, unique in the environment.
+ * @param categoryName The category's name as the tenant wrote it, the label of the row.
  * @param channel
+ * @param digestAllowed Whether the subscriber may receive this category as a digest: always for social, for operational when the category allows it (PC-17). Closing such a cell offers the three choices Instant, Digest and Never, none preselected.
+ * @param disabledByAdmin The tenant turned this cell off: it turned the category off or wrote opt_out on the subscriber's behalf (PC-15). Shown as \"your administrator turned this off\"; the subscriber cannot turn it on.
+ * @param disabledInDeviceSettings For push and web_push: the subscriber has devices on the channel and the operating system permission of none of them allows this category (PC-16). Shown as \"turned off in device settings\"; the preference itself is kept and applies again once the permission is back.
  * @param effective Whether the channel is open for this category after every level is applied.
+ * @param locked Whether the category is locked (PC-6): the cell is shown as a label, not a switch, and the last open channel of the category cannot be closed.
  * @param source
  * @param `value`
+ * @param lockBeneficiary Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked.
  */
 
 
@@ -46,21 +52,54 @@ data class PreferenceCell (
     @SerializedName("category")
     val category: kotlin.String,
 
+    /* The category's name as the tenant wrote it, the label of the row. */
+    @SerializedName("category_name")
+    val categoryName: kotlin.String,
+
     @SerializedName("channel")
     val channel: Channel,
+
+    /* Whether the subscriber may receive this category as a digest: always for social, for operational when the category allows it (PC-17). Closing such a cell offers the three choices Instant, Digest and Never, none preselected. */
+    @SerializedName("digest_allowed")
+    val digestAllowed: kotlin.Boolean,
+
+    /* The tenant turned this cell off: it turned the category off or wrote opt_out on the subscriber's behalf (PC-15). Shown as \"your administrator turned this off\"; the subscriber cannot turn it on. */
+    @SerializedName("disabled_by_admin")
+    val disabledByAdmin: kotlin.Boolean,
+
+    /* For push and web_push: the subscriber has devices on the channel and the operating system permission of none of them allows this category (PC-16). Shown as \"turned off in device settings\"; the preference itself is kept and applies again once the permission is back. */
+    @SerializedName("disabled_in_device_settings")
+    val disabledInDeviceSettings: kotlin.Boolean,
 
     /* Whether the channel is open for this category after every level is applied. */
     @SerializedName("effective")
     val effective: kotlin.Boolean,
 
+    /* Whether the category is locked (PC-6): the cell is shown as a label, not a switch, and the last open channel of the category cannot be closed. */
+    @SerializedName("locked")
+    val locked: kotlin.Boolean,
+
     @SerializedName("source")
     val source: PreferenceSource,
 
     @SerializedName("value")
-    val `value`: PreferenceValue
+    val `value`: PreferenceValue,
+
+    /* Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked. */
+    @SerializedName("lock_beneficiary")
+    val lockBeneficiary: PreferenceCell.LockBeneficiary? = null
 
 ) {
 
+    /**
+     * Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked.
+     *
+     * Values: SUBSCRIBER,TENANT
+     */
+    enum class LockBeneficiary(val value: kotlin.String) {
+        @SerializedName(value = "subscriber") SUBSCRIBER("subscriber"),
+        @SerializedName(value = "tenant") TENANT("tenant");
+    }
 
 }
 

@@ -121,24 +121,42 @@ const preferences = {
   cells: [
     {
       category: 'account_security',
+      category_name: 'Account security',
       channel: 'push',
       value: 'unset',
       effective: true,
       source: 'locked',
+      locked: true,
+      lock_beneficiary: 'subscriber',
+      digest_allowed: false,
+      disabled_by_admin: false,
+      disabled_in_device_settings: false,
     },
     {
       category: 'order_updates',
+      category_name: 'Order updates',
       channel: 'push',
       value: 'unset',
       effective: true,
       source: 'class_default',
+      locked: false,
+      lock_beneficiary: null,
+      digest_allowed: false,
+      disabled_by_admin: false,
+      disabled_in_device_settings: false,
     },
     {
       category: 'order_updates',
+      category_name: 'Order updates',
       channel: 'email',
       value: 'unset',
       effective: true,
       source: 'class_default',
+      locked: false,
+      lock_beneficiary: null,
+      digest_allowed: false,
+      disabled_by_admin: false,
+      disabled_in_device_settings: false,
     },
   ],
   channels: [],
@@ -170,8 +188,39 @@ describe('X-32 X-51 PC-17 preference center', () => {
     const { relay } = client(() => json(200, preferences));
     renderWith(relay, <PreferenceCenter permission="denied" />);
     expect(
-      await screen.findByLabelText('order_updates, Push: Off in device settings'),
+      await screen.findByLabelText('Order updates, Push: Off in device settings'),
     ).toBeTruthy();
+  });
+
+  it('X-51 a tenant lock and a cell the administrator turned off are shown as labels', async () => {
+    const tenant = {
+      ...preferences,
+      cells: [
+        {
+          ...preferences.cells[0],
+          category: 'service_notices',
+          category_name: 'Service notices',
+          lock_beneficiary: 'tenant',
+        },
+        {
+          ...preferences.cells[2],
+          value: 'opt_out',
+          effective: false,
+          source: 'tenant',
+          disabled_by_admin: true,
+        },
+      ],
+    };
+    const { relay } = client(() => json(200, tenant));
+    renderWith(relay, <PreferenceCenter />);
+    expect(await screen.findByLabelText('Service notices, Push: On (locked)')).toBeTruthy();
+    expect(
+      screen.getByText('These notifications are needed for the service and cannot be turned off.'),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText('Order updates, Email: Turned off by your administrator'),
+    ).toBeTruthy();
+    expect(screen.queryByTestId('relay-pref-switch-order_updates-email')).toBeNull();
   });
 
   it('PC-17 turning a switch off offers three choices with none preselected, and Never writes an opt-out', async () => {

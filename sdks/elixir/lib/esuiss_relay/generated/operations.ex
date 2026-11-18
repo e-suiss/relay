@@ -660,6 +660,19 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :get_escalation_policy_usage,
+      method: :get,
+      path: "/v1/escalation_policies/{policy_key}/usage",
+      path_params: [:policy_key],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :list_escalation_policy_versions,
       method: :get,
       path: "/v1/escalation_policies/{policy_key}/versions",
@@ -1790,9 +1803,35 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :get_render_problem_report,
+      method: :get,
+      path: "/v1/reports/render_problems",
+      path_params: [],
+      query: [{:from, :string, true}, {:to, :string, true}],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :get_skip_report,
       method: :get,
       path: "/v1/reports/skips",
+      path_params: [],
+      query: [{:from, :string, true}, {:to, :string, true}],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :get_variant_report,
+      method: :get,
+      path: "/v1/reports/variants",
       path_params: [],
       query: [{:from, :string, true}, {:to, :string, true}],
       idempotency: :none,
@@ -1872,6 +1911,32 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :get_route_usage,
+      method: :get,
+      path: "/v1/routes/{route_key}/usage",
+      path_params: [:route_key],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :list_rules,
+      method: :get,
+      path: "/v1/rules",
+      path_params: [],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :list_sender_identities,
       method: :get,
       path: "/v1/sender_identities",
@@ -1941,6 +2006,19 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :get_tenant_settings,
+      method: :get,
+      path: "/v1/settings",
+      path_params: [],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :get_sms_destination_policy,
       method: :get,
       path: "/v1/sms_destination_policy",
@@ -1991,6 +2069,19 @@ defmodule EsuissRelay.Generated.Operations do
       path_params: [:sms_destination_stop_id],
       query: [],
       idempotency: :required,
+      if_match: :none,
+      body: :required,
+      content_type: "application/json",
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :lookup_subscribers,
+      method: :post,
+      path: "/v1/subscriber_lookups",
+      path_params: [],
+      query: [],
+      idempotency: :none,
       if_match: :none,
       body: :required,
       content_type: "application/json",
@@ -2255,6 +2346,23 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :list_subtenants,
+      method: :get,
+      path: "/v1/subtenants",
+      path_params: [],
+      query: [
+        {:limit, :integer, false},
+        {:starting_after, :string, false},
+        {:ending_before, :string, false}
+      ],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: true,
+      response: :json
+    },
+    %Operation{
       id: :list_suppressions,
       method: :get,
       path: "/v1/suppressions",
@@ -2406,6 +2514,19 @@ defmodule EsuissRelay.Generated.Operations do
       if_match: :none,
       body: :required,
       content_type: "application/json",
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :check_template_publication,
+      method: :get,
+      path: "/v1/templates/{template_key}/publication_check",
+      path_params: [:template_key],
+      query: [{:subtenant, :string, false}],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
       paginated: false,
       response: :json
     },
@@ -2735,6 +2856,19 @@ defmodule EsuissRelay.Generated.Operations do
       if_match: :none,
       body: :required,
       content_type: "application/json",
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :get_waitpoint_stats,
+      method: :get,
+      path: "/v1/waitpoint_stats",
+      path_params: [],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
       paginated: false,
       response: :json
     },
@@ -3540,6 +3674,19 @@ defmodule EsuissRelay.Generated.Operations do
       if_match: :none,
       body: :required,
       content_type: "application/json",
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :check_workflow_publication,
+      method: :get,
+      path: "/v1/workflows/{workflow_key}/publication_check",
+      path_params: [:workflow_key],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
       paginated: false,
       response: :json
     },

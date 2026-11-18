@@ -106,7 +106,8 @@ jobs:
           openssl genpkey -algorithm ed25519 -outform DER -out "$RUNNER_TEMP/dpop.der"
           seed=$(tail -c 32 "$RUNNER_TEMP/dpop.der" | base64 -w0)
           x=$(openssl pkey -inform DER -in "$RUNNER_TEMP/dpop.der" -pubout -outform DER | tail -c 32 | base64 -w0 | tr '+/' '-_' | tr -d '=')
-          token=$(mix relay.dev.token --okp-x "$x" | tail -n 1)
+          jkt=$(printf '{"crv":"Ed25519","kty":"OKP","x":"%s"}' "$x" | openssl dgst -sha256 -binary | base64 -w0 | tr '+/' '-_' | tr -d '=')
+          token=$(mix relay.dev.token --jkt "$jkt" | tail -n 1)
           echo "::add-mask::$token"
           echo "::add-mask::$seed"
           {

@@ -1141,6 +1141,21 @@ public sealed partial class RelayApi
         return _client.SendJsonAsync(Operations.ArchiveCategory, [categoryKey], query, null, options, cancellationToken);
     }
 
+    /// <summary>List sub-tenants</summary>
+    public Task<Page> ListSubtenantsAsync(
+        int? limit = null,
+        string? startingAfter = null,
+        string? endingBefore = null,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("limit", limit);
+        query.Add("starting_after", startingAfter);
+        query.Add("ending_before", endingBefore);
+        return _client.ListAsync(Operations.ListSubtenants, [], query, null, options, cancellationToken);
+    }
+
     /// <summary>Get a subtenant setting of a category</summary>
     public Task<JsonNode> GetCategorySubtenantSettingAsync(
         string categoryKey,
@@ -3087,5 +3102,110 @@ public sealed partial class RelayApi
     {
         var query = new QueryBuilder();
         return _client.SendJsonAsync(Operations.ResetThrottle, [throttleKey], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Find a subscriber by phone or e-mail</summary>
+    public Task<JsonNode> LookupSubscribersAsync(
+        JsonNode body,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.LookupSubscribers, [], query, body, options, cancellationToken);
+    }
+
+    /// <summary>List the rule dictionary</summary>
+    public Task<JsonNode> ListRulesAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.ListRules, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Get the tenant settings</summary>
+    public Task<JsonNode> GetTenantSettingsAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetTenantSettings, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Where a route is used</summary>
+    public Task<JsonNode> GetRouteUsageAsync(
+        string routeKey,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetRouteUsage, [routeKey], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Where an escalation policy is used</summary>
+    public Task<JsonNode> GetEscalationPolicyUsageAsync(
+        string policyKey,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetEscalationPolicyUsage, [policyKey], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Run the publication gate on the draft without publishing</summary>
+    public Task<JsonNode> CheckWorkflowPublicationAsync(
+        string workflowKey,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.CheckWorkflowPublication, [workflowKey], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Run the publication gate on the draft without publishing</summary>
+    public Task<JsonNode> CheckTemplatePublicationAsync(
+        string templateKey,
+        string? subtenant = null,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("subtenant", subtenant);
+        return _client.SendJsonAsync(Operations.CheckTemplatePublication, [templateKey], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Get the waitpoint figures</summary>
+    public Task<JsonNode> GetWaitpointStatsAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetWaitpointStats, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Get the A/B variant report</summary>
+    public Task<JsonNode> GetVariantReportAsync(
+        string @from,
+        string to,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("from", @from);
+        query.Add("to", to);
+        return _client.SendJsonAsync(Operations.GetVariantReport, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Get the render and locale problem report</summary>
+    public Task<JsonNode> GetRenderProblemReportAsync(
+        string @from,
+        string to,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("from", @from);
+        query.Add("to", to);
+        return _client.SendJsonAsync(Operations.GetRenderProblemReport, [], query, null, options, cancellationToken);
     }
 }

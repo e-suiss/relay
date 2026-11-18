@@ -38,8 +38,9 @@ public enum RelayPreferenceRowState: Equatable, Sendable {
   public static func of(_ cell: RelayPreferenceCell, permission: RelayPermission)
     -> RelayPreferenceRowState
   {
-    if cell.source == .locked { return .lockedOn }
-    if cell.source == .tenant, !cell.effective { return .adminDisabled }
+    if cell.locked { return .lockedOn }
+    if cell.disabledByAdmin { return .adminDisabled }
+    if cell.disabledInDeviceSettings { return .deviceDisabled }
     if cell.channel == "push" {
       switch permission {
       case .denied:
@@ -100,7 +101,9 @@ public final class RelayPreferencesModel: ObservableObject {
   }
 
   public func name(of category: String) -> String {
-    categories[category]?.name ?? category.replacingOccurrences(of: "_", with: " ").capitalized
+    if let name = categories[category]?.name { return name }
+    if let cell = preferences?.cells(for: category).first { return cell.categoryName }
+    return category
   }
 
   /// Turns a cell on, or off; turning a digest category off first asks the three-choice question.
@@ -111,7 +114,7 @@ public final class RelayPreferencesModel: ObservableObject {
       }
       return
     }
-    if categories[cell.category]?.digestAllowed == true {
+    if cell.digestAllowed {
       pendingTurnOff = cell
       return
     }

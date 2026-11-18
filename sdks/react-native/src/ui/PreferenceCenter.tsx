@@ -12,16 +12,19 @@ import type {
 } from '../types';
 import { useRelay, type RelayUi } from './context';
 
-export type CellDisplay = 'on' | 'off' | 'locked' | 'os_disabled';
+export type CellDisplay = 'on' | 'off' | 'locked' | 'admin_disabled' | 'os_disabled';
 
 // X-51
 // PC-15
-/** How a cell is shown: locked cells are on and cannot change, push cells are off in device settings while the OS permission is denied. */
+// PC-16
+/** How a cell is shown: locked cells cannot change, cells the administrator turned off are a label, and push cells are off in device settings when the server says so or this device's OS permission is denied. */
 export function cellDisplay(
   cell: PreferenceCell,
   permission: DevicePermission | null,
 ): CellDisplay {
-  if (cell.source === 'locked') return 'locked';
+  if (cell.locked) return 'locked';
+  if (cell.disabled_by_admin) return 'admin_disabled';
+  if (cell.disabled_in_device_settings) return 'os_disabled';
   if ((cell.channel === 'push' || cell.channel === 'web_push') && permission === 'denied') {
     return 'os_disabled';
   }
@@ -175,10 +178,8 @@ export function PreferenceCenter({
     if (!shownChannels.has(cell.channel)) continue;
     grouped.set(cell.category, [...(grouped.get(cell.category) ?? []), cell]);
   }
-  const stepCategory = step ? (names.get(step.category)?.name ?? step.category) : '';
-  const digestOffered =
-    step !== null &&
-    (names.get(step.category)?.class === 'social' || step.category in preferences.profile.digest);
+  const stepCategory = step ? (names.get(step.category)?.name ?? step.category_name) : '';
+  const digestOffered = step !== null && step.digest_allowed;
 
   return (
     <ScrollView
@@ -206,8 +207,8 @@ export function PreferenceCenter({
         </Text>
       ) : null}
       {[...grouped.entries()].map(([category, cells]) => {
-        const label = names.get(category)?.name ?? category;
-        const locked = cells.some((cell) => cell.source === 'locked');
+        const label = names.get(category)?.name ?? cells[0]?.category_name ?? category;
+        const locked = cells.find((cell) => cell.locked);
         return (
           <View
             key={category}
@@ -225,7 +226,11 @@ export function PreferenceCenter({
             </Text>
             {locked ? (
               <Text style={{ color: theme.colors.textMuted, fontSize: theme.fontSize - 2 }}>
-                {t('prefs.lockedHint')}
+                {t(
+                  locked.lock_beneficiary === 'tenant'
+                    ? 'prefs.lockedHintTenant'
+                    : 'prefs.lockedHint',
+                )}
               </Text>
             ) : null}
             {cells.map((cell) => {
@@ -234,11 +239,13 @@ export function PreferenceCenter({
               const stateText =
                 display === 'locked'
                   ? t('prefs.locked')
-                  : display === 'os_disabled'
-                    ? t('prefs.osDisabled')
-                    : display === 'on'
-                      ? t('prefs.on')
-                      : t('prefs.off');
+                  : display === 'admin_disabled'
+                    ? t('prefs.adminDisabled')
+                    : display === 'os_disabled'
+                      ? t('prefs.osDisabled')
+                      : display === 'on'
+                        ? t('prefs.on')
+                        : t('prefs.off');
               const accessibilityLabel = t('prefs.cell', {
                 category: label,
                 channel: channelName,
@@ -258,7 +265,9 @@ export function PreferenceCenter({
                   <Text style={{ color: theme.colors.text, fontSize: theme.fontSize, flex: 1 }}>
                     {channelName}
                   </Text>
-                  {display === 'locked' || display === 'os_disabled' ? (
+                  {display === 'locked' ||
+                  display === 'admin_disabled' ||
+                  display === 'os_disabled' ? (
                     <Text
                       accessibilityLabel={accessibilityLabel}
                       accessibilityState={{ disabled: true }}

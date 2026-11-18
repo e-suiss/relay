@@ -342,6 +342,19 @@ defmodule EsuissRelay.Api do
     do:
       Client.call(client, Operations.fetch!(:archive_escalation_policy), [policy_key], nil, opts)
 
+  @doc "Where an escalation policy is used.\n\n`GET /v1/escalation_policies/{policy_key}/usage`"
+  @spec get_escalation_policy_usage(Client.t(), String.t() | integer(), keyword()) ::
+          Client.result()
+  def get_escalation_policy_usage(client, policy_key, opts \\ []),
+    do:
+      Client.call(
+        client,
+        Operations.fetch!(:get_escalation_policy_usage),
+        [policy_key],
+        nil,
+        opts
+      )
+
   @doc "List escalation policy versions.\n\n`GET /v1/escalation_policies/{policy_key}/versions`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
   @spec list_escalation_policy_versions(Client.t(), String.t() | integer(), keyword()) ::
           Client.result()
@@ -888,10 +901,20 @@ defmodule EsuissRelay.Api do
   def get_delivery_report(client, opts \\ []),
     do: Client.call(client, Operations.fetch!(:get_delivery_report), [], nil, opts)
 
+  @doc "Get the render and locale problem report.\n\n`GET /v1/reports/render_problems`\n\nQuery: `from`, `to`."
+  @spec get_render_problem_report(Client.t(), keyword()) :: Client.result()
+  def get_render_problem_report(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:get_render_problem_report), [], nil, opts)
+
   @doc "Get the skip distribution.\n\n`GET /v1/reports/skips`\n\nQuery: `from`, `to`."
   @spec get_skip_report(Client.t(), keyword()) :: Client.result()
   def get_skip_report(client, opts \\ []),
     do: Client.call(client, Operations.fetch!(:get_skip_report), [], nil, opts)
+
+  @doc "Get the A/B variant report.\n\n`GET /v1/reports/variants`\n\nQuery: `from`, `to`."
+  @spec get_variant_report(Client.t(), keyword()) :: Client.result()
+  def get_variant_report(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:get_variant_report), [], nil, opts)
 
   @doc "List routes.\n\n`GET /v1/routes`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
   @spec list_routes(Client.t(), keyword()) :: Client.result()
@@ -918,6 +941,16 @@ defmodule EsuissRelay.Api do
   @spec archive_route(Client.t(), String.t() | integer(), keyword()) :: Client.result()
   def archive_route(client, route_key, opts \\ []),
     do: Client.call(client, Operations.fetch!(:archive_route), [route_key], nil, opts)
+
+  @doc "Where a route is used.\n\n`GET /v1/routes/{route_key}/usage`"
+  @spec get_route_usage(Client.t(), String.t() | integer(), keyword()) :: Client.result()
+  def get_route_usage(client, route_key, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:get_route_usage), [route_key], nil, opts)
+
+  @doc "List the rule dictionary.\n\n`GET /v1/rules`"
+  @spec list_rules(Client.t(), keyword()) :: Client.result()
+  def list_rules(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:list_rules), [], nil, opts)
 
   @doc "List sender identities.\n\n`GET /v1/sender_identities`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
   @spec list_sender_identities(Client.t(), keyword()) :: Client.result()
@@ -966,6 +999,11 @@ defmodule EsuissRelay.Api do
         opts
       )
 
+  @doc "Get the tenant settings.\n\n`GET /v1/settings`"
+  @spec get_tenant_settings(Client.t(), keyword()) :: Client.result()
+  def get_tenant_settings(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:get_tenant_settings), [], nil, opts)
+
   @doc "Get the SMS destination policy.\n\n`GET /v1/sms_destination_policy`"
   @spec get_sms_destination_policy(Client.t(), keyword()) :: Client.result()
   def get_sms_destination_policy(client, opts \\ []),
@@ -993,6 +1031,11 @@ defmodule EsuissRelay.Api do
         body,
         opts
       )
+
+  @doc "Find a subscriber by phone or e-mail.\n\n`POST /v1/subscriber_lookups`"
+  @spec lookup_subscribers(Client.t(), map() | binary(), keyword()) :: Client.result()
+  def lookup_subscribers(client, body, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:lookup_subscribers), [], body, opts)
 
   @doc "List subscribers.\n\n`GET /v1/subscribers`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
   @spec list_subscribers(Client.t(), keyword()) :: Client.result()
@@ -1187,6 +1230,11 @@ defmodule EsuissRelay.Api do
         opts
       )
 
+  @doc "List sub-tenants.\n\n`GET /v1/subtenants`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
+  @spec list_subtenants(Client.t(), keyword()) :: Client.result()
+  def list_subtenants(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:list_subtenants), [], nil, opts)
+
   @doc "List suppressions.\n\n`GET /v1/suppressions`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`, `channel`, `reason`, `state`."
   @spec list_suppressions(Client.t(), keyword()) :: Client.result()
   def list_suppressions(client, opts \\ []),
@@ -1265,6 +1313,19 @@ defmodule EsuissRelay.Api do
           Client.result()
   def preview_template(client, template_key, body, opts \\ []),
     do: Client.call(client, Operations.fetch!(:preview_template), [template_key], body, opts)
+
+  @doc "Run the publication gate on the draft without publishing.\n\n`GET /v1/templates/{template_key}/publication_check`\n\nQuery: `subtenant`."
+  @spec check_template_publication(Client.t(), String.t() | integer(), keyword()) ::
+          Client.result()
+  def check_template_publication(client, template_key, opts \\ []),
+    do:
+      Client.call(
+        client,
+        Operations.fetch!(:check_template_publication),
+        [template_key],
+        nil,
+        opts
+      )
 
   @doc "Publish the draft.\n\n`POST /v1/templates/{template_key}/publish`\n\nQuery: `subtenant`.\n\nThe body is optional and passed as `:body`."
   @spec publish_template(Client.t(), String.t() | integer(), keyword()) :: Client.result()
@@ -1431,6 +1492,11 @@ defmodule EsuissRelay.Api do
   @spec advance_virtual_clock(Client.t(), map() | binary(), keyword()) :: Client.result()
   def advance_virtual_clock(client, body, opts \\ []),
     do: Client.call(client, Operations.fetch!(:advance_virtual_clock), [], body, opts)
+
+  @doc "Get the waitpoint figures.\n\n`GET /v1/waitpoint_stats`"
+  @spec get_waitpoint_stats(Client.t(), keyword()) :: Client.result()
+  def get_waitpoint_stats(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:get_waitpoint_stats), [], nil, opts)
 
   @doc "List waitpoints.\n\n`GET /v1/waitpoints`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`, `state`, `awaiting_response`, `waiter`, `tag`."
   @spec list_waitpoints(Client.t(), keyword()) :: Client.result()
@@ -1977,6 +2043,19 @@ defmodule EsuissRelay.Api do
           Client.result()
   def preview_workflow(client, workflow_key, body, opts \\ []),
     do: Client.call(client, Operations.fetch!(:preview_workflow), [workflow_key], body, opts)
+
+  @doc "Run the publication gate on the draft without publishing.\n\n`GET /v1/workflows/{workflow_key}/publication_check`"
+  @spec check_workflow_publication(Client.t(), String.t() | integer(), keyword()) ::
+          Client.result()
+  def check_workflow_publication(client, workflow_key, opts \\ []),
+    do:
+      Client.call(
+        client,
+        Operations.fetch!(:check_workflow_publication),
+        [workflow_key],
+        nil,
+        opts
+      )
 
   @doc "Publish the draft.\n\n`POST /v1/workflows/{workflow_key}/publish`\n\nThe body is optional and passed as `:body`."
   @spec publish_workflow(Client.t(), String.t() | integer(), keyword()) :: Client.result()

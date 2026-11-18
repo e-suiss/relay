@@ -73,16 +73,27 @@ describe('X-32 theming and accessibility tokens', () => {
 
 const cell = (overrides: Partial<PreferenceCell> = {}): PreferenceCell => ({
   category: 'order_updates',
+  category_name: 'Order updates',
   channel: 'push',
   value: 'unset',
   effective: true,
   source: 'class_default',
+  locked: false,
+  lock_beneficiary: null,
+  digest_allowed: false,
+  disabled_by_admin: false,
+  disabled_in_device_settings: false,
   ...overrides,
 });
 
 describe('X-51 PC-17 preference cells', () => {
-  it('X-51 shows locked, off in device settings, on and off', () => {
-    expect(cellDisplay(cell({ source: 'locked' }), 'denied')).toBe('locked');
+  it('X-51 shows locked, off by the administrator, off in device settings, on and off', () => {
+    const locked = cell({ source: 'locked', locked: true, lock_beneficiary: 'subscriber' });
+    const admin = cell({ effective: false, disabled_by_admin: true });
+    const device = cell({ disabled_in_device_settings: true });
+    expect(cellDisplay(locked, 'denied')).toBe('locked');
+    expect(cellDisplay(admin, 'granted')).toBe('admin_disabled');
+    expect(cellDisplay(device, 'granted')).toBe('os_disabled');
     expect(cellDisplay(cell(), 'denied')).toBe('os_disabled');
     expect(cellDisplay(cell({ channel: 'email' }), 'denied')).toBe('on');
     expect(cellDisplay(cell({ effective: false }), 'granted')).toBe('off');

@@ -86,9 +86,9 @@ defmodule RelayDev.Access do
   # API-41
   # API-71
   # E-93
-  @doc "A client credentials token of an Access client for the server API, valid for one hour: `aud` Relay's Access `client_id`, bound by `cnf.jkt` to the stand-in's DPoP key (`proof/3`) or to the key whose thumbprint `jkt` is."
-  @spec server_token(String.t(), String.t(), [String.t()], String.t()) :: String.t()
-  def server_token(access_tenant_id, client_id, scopes, jkt \\ jkt()) do
+  @doc "A client credentials token of an Access client for the server API, valid for one hour: `aud` Relay's Access `client_id`, bound by `cnf.jkt` to the stand-in's DPoP key (`proof/3`), or to the key of the JWK thumbprint `jkt` when one is given."
+  @spec server_token(String.t(), String.t(), [String.t()], String.t() | nil) :: String.t()
+  def server_token(access_tenant_id, client_id, scopes, jkt \\ nil) do
     now = DateTime.to_unix(Relay.Clock.utc_now())
 
     sign(
@@ -103,7 +103,7 @@ defmodule RelayDev.Access do
         "nbf" => now,
         "exp" => now + @ttl_s,
         "jti" => b64(:crypto.strong_rand_bytes(16)),
-        "cnf" => %{"jkt" => jkt}
+        "cnf" => %{"jkt" => jkt || jkt()}
       },
       "at+jwt",
       @kid,
@@ -145,12 +145,6 @@ defmodule RelayDev.Access do
     {<<4, x::binary-32, y::binary-32>>, _private} = dpop_key()
     %{"kty" => "EC", "crv" => "P-256", "x" => b64(x), "y" => b64(y)}
   end
-
-  # X-48 (5)
-  @doc "The RFC 7638 thumbprint of an Ed25519 public key given as unpadded base64url `x`."
-  @spec okp_jkt(String.t()) :: String.t()
-  def okp_jkt(x) when is_binary(x),
-    do: b64(:crypto.hash(:sha256, ~s({"crv":"Ed25519","kty":"OKP","x":"#{x}"})))
 
   defp jkt do
     %{"x" => x, "y" => y} = dpop_jwk()

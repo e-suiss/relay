@@ -2459,18 +2459,49 @@ extension Components {
                 ])
             }
         }
-        /// One category and channel of a subscriber. web_push follows push and voice follows sms.
+        /// One category and channel of a subscriber. web_push follows push and voice follows sms. The embeddable preference component, the hosted preference page and an app's own notification settings screen render the same cell (X-18, X-51).
         ///
         /// - Remark: Generated from `#/components/schemas/PreferenceCell`.
         public struct PreferenceCell: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/PreferenceCell/category`.
             public var category: Components.Schemas.CategoryKey
+            /// The category's name as the tenant wrote it, the label of the row.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PreferenceCell/category_name`.
+            public var categoryName: Swift.String
             /// - Remark: Generated from `#/components/schemas/PreferenceCell/channel`.
             public var channel: Components.Schemas.Channel
+            /// Whether the subscriber may receive this category as a digest: always for social, for operational when the category allows it (PC-17). Closing such a cell offers the three choices Instant, Digest and Never, none preselected.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PreferenceCell/digest_allowed`.
+            public var digestAllowed: Swift.Bool
+            /// The tenant turned this cell off: it turned the category off or wrote opt_out on the subscriber's behalf (PC-15). Shown as "your administrator turned this off"; the subscriber cannot turn it on.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PreferenceCell/disabled_by_admin`.
+            public var disabledByAdmin: Swift.Bool
+            /// For push and web_push: the subscriber has devices on the channel and the operating system permission of none of them allows this category (PC-16). Shown as "turned off in device settings"; the preference itself is kept and applies again once the permission is back.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PreferenceCell/disabled_in_device_settings`.
+            public var disabledInDeviceSettings: Swift.Bool
             /// Whether the channel is open for this category after every level is applied.
             ///
             /// - Remark: Generated from `#/components/schemas/PreferenceCell/effective`.
             public var effective: Swift.Bool
+            /// Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PreferenceCell/lock_beneficiary`.
+            @frozen public enum LockBeneficiaryPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case subscriber = "subscriber"
+                case tenant = "tenant"
+            }
+            /// Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PreferenceCell/lock_beneficiary`.
+            public var lockBeneficiary: Components.Schemas.PreferenceCell.LockBeneficiaryPayload?
+            /// Whether the category is locked (PC-6): the cell is shown as a label, not a switch, and the last open channel of the category cannot be closed.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PreferenceCell/locked`.
+            public var locked: Swift.Bool
             /// - Remark: Generated from `#/components/schemas/PreferenceCell/source`.
             public var source: Components.Schemas.PreferenceSource
             /// - Remark: Generated from `#/components/schemas/PreferenceCell/value`.
@@ -2479,27 +2510,51 @@ extension Components {
             ///
             /// - Parameters:
             ///   - category:
+            ///   - categoryName: The category's name as the tenant wrote it, the label of the row.
             ///   - channel:
+            ///   - digestAllowed: Whether the subscriber may receive this category as a digest: always for social, for operational when the category allows it (PC-17). Closing such a cell offers the three choices Instant, Digest and Never, none preselected.
+            ///   - disabledByAdmin: The tenant turned this cell off: it turned the category off or wrote opt_out on the subscriber's behalf (PC-15). Shown as "your administrator turned this off"; the subscriber cannot turn it on.
+            ///   - disabledInDeviceSettings: For push and web_push: the subscriber has devices on the channel and the operating system permission of none of them allows this category (PC-16). Shown as "turned off in device settings"; the preference itself is kept and applies again once the permission is back.
             ///   - effective: Whether the channel is open for this category after every level is applied.
+            ///   - lockBeneficiary: Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked.
+            ///   - locked: Whether the category is locked (PC-6): the cell is shown as a label, not a switch, and the last open channel of the category cannot be closed.
             ///   - source:
             ///   - value:
             public init(
                 category: Components.Schemas.CategoryKey,
+                categoryName: Swift.String,
                 channel: Components.Schemas.Channel,
+                digestAllowed: Swift.Bool,
+                disabledByAdmin: Swift.Bool,
+                disabledInDeviceSettings: Swift.Bool,
                 effective: Swift.Bool,
+                lockBeneficiary: Components.Schemas.PreferenceCell.LockBeneficiaryPayload? = nil,
+                locked: Swift.Bool,
                 source: Components.Schemas.PreferenceSource,
                 value: Components.Schemas.PreferenceValue
             ) {
                 self.category = category
+                self.categoryName = categoryName
                 self.channel = channel
+                self.digestAllowed = digestAllowed
+                self.disabledByAdmin = disabledByAdmin
+                self.disabledInDeviceSettings = disabledInDeviceSettings
                 self.effective = effective
+                self.lockBeneficiary = lockBeneficiary
+                self.locked = locked
                 self.source = source
                 self.value = value
             }
             public enum CodingKeys: String, CodingKey {
                 case category
+                case categoryName = "category_name"
                 case channel
+                case digestAllowed = "digest_allowed"
+                case disabledByAdmin = "disabled_by_admin"
+                case disabledInDeviceSettings = "disabled_in_device_settings"
                 case effective
+                case lockBeneficiary = "lock_beneficiary"
+                case locked
                 case source
                 case value
             }
@@ -2509,13 +2564,37 @@ extension Components {
                     Components.Schemas.CategoryKey.self,
                     forKey: .category
                 )
+                self.categoryName = try container.decode(
+                    Swift.String.self,
+                    forKey: .categoryName
+                )
                 self.channel = try container.decode(
                     Components.Schemas.Channel.self,
                     forKey: .channel
                 )
+                self.digestAllowed = try container.decode(
+                    Swift.Bool.self,
+                    forKey: .digestAllowed
+                )
+                self.disabledByAdmin = try container.decode(
+                    Swift.Bool.self,
+                    forKey: .disabledByAdmin
+                )
+                self.disabledInDeviceSettings = try container.decode(
+                    Swift.Bool.self,
+                    forKey: .disabledInDeviceSettings
+                )
                 self.effective = try container.decode(
                     Swift.Bool.self,
                     forKey: .effective
+                )
+                self.lockBeneficiary = try container.decodeIfPresent(
+                    Components.Schemas.PreferenceCell.LockBeneficiaryPayload.self,
+                    forKey: .lockBeneficiary
+                )
+                self.locked = try container.decode(
+                    Swift.Bool.self,
+                    forKey: .locked
                 )
                 self.source = try container.decode(
                     Components.Schemas.PreferenceSource.self,
@@ -2527,8 +2606,14 @@ extension Components {
                 )
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "category",
+                    "category_name",
                     "channel",
+                    "digest_allowed",
+                    "disabled_by_admin",
+                    "disabled_in_device_settings",
                     "effective",
+                    "lock_beneficiary",
+                    "locked",
                     "source",
                     "value"
                 ])

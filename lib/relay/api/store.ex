@@ -69,4 +69,30 @@ defmodule Relay.Api.Store do
       :unsupported
     ])
   end
+
+  # TN-47
+  # OP-26
+  @doc "Appends one audit record of the established scope: the record's `action` on its `target_type` and `target_id`."
+  @spec audit(map(), <<_::256>>, Actor.t()) :: :appended
+  def audit(%{action: action, target_type: target_type, target_id: target_id}, digest, actor) do
+    [kind, ref, on_behalf_of, access_record] = Actor.params(actor)
+
+    [row] =
+      Repo.call!("relay_fn.audit_append", [
+        Relay.Id.generate(),
+        action,
+        kind,
+        ref,
+        on_behalf_of,
+        access_record,
+        target_type,
+        target_id,
+        nil,
+        nil,
+        nil,
+        digest
+      ])
+
+    Repo.code!(row["audit_append"], [:appended])
+  end
 end

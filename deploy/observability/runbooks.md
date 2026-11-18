@@ -98,6 +98,12 @@ Every alert rule in `alerts.yaml` links here with its `runbook_url`. Each entry 
 - **Check:** Check the PKCS#11 port and the token's keys.
 - **Action:** Restore signing within the hour the last token stays valid.
 
+## RelayTenantKeyUnavailable
+
+- **Meaning:** The key store cannot reach a tenant's own key; that tenant's encrypted reads are refused with `key_unavailable`.
+- **Check:** Check the PKCS#11 port and whether the tenant's key object is still in the region's token; the tenant may have withdrawn or destroyed it.
+- **Action:** Follow `runbooks/tenant-key-unavailable.md`; a destroyed key cannot be restored.
+
 ## RelaySloAcceptFastBurn
 
 - **Meaning:** Accept latency of a class burns its error budget 14.4 times too fast.

@@ -14,6 +14,7 @@ defmodule Relay.Tenancy do
   alias Relay.Tenancy.Defaults
   alias Relay.Tenancy.FieldCipher
   alias Relay.Tenancy.KeyCache
+  alias Relay.Tenancy.KeyCustody
   alias Relay.Tenancy.KeyProvider
   alias Relay.Tenancy.KeyProvisioning
   alias Relay.Tenancy.Keyring
@@ -138,6 +139,27 @@ defmodule Relay.Tenancy do
       {:error, _reason} -> {:error, Relay.Error.new(:database_error, "tenant key read failed")}
     end
   end
+
+  # OP-85
+  # TN-27
+  @doc "Sets or changes a tenant's own key and wraps its keys under it; see `Relay.Tenancy.KeyCustody.set/4`."
+  @spec set_key_custody(Relay.Id.t(), String.t(), <<_::256>>, Actor.t()) ::
+          {:ok, KeyCustody.outcome()} | {:error, Relay.Error.t()}
+  defdelegate set_key_custody(tenant_id, key_ref, digest, actor), to: KeyCustody, as: :set
+
+  # OP-85
+  @doc "Reads a tenant's own key reference and how many of its keys are wrapped under it; see `Relay.Tenancy.KeyCustody.show/1`."
+  @spec key_custody(Relay.Id.t()) ::
+          {:ok, %{key_ref: String.t() | nil, keys: non_neg_integer(), other: non_neg_integer()}}
+          | {:error, Relay.Error.t()}
+  defdelegate key_custody(tenant_id), to: KeyCustody, as: :show
+
+  # OP-85
+  # TN-63
+  @doc "Checks a tenant key reference; see `Relay.Tenancy.KeyCustody.check/2`."
+  @spec check_key_ref(String.t(), String.t() | nil) ::
+          {:ok, KeyCustody.reference()} | {:error, Relay.Error.t()}
+  defdelegate check_key_ref(key_ref, token), to: KeyCustody, as: :check
 
   @doc "Reads the tenant of a scope."
   @spec tenant(Scope.t()) :: {:ok, map() | nil} | {:error, term()}

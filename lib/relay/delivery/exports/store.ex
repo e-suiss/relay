@@ -189,6 +189,41 @@ defmodule Relay.Delivery.Exports.Store do
 
   defp key(row), do: {row["sort_key"], row["id"]}
 
+  # OP-86
+  @doc "The columns of an export kind, in the order of its CSV header."
+  @spec columns(String.t()) :: [String.t()]
+  def columns(kind), do: Map.fetch!(@headers, kind)
+
+  # OP-26
+  # OP-86
+  @doc "A page of the rows of an export kind over the whole history of the established scope, oldest first after `after_key`: the rows as column values in the order of `columns/1`, and the key to continue after the last row, `nil` when this was the last page."
+  @spec history_page(String.t(), term(), pos_integer()) :: {[[term()]], term() | nil}
+  def history_page(kind, after_key, limit) when is_map_key(@headers, kind) and limit > 0 do
+    rows = rows(kind, [~D[1970-01-01], ~D[9999-12-31], after_key, limit])
+    next = if length(rows) < limit, do: nil, else: key(List.last(rows))
+    {Enum.map(rows, &values(kind, &1)), next}
+  end
+
+  # OP-26
+  @doc "The deliveries of one recipient in the established scope, newest first, at most `limit`, as column values in the order of `columns(\"deliveries\")`."
+  @spec subject_deliveries(Relay.Id.t(), pos_integer()) :: [[term()]]
+  def subject_deliveries(recipient_id, limit) when limit > 0 do
+    """
+    SELECT d.id, d.created_at, d.notification_id, d.channel::text AS channel, d.provider,
+      n.is_test, d.decision, d.decision_reason, d.decision_rule_id, d.delivery_rank,
+      d.failure_kind, d.failure_class, d.failure_rule_id, d.attempt_count,
+      d.duplicate_delivered, d.has_conflict, d.accepted_at, d.delivered_at
+    FROM relay.deliveries d
+    JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
+      AND n.id = d.notification_id
+    WHERE d.recipient_id = $1
+    ORDER BY d.created_at DESC, d.id DESC
+    LIMIT $2
+    """
+    |> all([recipient_id, limit])
+    |> Enum.map(&values("deliveries", &1))
+  end
+
   defp rows(kind, [from, to, after_key, limit]) do
     {after_at, after_id} = after_key || {nil, nil}
     all(sql(kind), [from, to, after_at, after_id, limit])

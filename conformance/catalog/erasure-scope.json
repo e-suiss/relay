@@ -25,6 +25,22 @@
       "subject_erasure": "not subject data: installation scope operator records, no recipient"
     },
     {
+      "table": "imports",
+      "personal_columns": [
+        "content_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; rows kept",
+      "subject_erasure": "the upload is sealed under the tenant data key only while the import is pending and is set to null when it completes or fails; the report holds line numbers, codes and counts only; row kept"
+    },
+    {
+      "table": "import_records",
+      "personal_columns": [
+        "provider_ref_ct"
+      ],
+      "tenant_close": "tenant data key destroyed; rows kept",
+      "subject_erasure": "the provider's own identifier is sealed under the subject's recipient_profile key, so the erasure shreds it; the row keeps only the line, the kind and the identifier of what was written"
+    },
+    {
       "table": "kill_switch_effects",
       "personal_columns": [],
       "tenant_close": "row kept",

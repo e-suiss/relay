@@ -397,6 +397,11 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.kill_switch_effect_record" => ~w(recorded exists not_found),
     "relay_fn.fault_injection_engage" => ~w(engaged exists reason_required invalid_scope),
     "relay_fn.fault_injection_clear" => ~w(cleared already_cleared not_found reason_required),
+    "relay_fn.import_request" => ~w(requested order_violation),
+    "relay_fn.import_record" => ~w(recorded not_pending not_found),
+    "relay_fn.import_complete" => ~w(completed not_pending not_found),
+    "relay_fn.import_fail" => ~w(failed not_pending not_found),
+    "relay_fn.recurrence_handoff" => ~w(handed_over not_new not_found),
     "relay_fn.refusal_apply" =>
       ~w(applied reapplied exists recipient_not_found subtenant_not_found evidence_key_invalid category_not_found not_allowed),
     "relay_fn.unsubscribe_token_revoke" => ~w(revoked already_revoked),

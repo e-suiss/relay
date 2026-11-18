@@ -566,6 +566,8 @@ channels:
         "$ref": "#/components/messages/audit.export.downloaded"
       audit.export.requested:
         "$ref": "#/components/messages/audit.export.requested"
+      audit.import.requested:
+        "$ref": "#/components/messages/audit.import.requested"
       audit.provider_invoice.recorded:
         "$ref": "#/components/messages/audit.provider_invoice.recorded"
       audit.recurrence.cancelled:
@@ -926,6 +928,7 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.campaign.resumed"
       - "$ref": "#/channels/auditLog/messages/audit.campaign.cancelled"
       - "$ref": "#/channels/auditLog/messages/audit.export.requested"
+      - "$ref": "#/channels/auditLog/messages/audit.import.requested"
       - "$ref": "#/channels/auditLog/messages/audit.export.downloaded"
       - "$ref": "#/channels/auditLog/messages/audit.recurrence.created"
       - "$ref": "#/channels/auditLog/messages/audit.recurrence.cancelled"
@@ -9052,6 +9055,24 @@ components:
       x-relay-stage: 7
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.import.requested:
+      name: import.requested
+      title: import.requested
+      summary: "An import was started (OP-96)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: import
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.recurrence.created:
       name: recurrence.created
       title: recurrence.created
@@ -9696,6 +9717,7 @@ x-relay-event-names:
   - fanout.cancelled
   - fault_injection.cleared
   - fault_injection.engaged
+  - import.requested
   - inbox.counters_changed
   - inbox.item_created
   - inbox.item_updated

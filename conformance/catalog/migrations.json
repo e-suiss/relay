@@ -317,5 +317,10 @@
   {"file": "20270113000000_add_tenant_key_custody.exs", "sha256": "1efe552ec8e62f02591ffe5daf2b19374c90613e596ae03be2218446b1f59b8d"},
   {"file": "20270113000100_validate_tenant_key_ref_check.exs", "sha256": "2bb61fffccfb785fe19983ce86fe9449dd54f09dd06e49ac074450fcc4721644"},
   {"file": "20270113000200_create_tenant_closures.exs", "sha256": "c42bc1058147c9a9e44b314c34884d06cad4cf49a1b007d1cd954abc2a82d2ae"},
-  {"file": "20270115000000_create_fault_injections.exs", "sha256": "fb956e7f8fb96d7027f239cc2032dcda7792e66f01173cf18a189a5b1d549c69"}
+  {"file": "20270115000000_create_fault_injections.exs", "sha256": "fb956e7f8fb96d7027f239cc2032dcda7792e66f01173cf18a189a5b1d549c69"},
+  {"file": "20270117000000_create_imports.exs", "sha256": "ceb2591052fefae0dafe9dd60ff3bd7194bbb507d4250d8aebdf15aefd493912"},
+  {"file": "20270117000100_create_import_functions.exs", "sha256": "616d7c21632c0c4440ee14fce8f41c629cec30076685710dfca21c5067dd96e9"},
+  {"file": "20270117000200_add_recurrence_handoff.exs", "sha256": "40df56e32282f2aace63e58accf69798b02d7cd416956a6a8f820f581145bbb5"},
+  {"file": "20270117000300_validate_recurrence_handoff_checks.exs", "sha256": "03e2ce1f4b025e9acd17ca5eadeb57a2aa321cf77a6f4ae7bbffd8c0abfabc58"},
+  {"file": "20270117000400_rebuild_reference_check_for_imports.exs", "sha256": "def4ae4643669e1a39c6b1852408295b3caac4b843843a8b899afd7041762cba"}
 ]

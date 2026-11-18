@@ -478,5 +478,11 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON relay.",
     "reason": "OP-9: the trigger rejects TRUNCATE on the fault injections"
+  },
+  {
+    "path": "lib/relay/templates/convert/liquid.ex",
+    "rule": "physical_delete",
+    "match": "rstrip truncate replace",
+    "reason": "OP-96: the Liquid filter truncate in the list of filters the converter keeps, not SQL"
   }
 ]

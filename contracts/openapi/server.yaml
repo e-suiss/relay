@@ -25779,6 +25779,209 @@ paths:
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
       x-relay-stage: 7
+  "/v1/imports":
+    post:
+      operationId: createImport
+      tags:
+        - subscribers
+      summary: Start an import
+      description: "Starts an import job from an NDJSON upload (OP-96, OP-55): suppressions, consents, subscribers, devices, templates or scheduled sends of a migration batch. The order of OP-55 is enforced here: a subscribers, devices or scheduled import of a batch is 409 import_order_violation until the batch has a completed suppressions import and a completed consents import and none of them is still pending. The upload is kept encrypted until its job has processed it, then cleared; the request is audited as import.requested and answered 202. The report gives counts, the invalid lines with their codes, identity conflicts (same e-mail or phone under two external ids: reported, never merged; the same external id is merged), skipped lines and the sections of the type: the asymmetric consent mapping, the suppression check of the imported addresses, dead and older duplicate tokens dropped and devices without an external id written as anonymous subscribers, the template conversion status of each template (AUTO_OK, NEEDS_REVIEW, CANNOT), the confirmations of scheduled sends the legacy system cancels only after it holds them (OP-97), and the data residency metadata of the environment's provider accounts (TN-58). Phone numbers are normalised to E.164 and languages to BCP 47; a recipient with an open digest window in the legacy system is not imported while it is open."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/ImportTypeQuery"
+        - "$ref": "./components/parameters.yaml#/ImportBatchQuery"
+      requestBody:
+        required: true
+        content:
+          "application/x-ndjson":
+            schema:
+              "$ref": "./components/schemas.yaml#/ImportUpload"
+      security:
+        - access_bearer:
+            - subscribers
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "202":
+          description: Started.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Import"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - import_order_violation
+      x-relay-scopes:
+        - subscribers
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-96 names the path, the NDJSON upload and the six types; the query parameters, the batch, the report shape and the line formats are chosen by the contract."
+  "/v1/imports/{import_id}":
+    get:
+      operationId: getImport
+      tags:
+        - subscribers
+      summary: Get an import
+      description: "An import with its state and, once completed, its report (OP-96)."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/ImportId"
+      security:
+        - access_bearer:
+            - subscribers
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The import.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Import"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - import_not_found
+      x-relay-scopes:
+        - subscribers
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 15
   "/v1/campaigns":
     get:
       operationId: listCampaigns
@@ -28497,6 +28700,125 @@ paths:
       x-relay-stage: 8
       x-relay-choice: true
       x-relay-choice-note: "Path, body and response shape of recurrence rules are chosen by the contract; the active rule ceiling is POLICY DEFAULT (WF-61)."
+  "/v1/recurrence_handoffs":
+    post:
+      operationId: createRecurrenceHandoff
+      tags:
+        - workflows
+      summary: Hand a cron job over
+      description: "Hands a cron job of a legacy scheduler over to a recurrence rule in one atomic call (OP-97, OP-56): the rule, its handover state (the legacy scheduler's last run, its next run and its cursor) and the timer of its first occurrence commit together, so there is no moment with two active schedules for the same job. next_run_at must be the first occurrence of the rule after now (422 recurrence_handoff_mismatch with the expected instant otherwise) and last_run_at must be before it. The first occurrence is a supervised dry run: it goes through the checks of the send path and is recorded skipped with recurrence.handoff_dry_run without sending; the occurrences after it are sent. The legacy job is disabled once this call answered 201. Audited as recurrence.created."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "./components/schemas.yaml#/RecurrenceHandoffCreate"
+      security:
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: Handed over.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/Recurrence"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - workflow_not_found
+        - workflow_not_published
+        - subscriber_not_found
+        - recurrence_limit_reached
+        - recurrence_handoff_mismatch
+      x-relay-scopes:
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-97 asks for one atomic call; the path and the body shape are chosen by the contract."
   "/v1/recurrences/{recurrence_id}":
     get:
       operationId: getRecurrence
@@ -30256,6 +30578,12 @@ x-relay-id-prefixes:
     stage: 11
     x-relay-choice: true
     x-relay-choice-note: Prefix chosen by the contract.
+  - prefix: imp_
+    concept: Import
+    table: imports
+    stage: 15
+    x-relay-choice: true
+    x-relay-choice-note: Prefix chosen by the contract.
 x-relay-api-versions:
   supported:
     - "2026-11-01"
@@ -30590,6 +30918,14 @@ x-relay-limits:
     silent_after: PT24H
     x-relay-choice: true
     x-relay-choice-note: "AG-70 sets the agent ceiling at 100 notifications an hour and 1000 a day for each agent; a tenant may only lower them (settings agents.ceiling.per_hour and agents.ceiling.per_day). AG-71 counts an open or stalled waitpoint as silent once its state has not changed for silent_after; the counts, rates and waits of the three agent operations alarms are in the alert rules."
+  import:
+    max_body_bytes: 33554432
+    max_lines: 100000
+    max_line_bytes: 65536
+    max_report_items: 1000
+    max_alias_lifetime: P90D
+    x-relay-choice: true
+    x-relay-choice-note: "OP-96 bounds a variable alias to at most 90 days. The 32 MiB upload, the 100000 lines of at most 64 KiB and the 1000 entries of each report list are contract choices."
   subscriber_lookup:
     max_matches: 5
     x-relay-choice: true

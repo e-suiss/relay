@@ -557,6 +557,27 @@ ExportId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_exp"
+ImportId:
+  name: import_id
+  in: path
+  description: "Import identifier."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/Id_imp"
+ImportTypeQuery:
+  name: type
+  in: query
+  description: "What the NDJSON lines hold (OP-96)."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/ImportType"
+ImportBatchQuery:
+  name: batch
+  in: query
+  description: "The migration batch the import belongs to. Addresses, tokens, devices and scheduled sends of a batch are accepted only after its suppressions and consents imports completed (OP-55)."
+  required: true
+  schema:
+    "$ref": "./schemas.yaml#/ImportBatch"
 RecurrenceId:
   name: recurrence_id
   in: path

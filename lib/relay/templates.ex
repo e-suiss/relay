@@ -8,6 +8,7 @@ defmodule Relay.Templates do
   alias Relay.Templates.CellRender
   alias Relay.Templates.Cldr
   alias Relay.Templates.Context
+  alias Relay.Templates.Convert
   alias Relay.Templates.Engine
   alias Relay.Templates.Finding
   alias Relay.Templates.Locale
@@ -51,6 +52,12 @@ defmodule Relay.Templates do
           {:ok, String.t(), Sandbox.measures()} | {:error, Sandbox.reason()}
   def render(template, context, channel, opts \\ []),
     do: Sandbox.run(template, context, channel, opts)
+
+  # OP-96
+  # OP-55 (9)
+  @doc "Converts a Liquid or Handlebars template to Relay's Liquid subset with its status and findings; see `Relay.Templates.Convert.convert/3`."
+  @spec convert(Convert.language(), String.t(), %{String.t() => String.t()}) :: Convert.result()
+  def convert(language, source, aliases), do: Convert.convert(language, source, aliases)
 
   # TP-17
   @doc "The variable paths a template reads always and conditionally; see `Relay.Templates.Variables.extract/1`."

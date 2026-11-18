@@ -1123,6 +1123,13 @@ defmodule Relay.Workflow do
   def create_recurrence(attrs, digest, %Actor{} = actor),
     do: RecurrenceStore.create(attrs, Recurrence.max_active(), digest, actor)
 
+  # OP-97
+  # OP-56
+  @doc "Records the handover state of a new recurrence rule inside the caller's scoped transaction; see `Relay.Workflow.RecurrenceStore.handoff/3`."
+  @spec handoff_recurrence(Relay.Id.t(), DateTime.t() | nil, String.t() | nil) ::
+          :handed_over | :not_new | :not_found
+  defdelegate handoff_recurrence(id, last_run_at, cursor), to: RecurrenceStore, as: :handoff
+
   # WF-49
   @doc "Cancels an active recurrence rule inside the caller's scoped transaction."
   @spec cancel_recurrence(Relay.Id.t(), String.t(), <<_::256>>, Actor.t()) ::

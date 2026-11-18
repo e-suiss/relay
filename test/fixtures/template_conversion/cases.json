@@ -1,0 +1,285 @@
+[
+  {
+    "name": "liquid_output",
+    "language": "liquid",
+    "source": "Hello {{ customer.first_name | upcase }}!",
+    "aliases": {},
+    "status": "AUTO_OK",
+    "output": "Hello {{ customer.first_name | upcase }}!",
+    "codes": []
+  },
+  {
+    "name": "liquid_branch",
+    "language": "liquid",
+    "source": "{% if order.total > 100 %}big{% else %}small{% endif %}",
+    "aliases": {},
+    "status": "AUTO_OK",
+    "output": "{% if order.total > 100 %}big{% else %}small{% endif %}",
+    "codes": []
+  },
+  {
+    "name": "liquid_echo",
+    "language": "liquid",
+    "source": "{% echo user.name %}",
+    "aliases": {},
+    "status": "AUTO_OK",
+    "output": "{{ user.name }}",
+    "codes": []
+  },
+  {
+    "name": "liquid_remove",
+    "language": "liquid",
+    "source": "{{ title | remove: 'x' }}",
+    "aliases": {},
+    "status": "AUTO_OK",
+    "output": "{{ title | replace: \"x\", \"\" }}",
+    "codes": []
+  },
+  {
+    "name": "liquid_escape",
+    "language": "liquid",
+    "source": "{{ name | escape }}",
+    "aliases": {},
+    "status": "AUTO_OK",
+    "output": "{{ name }}",
+    "codes": [
+      "escape_dropped"
+    ]
+  },
+  {
+    "name": "liquid_alias",
+    "language": "liquid",
+    "source": "{{ firstName }}",
+    "aliases": {
+      "firstName": "subscriber.first_name"
+    },
+    "status": "AUTO_OK",
+    "output": "{{ subscriber.first_name }}",
+    "codes": []
+  },
+  {
+    "name": "liquid_date",
+    "language": "liquid",
+    "source": "{{ created_at | date: '%Y-%m-%d' }}",
+    "aliases": {},
+    "status": "NEEDS_REVIEW",
+    "output": "{{ created_at | date: \"medium\" }}",
+    "codes": [
+      "date_format_replaced"
+    ]
+  },
+  {
+    "name": "liquid_include",
+    "language": "liquid",
+    "source": "{% include 'footer' %}",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "partial"
+    ]
+  },
+  {
+    "name": "liquid_reversed",
+    "language": "liquid",
+    "source": "{% for item in items reversed %}{{ item }}{% endfor %}",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "for_reversed"
+    ]
+  },
+  {
+    "name": "liquid_sort",
+    "language": "liquid",
+    "source": "{{ items | sort | first }}",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "filter_without_equivalent"
+    ]
+  },
+  {
+    "name": "liquid_http",
+    "language": "liquid",
+    "source": "{% connected_content https://example.com/offers :save offers %}",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "http_call"
+    ]
+  },
+  {
+    "name": "liquid_range",
+    "language": "liquid",
+    "source": "{% for i in (1..3) %}{{ i }}{% endfor %}",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "range"
+    ]
+  },
+  {
+    "name": "liquid_unclosed",
+    "language": "liquid",
+    "source": "{% if a %}open",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "syntax"
+    ]
+  },
+  {
+    "name": "handlebars_output",
+    "language": "handlebars",
+    "source": "Hi {{name}}!",
+    "aliases": {},
+    "status": "AUTO_OK",
+    "output": "Hi {{ name }}!",
+    "codes": []
+  },
+  {
+    "name": "handlebars_comment",
+    "language": "handlebars",
+    "source": "{{! note }}x",
+    "aliases": {},
+    "status": "AUTO_OK",
+    "output": "{% comment %} note {% endcomment %}x",
+    "codes": []
+  },
+  {
+    "name": "handlebars_lookup",
+    "language": "handlebars",
+    "source": "{{lookup user 'email'}}",
+    "aliases": {},
+    "status": "AUTO_OK",
+    "output": "{{ user.email }}",
+    "codes": []
+  },
+  {
+    "name": "handlebars_alias",
+    "language": "handlebars",
+    "source": "{{firstName}}",
+    "aliases": {
+      "firstName": "subscriber.first_name"
+    },
+    "status": "AUTO_OK",
+    "output": "{{ subscriber.first_name }}",
+    "codes": []
+  },
+  {
+    "name": "handlebars_if",
+    "language": "handlebars",
+    "source": "{{#if vip}}Gold{{else}}Std{{/if}}",
+    "aliases": {},
+    "status": "NEEDS_REVIEW",
+    "output": "{% if vip %}Gold{% else %}Std{% endif %}",
+    "codes": [
+      "truthiness_differs"
+    ]
+  },
+  {
+    "name": "handlebars_else_if",
+    "language": "handlebars",
+    "source": "{{#if a}}x{{else if b}}y{{/if}}",
+    "aliases": {},
+    "status": "NEEDS_REVIEW",
+    "output": "{% if a %}x{% elsif b %}y{% endif %}",
+    "codes": [
+      "truthiness_differs"
+    ]
+  },
+  {
+    "name": "handlebars_each",
+    "language": "handlebars",
+    "source": "{{#each items}}{{this.title}}{{@index}}{{/each}}",
+    "aliases": {},
+    "status": "NEEDS_REVIEW",
+    "output": "{% for item in items %}{{ item.title }}{{ forloop.index0 }}{% endfor %}",
+    "codes": [
+      "each_assumes_list"
+    ]
+  },
+  {
+    "name": "handlebars_parent",
+    "language": "handlebars",
+    "source": "{{#each users}}{{../company}}{{/each}}",
+    "aliases": {},
+    "status": "NEEDS_REVIEW",
+    "output": "{% for item in users %}{{ company }}{% endfor %}",
+    "codes": [
+      "each_assumes_list"
+    ]
+  },
+  {
+    "name": "handlebars_with",
+    "language": "handlebars",
+    "source": "{{#with user}}{{name}}{{/with}}",
+    "aliases": {},
+    "status": "NEEDS_REVIEW",
+    "output": "{% if user %}{{ user.name }}{% endif %}",
+    "codes": [
+      "truthiness_differs"
+    ]
+  },
+  {
+    "name": "handlebars_triple",
+    "language": "handlebars",
+    "source": "{{{html}}}",
+    "aliases": {},
+    "status": "NEEDS_REVIEW",
+    "output": "{{ html | raw }}",
+    "codes": [
+      "raw_output"
+    ]
+  },
+  {
+    "name": "handlebars_partial",
+    "language": "handlebars",
+    "source": "{{> footer}}",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "partial"
+    ]
+  },
+  {
+    "name": "handlebars_helper",
+    "language": "handlebars",
+    "source": "{{formatDate when 'short'}}",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "helper_without_equivalent"
+    ]
+  },
+  {
+    "name": "handlebars_key",
+    "language": "handlebars",
+    "source": "{{#each map}}{{@key}}{{/each}}",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "object_iteration"
+    ]
+  },
+  {
+    "name": "handlebars_unclosed",
+    "language": "handlebars",
+    "source": "{{#if a}}open",
+    "aliases": {},
+    "status": "CANNOT",
+    "output": null,
+    "codes": [
+      "syntax"
+    ]
+  }
+]

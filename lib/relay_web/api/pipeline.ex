@@ -1,6 +1,6 @@
 defmodule RelayWeb.Api.Pipeline do
   @moduledoc """
-  The common request rules of every `/v1` operation, in order: the operation's contract (`Relay.Api.Contract`, named by the route's `:relay_operation`), HTTPS (API-8), `Relay-Version` (API-52) and `Relay-Beta` (API-55), authentication and scope (`RelayWeb.Auth`), the body (JSON in UTF-8 only, size limits, strict decoding; absent or empty only where the contract makes it optional; API-8), the tenant's status and pinned version, the API rate limit (API-49, API-50), the idempotency key (API-10, API-11) and request schema validation (API-8, API-37). Each step either passes or answers with a problem; nothing after a failed step runs.
+  The common request rules of every `/v1` operation, in order: the operation's contract (`Relay.Api.Contract`, named by the route's `:relay_operation`), HTTPS (API-8), `Relay-Version` (API-52) and `Relay-Beta` (API-55), authentication and scope (`RelayWeb.Auth`), the body (JSON in UTF-8 only, size limits, strict decoding; absent or empty only where the contract makes it optional; API-8; an import upload is NDJSON kept as it came, its lines are read by the import job, OP-96), the tenant's status and pinned version, the API rate limit (API-49, API-50), the idempotency key (API-10, API-11) and request schema validation (API-8, API-37). Each step either passes or answers with a problem; nothing after a failed step runs.
 
   The response always carries `Request-Id`, `Relay-Version` and HSTS. A tenant without a pinned version is pinned, in a short transaction of its own, after its first successful response.
   """
@@ -26,6 +26,8 @@ defmodule RelayWeb.Api.Pipeline do
   @batch_events @limits["batch"]["max_events"]
   @batch_recipients @limits["batch"]["max_recipients_per_event"]
   @body_bytes 1_048_576
+  @ndjson "application/x-ndjson"
+  @import_body_bytes @limits["import"]["max_body_bytes"]
   @batches ["application/cloudevents-batch+json"]
 
   @impl Plug
@@ -151,6 +153,7 @@ defmodule RelayWeb.Api.Pipeline do
   defp presence(_raw, _conn, _operation), do: :present
 
   defp body_limit(%{weight: :rows}, _media), do: @batch_body_bytes
+  defp body_limit(_operation, @ndjson), do: @import_body_bytes
   defp body_limit(_operation, media) when media in @batches, do: @batch_body_bytes
   defp body_limit(_operation, _media), do: @body_bytes
 
@@ -199,6 +202,9 @@ defmodule RelayWeb.Api.Pipeline do
   end
 
   defp decode(_media, ""), do: {:error, malformed("the body is empty")}
+
+  # OP-96
+  defp decode(@ndjson, raw), do: {:ok, raw}
 
   defp decode("application/x-www-form-urlencoded", raw) do
     {:ok, Plug.Conn.Query.decode(raw)}

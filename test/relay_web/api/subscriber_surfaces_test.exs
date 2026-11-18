@@ -6,6 +6,8 @@ defmodule RelayWeb.Api.SubscriberSurfacesTest do
   alias RelayTest.RealtimeFixture
   alias RelayTest.TenantFixture
 
+  @scopes "inbox:read inbox:write preferences devices:write"
+
   setup do
     :ok = FakeAccess.install!()
     tenant = TenantFixture.tenant!()
@@ -14,7 +16,7 @@ defmodule RelayWeb.Api.SubscriberSurfacesTest do
     app = FakeAccess.client!(scope, ["read"])
     ctx = %{scope: scope, access_tenant: tenant.attrs.access_tenant_id, app: app, token: token}
     sub = RealtimeFixture.subject()
-    {subscriber_token, id} = RealtimeFixture.token!(ctx, sub)
+    {subscriber_token, id} = RealtimeFixture.token!(ctx, sub, @scopes)
     Map.merge(ctx, %{sub: sub, subscriber_token: subscriber_token, id: id})
   end
 

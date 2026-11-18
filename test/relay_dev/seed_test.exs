@@ -3,6 +3,7 @@ defmodule RelayDev.SeedTest do
 
   alias Relay.Access.Clients
   alias Relay.Access.Link
+  alias Relay.Api.TestPlane.Seeder
   alias RelayTest.FakeAccess
   alias RelayTest.IngestFixture, as: F
 
@@ -31,10 +32,10 @@ defmodule RelayDev.SeedTest do
 
     test "T-65 X-43 X-35: the test plane job and the dev seed succeed over one sample", ctx do
       args = Relay.Scope.to_job_args(ctx.plane)
-      assert Relay.Api.TestPlane.Seeder.perform(%Oban.Job{args: args}) == :ok
+      assert Seeder.perform(%Oban.Job{args: args}) == :ok
       assert {:ok, again} = RelayDev.Seed.run()
       assert again == ctx.report
-      assert Relay.Api.TestPlane.Seeder.perform(%Oban.Job{args: args}) == :ok
+      assert Seeder.perform(%Oban.Job{args: args}) == :ok
     end
 
     test "T-65: the sample workflow is published in the test plane", ctx do

@@ -379,6 +379,114 @@ defmodule Relay.Api.Queries do
     }
   end
 
+  # X-52
+  # X-26
+  # X-35
+  # INV-22
+  @doc "Lists the test inbox of a `test` scope, newest first: every notification of the test plane with its decision chain and, for each delivery that was rendered, the render kept with it, opened from its sealed snapshot. A `security_subtype` or `retention: none` render was kept as its digest only and shows only the digest; the live plane has no test inbox."
+  @spec test_inbox(Relay.Scope.t(), Relay.Api.Pagination.page(), String.t()) :: answer()
+  def test_inbox(%Relay.Scope{environment: :test} = scope, page, endpoint) do
+    read = fn _status -> read_test_inbox(page) end
+
+    with {:ok, rows} <- Relay.Ingest.in_event_scope(scope, read),
+         rows = Enum.map(rows, &open_chain(scope, &1)),
+         dictionary = Relay.Rules.dictionary(),
+         view = &test_message(&1, dictionary),
+         {:ok, body} <- Page.envelope(rows, page, scope, endpoint, view, &position/1) do
+      {:ok, {200, [], body}}
+    else
+      {:error, %Relay.Error{} = error} -> {:error, error}
+      {:error, _reason} -> {:error, Relay.Error.new(:service_unavailable, "try again")}
+    end
+  end
+
+  def test_inbox(_scope, _page, _endpoint) do
+    message = "the test inbox exists only in test"
+    {:error, Relay.Error.new(:auth_environment_mismatch, message)}
+  end
+
+  defp read_test_inbox(page) do
+    rows = Relay.Ingest.notifications(%{}, page.cursor, page.limit)
+    chains = rows |> Enum.map(& &1["id"]) |> Relay.Ingest.decision_chains()
+    renders = chains |> Enum.map(& &1["id"]) |> Relay.TemplateStore.render_snapshots()
+    renders = Map.new(renders, &{&1["delivery_id"], &1})
+
+    chains =
+      chains
+      |> Enum.map(&Map.put(&1, "render", Map.get(renders, &1["id"])))
+      |> Enum.group_by(& &1["notification_id"])
+
+    Enum.map(rows, &Map.put(&1, "chain", Map.get(chains, &1["id"], [])))
+  end
+
+  defp open_chain(scope, row) do
+    chain = Enum.map(row["chain"], &%{&1 | "render" => open_render(scope, &1["render"])})
+    %{row | "chain" => chain}
+  end
+
+  defp open_render(_scope, nil), do: nil
+
+  defp open_render(_scope, %{"content_ct" => nil} = s), do: Map.put(s, "output", nil)
+
+  defp open_render(scope, %{"content_ct" => ct} = s) do
+    field = %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      subject_id: s["recipient_id"],
+      retention_class: retention_class(s["retention_class"]),
+      table: "render_snapshots",
+      column: "content_ct"
+    }
+
+    case Relay.Tenancy.decrypt_field(field, ct) do
+      {:ok, plain} -> Map.put(s, "output", output(plain))
+      {:error, _erased} -> Map.put(s, "output", nil)
+    end
+  end
+
+  defp retention_class("commercial_message"), do: :commercial_message
+  defp retention_class(_content), do: :notification_content
+
+  defp output(plain) do
+    case Jason.decode(Relay.Redacted.expose(plain)) do
+      {:ok, %{"output" => %{} = output}} -> output
+      _other -> nil
+    end
+  end
+
+  defp test_message(n, dictionary) do
+    %{
+      "object" => "test_inbox_message",
+      "notification_id" => Views.id("ntf", n["id"]),
+      "event_id" => Views.id("evt", n["event_id"]),
+      "recipient_id" => Views.id(Views.recipient_prefix(n["recipient_kind"]), n["recipient_id"]),
+      "workflow" => %{"key" => n["workflow_key"], "version" => n["workflow_version"]},
+      "message_class" => n["message_class"],
+      "state" => n["state"],
+      "close_rule_id" => n["close_rule_id"],
+      "created_at" => n["created_at"],
+      "deliveries" => Enum.map(n["chain"], &test_delivery(&1, dictionary))
+    }
+  end
+
+  defp test_delivery(d, dictionary) do
+    d
+    |> delivery_decision(dictionary)
+    |> Map.put("render", render_view(d["render"]))
+  end
+
+  defp render_view(nil), do: nil
+
+  defp render_view(s) do
+    %{
+      "content_digest" => Base.encode16(s["content_digest"], case: :lower),
+      "digest_only" => s["digest_reason"],
+      "locale" => s["locale"],
+      "output" => s["output"],
+      "rendered_at" => s["created_at"]
+    }
+  end
+
   defp timestamp(nil), do: nil
 
   defp timestamp(text) do

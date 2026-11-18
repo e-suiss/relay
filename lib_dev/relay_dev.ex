@@ -7,6 +7,7 @@ defmodule RelayDev do
     top_level?: true,
     deps: [
       Relay,
+      Relay.Api,
       Relay.Access,
       Relay.Api,
       Relay.Datasets,

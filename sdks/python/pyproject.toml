@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "esuiss-relay"
+version = "0.1.0"
+description = "Python server SDK for Relay, the Suiss notification, messaging and event orchestration API."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = ["cryptography>=44"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+dev = ["mypy", "pytest", "pyyaml", "ruff"]
+
+[project.urls]
+Source = "https://github.com/e-suiss/relay/tree/main/sdks/python"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/esuiss_relay"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/esuiss_relay", "README.md", "pyproject.toml"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "codegen"]
+extend-exclude = ["src/esuiss_relay/_generated"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "N", "RUF", "S", "SIM", "UP", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+mypy_path = "src"
+files = ["src/esuiss_relay", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["yaml"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+markers = ["live: runs against a live Relay test plane"]

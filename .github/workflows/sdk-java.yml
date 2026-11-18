@@ -1,0 +1,79 @@
+name: sdk-java
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sdks/java/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - "conformance/webhooks/**"
+      - ".github/workflows/sdk-java.yml"
+  pull_request:
+    paths:
+      - "sdks/java/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - "conformance/webhooks/**"
+      - ".github/workflows/sdk-java.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-java-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdk-java:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: sdks/java
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: "9.8.2"
+          cache-read-only: false
+      - id: scope
+        name: drift check scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          own=true
+          if [ "$EVENT" != "workflow_dispatch" ] && [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+            if git -C "$GITHUB_WORKSPACE" diff --quiet "$BASE" HEAD -- sdks/java .github/workflows/sdk-java.yml; then
+              own=false
+            fi
+          fi
+          echo "own=$own" >> "$GITHUB_OUTPUT"
+      - name: regenerate
+        if: steps.scope.outputs.own == 'true'
+        run: gradle --no-daemon --write-locks --write-verification-metadata sha256 resolveAll generate spotlessApply
+      - name: diff
+        if: steps.scope.outputs.own == 'true'
+        run: |
+          git add -N .
+          if ! git diff --exit-code --stat -- .; then
+            git diff -- . > "$RUNNER_TEMP/sdk-java.patch"
+            echo "generated code, formatting, lock state or verification metadata differ from the commit" >&2
+            exit 1
+          fi
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-java-patch
+          path: ${{ runner.temp }}/sdk-java.patch
+          if-no-files-found: ignore
+      - name: build
+        run: gradle --no-daemon --dependency-verification strict build

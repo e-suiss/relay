@@ -1,0 +1,92 @@
+name: sdk-elixir
+
+on:
+  pull_request:
+    paths:
+      - "sdks/elixir/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - "conformance/webhooks/**"
+      - ".github/workflows/sdk-elixir.yml"
+  push:
+    branches: [main]
+    paths:
+      - "sdks/elixir/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - "conformance/webhooks/**"
+      - ".github/workflows/sdk-elixir.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-elixir-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sdk-elixir:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      MIX_ENV: test
+    defaults:
+      run:
+        working-directory: sdks/elixir
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: |
+            sdks/elixir/deps
+            sdks/elixir/_build
+            sdks/elixir/priv/plts
+          key: sdk-elixir-${{ runner.os }}-${{ hashFiles('.tool-versions', 'sdks/elixir/mix.lock') }}
+          restore-keys: sdk-elixir-${{ runner.os }}-
+      - id: scope
+        name: drift check scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          own=true
+          if [ "$EVENT" != "workflow_dispatch" ] && [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+            if git -C "$GITHUB_WORKSPACE" diff --quiet "$BASE" HEAD -- sdks/elixir .github/workflows/sdk-elixir.yml; then
+              own=false
+            fi
+          fi
+          echo "own=$own" >> "$GITHUB_OUTPUT"
+      - run: mix deps.get
+      - name: regenerate
+        if: steps.scope.outputs.own == 'true'
+        run: ./regenerate.sh
+      - name: generated code, formatting and lock file match the commit
+        if: steps.scope.outputs.own == 'true'
+        run: |
+          git add -N .
+          if ! git diff --exit-code --stat -- .; then
+            git diff -- . > sdk-elixir.patch
+            exit 1
+          fi
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-elixir-patch
+          path: sdks/elixir/sdk-elixir.patch
+          if-no-files-found: ignore
+      - run: mix deps.get --check-locked
+      - run: mix deps.unlock --check-unused
+      - run: mix format --check-formatted
+      - run: mix compile --warnings-as-errors --force
+      - run: mix credo --strict --config-file .credo.exs
+      - run: mix test --warnings-as-errors
+      - run: mix hex.audit
+      - run: mix dialyzer
+      - run: mix hex.build

@@ -1,0 +1,56 @@
+name: sdk-go-release
+
+on:
+  push:
+    tags:
+      - "sdk-go-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-go-release
+  cancel-in-progress: false
+
+env:
+  GOTOOLCHAIN: local
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: go-module
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: sdks/go/internal/codegen/go.sum
+      - id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#sdk-go-v}"
+          echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+          grep -q "const Version = \"$version\"" sdks/go/version.go
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - working-directory: sdks/go
+        run: |
+          go mod verify
+          go vet ./...
+          go test -count=1 ./...
+      - env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "sdks/go/v$VERSION" -m "sdks/go v$VERSION" "$GITHUB_SHA"
+          git push origin "sdks/go/v$VERSION"
+      - env:
+          VERSION: ${{ steps.version.outputs.version }}
+          GOPROXY: https://proxy.golang.org
+        run: go list -m "github.com/e-suiss/relay/sdks/go@v$VERSION"

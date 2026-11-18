@@ -1,0 +1,66 @@
+{
+  "name": "@esuiss/relay",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Relay: server client, agent helpers, webhook verifier and the headless browser client behind the UI components.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/e-suiss/relay.git",
+    "directory": "sdks/typescript"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./agent": {
+      "types": "./dist/agent.d.ts",
+      "import": "./dist/agent.js"
+    },
+    "./webhooks": {
+      "types": "./dist/webhooks.d.ts",
+      "import": "./dist/webhooks.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "import": "./dist/browser/index.js"
+    },
+    "./service-worker": {
+      "types": "./dist/browser/service-worker.d.ts",
+      "import": "./dist/browser/service-worker.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../../contracts/openapi/server.yaml --empty-objects-unknown -o src/generated/server.ts && openapi-typescript ../../contracts/openapi/subscriber.yaml --empty-objects-unknown -o src/generated/subscriber.ts && node scripts/generate.mjs && prettier --write src/generated",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "eslint": "10.14.0",
+    "openapi-typescript": "7.13.0",
+    "prettier": "3.9.10",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.2",
+    "vite": "8.2.6",
+    "vitest": "5.1.0",
+    "yaml": "2.9.1"
+  }
+}

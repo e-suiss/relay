@@ -1,0 +1,117 @@
+name: sdk-go
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sdks/go/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - "conformance/webhooks/**"
+      - ".github/workflows/sdk-go.yml"
+  pull_request:
+    paths:
+      - "sdks/go/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - "conformance/webhooks/**"
+      - ".github/workflows/sdk-go.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "41 2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-go-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOTOOLCHAIN: local
+
+jobs:
+  generate:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # X-53
+      - id: changes
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          run=true
+          if [ "$EVENT" != "workflow_dispatch" ] && [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            if [ -z "$(git diff --name-only "$BASE" HEAD -- sdks/go .github/workflows/sdk-go.yml)" ]; then
+              run=false
+            fi
+          fi
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+      - if: steps.changes.outputs.run == 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: sdks/go/internal/codegen/go.sum
+      - if: steps.changes.outputs.run == 'true'
+        working-directory: sdks/go/internal/codegen
+        run: |
+          go mod verify
+          test -z "$(gofmt -l .)"
+          go vet ./...
+      - if: steps.changes.outputs.run == 'true'
+        run: sdks/go/regenerate.sh
+      - if: steps.changes.outputs.run == 'true'
+        run: |
+          git status --porcelain -- sdks/go
+          git diff --stat -- sdks/go
+          test -z "$(git status --porcelain -- sdks/go)"
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-go-generated
+          path: sdks/go/*_gen.go
+          if-no-files-found: ignore
+
+  check:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdks/go
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: sdks/go/internal/codegen/go.sum
+      - run: go mod verify
+      - run: test -z "$(gofmt -l .)" || { gofmt -d .; exit 1; }
+      - run: go vet ./...
+      - run: go run honnef.co/go/tools/cmd/staticcheck@v0.8.2 ./...
+      - run: go test -race -count=1 ./...
+
+  live:
+    if: github.event_name == 'schedule' && vars.RELAY_SDK_LIVE_BASE_URL != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: sdks/go
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.27.3
+          cache-dependency-path: sdks/go/internal/codegen/go.sum
+      - env:
+          RELAY_SDK_LIVE_BASE_URL: ${{ vars.RELAY_SDK_LIVE_BASE_URL }}
+          RELAY_SDK_LIVE_ISSUER: ${{ vars.RELAY_SDK_LIVE_ISSUER }}
+          RELAY_SDK_LIVE_CLIENT_ID: ${{ secrets.RELAY_SDK_LIVE_CLIENT_ID }}
+          RELAY_SDK_LIVE_CLIENT_SECRET: ${{ secrets.RELAY_SDK_LIVE_CLIENT_SECRET }}
+        run: go test -tags live -run Live -count=1 ./...

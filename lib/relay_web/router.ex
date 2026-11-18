@@ -108,11 +108,37 @@ defmodule RelayWeb.Router do
     post "/:token", LinkController, :create
   end
 
+  # X-51
+  # X-22
+  # PC-18
+  scope "/bildirim-tercihleri", RelayWeb do
+    pipe_through :links
+
+    get "/:token", PreferencePageController, :show
+    post "/:token", PreferencePageController, :create
+  end
+
+  # X-51
+  # X-22
+  # PC-18
+  scope "/notification-preferences", RelayWeb do
+    pipe_through :links
+
+    get "/:token", PreferencePageController, :show
+    post "/:token", PreferencePageController, :create
+  end
+
   # DS-37
   scope "/exports", RelayWeb do
     pipe_through :downloads
 
     get "/:token", ExportDownloadController, :show
+  end
+
+  # TP-24
+  # TP-39
+  scope "/sandbox", RelayWeb do
+    get "/:token", PreviewSandboxController, :show
   end
 
   # CH-46
@@ -236,6 +262,9 @@ defmodule RelayWeb.Router do
     patch "/subscribers/:subscriber_id/preferences", PreferenceController, :update,
       private: %{relay_operation: "updateSubscriberPreferences"}
 
+    post "/subscribers/:subscriber_id/preference_page_links", PreferenceController, :link,
+      private: %{relay_operation: "createPreferencePageLink"}
+
     get "/subscribers/:subscriber_id/consents", PreferenceController, :consents,
       private: %{relay_operation: "listSubscriberConsents"}
 
@@ -286,6 +315,26 @@ defmodule RelayWeb.Router do
 
     post "/provider_accounts/:provider_account_id/verify", ChannelController, :verify_account,
       private: %{relay_operation: "verifyProviderAccount"}
+
+    # CH-4
+    # CH-6
+    # T-25
+    get "/provider_accounts/:provider_account_id/status", ChannelController, :account_status,
+      private: %{relay_operation: "getProviderAccountStatus"}
+
+    # CH-36
+    get "/provider_accounts/:provider_account_id/email_domains",
+        ChannelController,
+        :email_domains,
+        private: %{relay_operation: "getProviderAccountEmailDomains"}
+
+    # CH-42
+    get "/email_warmup_plans", ChannelController, :warmup_plans,
+      private: %{relay_operation: "listEmailWarmupPlans"}
+
+    # CH-18
+    get "/channel_costs", ChannelController, :cost_quote,
+      private: %{relay_operation: "quoteChannelCost"}
 
     get "/provider_invoices", ProviderInvoiceController, :index,
       private: %{relay_operation: "listProviderInvoices"}
@@ -1186,6 +1235,10 @@ defmodule RelayWeb.Router do
     get "/queue_panel", PlatformController, :queue_panel,
       private: %{relay_operation: "getQueuePanel"}
 
+    # X-7
+    get "/region_health", PlatformController, :region_health,
+      private: %{relay_operation: "getRegionHealth"}
+
     get "/send_modes", TenantController, :send_modes, private: %{relay_operation: "listSendModes"}
 
     put "/send_modes", TenantController, :set_send_mode,
@@ -1320,6 +1373,12 @@ defmodule RelayWeb.Router do
     pipe_through :panel
 
     oban_dashboard("/queues", resolver: RelayWeb.Operator.Panel, oban_name: Oban)
+  end
+
+  # X-47
+  scope "/console", RelayWeb do
+    get "/", ConsoleController, :show
+    get "/*path", ConsoleController, :show
   end
 
   # API-36

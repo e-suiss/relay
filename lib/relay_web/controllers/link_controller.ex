@@ -68,10 +68,10 @@ defmodule RelayWeb.LinkController do
   def show(conn, %{"token" => token}) do
     case Links.handler().describe(token) do
       {:ok, %{kind: :unsubscribe, state: :unsubscribed} = link} ->
-        unsubscribed(conn, link.locale)
+        unsubscribed(conn, token, link.locale)
 
       {:ok, %{kind: :unsubscribe, state: :refused} = link} ->
-        refused(conn, link.locale)
+        refused(conn, token, link.locale)
 
       {:ok, %{kind: kind} = link} ->
         text = copy(link.locale)[kind]
@@ -133,7 +133,7 @@ defmodule RelayWeb.LinkController do
   defp confirm(conn, token, kind, locale) do
     case {Links.handler().apply_link(token, evidence(conn, :confirmation_page)), kind} do
       {:ok, :unsubscribe} ->
-        unsubscribed(conn, locale)
+        unsubscribed(conn, token, locale)
 
       {:ok, kind} ->
         text = copy(locale)[kind]
@@ -153,31 +153,32 @@ defmodule RelayWeb.LinkController do
         else: {:error, :invalid}
 
     case applied do
-      :ok -> refused(conn, locale)
+      :ok -> refused(conn, token, locale)
       {:error, reason} -> message(conn, status(reason), locale, reason)
     end
   end
 
   # PC-36
   # X-22
-  defp unsubscribed(conn, locale) do
+  defp unsubscribed(conn, token, locale) do
     text = copy(locale).unsubscribe
 
     form = ~s(<form method="post"><input type="hidden" name="refuse" value="yes">)
     button = ~s(<button type="submit">) <> escape(text.brand_button) <> "</button></form>"
     brand = "<p>" <> escape(text.brand_prompt) <> "</p>" <> form <> button
-    body = "<p>" <> escape(text.done) <> "</p>" <> manage(text) <> brand
+    body = "<p>" <> escape(text.done) <> "</p>" <> manage(text, token) <> brand
     page(conn, 200, locale, text.title, body)
   end
 
-  defp refused(conn, locale) do
+  defp refused(conn, token, locale) do
     text = copy(locale).unsubscribe
-    body = "<p>" <> escape(text.refused) <> "</p>" <> manage(text)
+    body = "<p>" <> escape(text.refused) <> "</p>" <> manage(text, token)
     page(conn, 200, locale, text.title, body)
   end
 
-  defp manage(text) do
-    case Links.preferences_url() do
+  # X-51
+  defp manage(text, token) do
+    case Links.preferences_url() || Links.preferences_link(token) do
       "https://" <> _rest = url ->
         link = ~s(<a rel="noreferrer" href=") <> escape(url) <> ~s(">)
         "<p>" <> link <> escape(text.manage) <> "</a></p>"

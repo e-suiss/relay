@@ -53,6 +53,8 @@ if config_env() == :prod do
 
   config :relay, RelayWeb.Api, trusted_proxies: Relay.Config.Env.cidrs!("RELAY_TRUSTED_PROXIES")
 
+  config :relay, Relay.Api.PreviewSandbox, host: System.get_env("RELAY_PREVIEW_HOST")
+
   config :relay, Relay.Agents.Live,
     response_link: "https://" <> Relay.Config.Env.fetch!("RELAY_HOST") <> "/respond/"
 
@@ -68,6 +70,9 @@ if config_env() == :prod do
     port: Relay.Config.Env.integer!("METRICS_PORT")
 
   config :relay, Relay.Trace, endpoint: System.get_env("OTEL_EXPORTER_OTLP_ENDPOINT")
+
+  config :relay, Relay.Channels.Email,
+    return_path_target: System.get_env("RELAY_EMAIL_RETURN_PATH_TARGET")
 
   config :relay, Relay.Config.SecretFiles,
     repo: Relay.Config.Env.fetch!("DATABASE_PASSWORD_FILE"),

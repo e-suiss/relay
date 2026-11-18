@@ -25,6 +25,8 @@ config :relay, Relay.QueueRepo,
 
 config :relay, RelayWeb.Metrics, server: false
 
+config :relay, Relay.Api.PreviewSandbox, host: "preview.relay.test"
+
 config :relay, Relay.ReportRepo, enabled: false
 
 config :relay, Oban, testing: :manual
@@ -50,6 +52,10 @@ config :relay, Relay.NetworkGuard, enabled: true
 config :relay, keys: RelayTest.Keys
 
 config :relay, Relay.Webhooks, resolver: RelayTest.WebhookResolver
+
+config :relay, Relay.Channels.Email,
+  resolver: RelayTest.EmailResolver,
+  return_path_target: "bounces.relay.test"
 
 config :relay, Relay.Iys,
   runtime: Relay.Iys.Live,

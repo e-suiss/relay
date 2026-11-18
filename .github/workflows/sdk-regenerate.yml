@@ -1,0 +1,133 @@
+name: sdk-regenerate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-regenerate
+  cancel-in-progress: false
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      BRANCH: bot/sdk-regenerate
+      MESSAGE: "chore(sdk): regenerate SDKs from the contract"
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: toolchain java
+        if: hashFiles('sdks/java/regenerate.sh') != ''
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: toolchain gradle
+        if: hashFiles('sdks/java/regenerate.sh') != ''
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: "9.8.2"
+          cache-read-only: true
+      - name: toolchain dotnet
+        if: hashFiles('sdks/dotnet/global.json') != ''
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: sdks/dotnet/global.json
+      - name: toolchain beam
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - name: toolchain python
+        if: hashFiles('sdks/python/regenerate.sh') != ''
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.15.2"
+      - name: toolchain go
+        if: hashFiles('sdks/go/regenerate.sh') != ''
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.3"
+          cache: false
+      - name: toolchain ruby
+        if: hashFiles('sdks/ruby/regenerate.sh') != ''
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: "4.0.9"
+      - name: toolchain php
+        if: hashFiles('sdks/php/regenerate.sh') != ''
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.5"
+          tools: composer
+      - name: toolchain node
+        if: hashFiles('web/regenerate.sh') != ''
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.1
+      # T-78
+      - run: echo "NPM_CONFIG_BEFORE=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+      - name: run every sdks/*/regenerate.sh and web/regenerate.sh
+        run: |
+          : > "$RUNNER_TEMP/failed"
+          for script in sdks/*/regenerate.sh web/regenerate.sh; do
+            [ -f "$script" ] || continue
+            dir=$(dirname "$script")
+            echo "::group::$script"
+            if ! sh "$script"; then
+              echo "::error::$script failed; its changes are left out"
+              git checkout -- "$dir"
+              git clean -fdq -- "$dir"
+              echo "$script" >> "$RUNNER_TEMP/failed"
+            fi
+            echo "::endgroup::"
+          done
+          git add -A sdks web 2> /dev/null || git add -A sdks
+          git diff --cached --name-status --no-renames > "$RUNNER_TEMP/changes"
+          cat "$RUNNER_TEMP/changes"
+      - name: commit and open the pull request
+        run: |
+          if [ -s "$RUNNER_TEMP/changes" ]; then
+            base_tree=$(gh api "repos/$REPO/git/commits/$GITHUB_SHA" --jq .tree.sha)
+            entries='[]'
+            while IFS="$(printf '\t')" read -r status path; do
+              if [ "$status" = "D" ]; then
+                entry=$(jq -n --arg path "$path" '{path: $path, mode: "100644", type: "blob", sha: null}')
+              else
+                mode=100644
+                [ -x "$path" ] && mode=100755
+                blob=$(base64 -w0 "$path" | jq -Rs '{content: ., encoding: "base64"}' | gh api "repos/$REPO/git/blobs" --input - --jq .sha)
+                entry=$(jq -n --arg path "$path" --arg mode "$mode" --arg sha "$blob" '{path: $path, mode: $mode, type: "blob", sha: $sha}')
+              fi
+              entries=$(jq -c --argjson entry "$entry" '. + [$entry]' <<< "$entries")
+            done < "$RUNNER_TEMP/changes"
+            tree=$(jq -n --arg base "$base_tree" --argjson tree "$entries" '{base_tree: $base, tree: $tree}' | gh api "repos/$REPO/git/trees" --input - --jq .sha)
+            commit=$(jq -n --arg message "$MESSAGE" --arg tree "$tree" --arg parent "$GITHUB_SHA" '{message: $message, tree: $tree, parents: [$parent]}' | gh api "repos/$REPO/git/commits" --input - --jq .sha)
+            if gh api "repos/$REPO/git/ref/heads/$BRANCH" > /dev/null 2>&1; then
+              gh api -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" -f sha="$commit" -F force=true > /dev/null
+            else
+              gh api "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$commit" > /dev/null
+            fi
+            if [ -z "$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number')" ]; then
+              gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$MESSAGE" --body "Regenerates the code generated from contracts/ on main: every sdks/*/regenerate.sh and web/regenerate.sh."
+            fi
+          fi
+          if [ -s "$RUNNER_TEMP/failed" ]; then
+            cat "$RUNNER_TEMP/failed"
+            exit 1
+          fi

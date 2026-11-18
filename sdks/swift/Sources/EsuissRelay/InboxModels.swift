@@ -24,6 +24,119 @@ public struct RelayInboxAction: Equatable, Hashable, Sendable {
   public let url: URL?
 }
 
+// C-24
+// AG-34
+/// Who produced a notification; every surface shows it.
+public enum RelaySenderType: String, Sendable {
+  case human
+  case system
+  case agent
+}
+
+// AG-35
+/// The decision request an inbox item is about: a response asked here, or an approval that is
+/// decided only on the Access approval surface (IN-6, AG-32).
+public struct RelayWaitpoint: Equatable, Hashable, Sendable {
+  public enum Kind: String, Sendable {
+    case response
+    case approval
+  }
+
+  public enum Status: String, Sendable {
+    case awaiting
+    case processing
+    case responded
+    case notAwaited = "not_awaited"
+  }
+
+  /// A structured action a response names by its value.
+  public struct Option: Equatable, Hashable, Sendable {
+    public let label: String
+    public let value: String
+
+    public init(label: String, value: String) {
+      self.label = label
+      self.value = value
+    }
+  }
+
+  /// Who resolved the waitpoint.
+  public struct Responder: Equatable, Hashable, Sendable {
+    public enum Kind: String, Sendable {
+      case subscriber
+      case agent
+    }
+
+    public let kind: Kind
+    public let recipientId: String
+
+    public init(kind: Kind, recipientId: String) {
+      self.kind = kind
+      self.recipientId = recipientId
+    }
+  }
+
+  public let id: String
+  public var kind: Kind
+  public var status: Status
+  public var subjectDigest: String?
+  public var options: [Option]
+  public var responder: Responder?
+  public var respondedAt: Date?
+  public var approvalURL: URL?
+
+  public init(
+    id: String,
+    kind: Kind = .response,
+    status: Status = .awaiting,
+    subjectDigest: String? = nil,
+    options: [Option] = [],
+    responder: Responder? = nil,
+    respondedAt: Date? = nil,
+    approvalURL: URL? = nil
+  ) {
+    self.id = id
+    self.kind = kind
+    self.status = status
+    self.subjectDigest = subjectDigest
+    self.options = options
+    self.responder = responder
+    self.respondedAt = respondedAt
+    self.approvalURL = approvalURL
+  }
+
+  /// Whether a response resolved it or it is not awaited any more.
+  public var isClosed: Bool {
+    status == .responded || status == .notAwaited
+  }
+
+  /// Whether the subscriber can answer it here with one of its options.
+  public var isAnswerable: Bool {
+    kind == .response && status == .awaiting && subjectDigest != nil && !options.isEmpty
+  }
+}
+
+// AG-35
+/// What became of a response.
+public struct RelayWaitpointReceipt: Equatable, Sendable {
+  public let waitpointId: String
+  public let status: RelayWaitpoint.Status
+  public let responder: RelayWaitpoint.Responder?
+  public let respondedAt: Date?
+
+  public init(
+    waitpointId: String,
+    status: RelayWaitpoint.Status,
+    responder: RelayWaitpoint.Responder? = nil,
+    respondedAt: Date? = nil
+  ) {
+    self.waitpointId = waitpointId
+    self.status = status
+    self.responder = responder
+    self.respondedAt = respondedAt
+  }
+}
+
 /// An inbox item as the SDK and its components show it.
 public struct RelayInboxItem: Identifiable, Equatable, Hashable, Sendable {
   public enum Kind: String, Sendable {
@@ -56,6 +169,9 @@ public struct RelayInboxItem: Identifiable, Equatable, Hashable, Sendable {
   public var activityCount: Int
   public var actorCount: Int
   public var expiresAt: Date?
+  public var senderType: RelaySenderType?
+  public var isApproval: Bool
+  public var waitpoint: RelayWaitpoint?
 
   public init(
     id: String,
@@ -82,7 +198,10 @@ public struct RelayInboxItem: Identifiable, Equatable, Hashable, Sendable {
     isRightToLeft: Bool = false,
     activityCount: Int = 1,
     actorCount: Int = 0,
-    expiresAt: Date? = nil
+    expiresAt: Date? = nil,
+    senderType: RelaySenderType? = nil,
+    isApproval: Bool = false,
+    waitpoint: RelayWaitpoint? = nil
   ) {
     self.id = id
     self.kind = kind
@@ -109,6 +228,9 @@ public struct RelayInboxItem: Identifiable, Equatable, Hashable, Sendable {
     self.activityCount = activityCount
     self.actorCount = actorCount
     self.expiresAt = expiresAt
+    self.senderType = senderType
+    self.isApproval = isApproval
+    self.waitpoint = waitpoint
   }
 
   /// Applies a server state; an older or equal `state_version` is ignored (IN-5).
@@ -125,6 +247,23 @@ public struct RelayInboxItem: Identifiable, Equatable, Hashable, Sendable {
   /// Whether the item belongs in the inbox tab.
   public var isVisibleInInbox: Bool {
     !hidden && !expired && !archived && snoozedUntil == nil
+  }
+
+  /// Whether the item is an approval request: its only action is the link to the Access approval
+  /// surface and it is never answered here (IN-6, AG-32).
+  public var isApprovalRequest: Bool {
+    isApproval || waitpoint?.kind == .approval
+  }
+
+  /// The deep link to the Access approval surface of an approval item.
+  public var approvalURL: URL? {
+    guard isApprovalRequest else { return nil }
+    return waitpoint?.approvalURL ?? actions.first?.url
+  }
+
+  /// Whether the subscriber can answer the item's waitpoint here.
+  public var isAnswerable: Bool {
+    !isApprovalRequest && (waitpoint?.isAnswerable ?? false)
   }
 }
 
@@ -224,7 +363,27 @@ extension RelayInboxItem {
       isRightToLeft: item.dir == .rtl,
       activityCount: item.activityCount,
       actorCount: item.actorCount,
-      expiresAt: item.expiresAt
+      expiresAt: item.expiresAt,
+      senderType: item.senderType.flatMap { RelaySenderType(rawValue: $0.rawValue) },
+      isApproval: item.approval ?? false,
+      waitpoint: item.waitpoint.map(RelayWaitpoint.init)
+    )
+  }
+}
+
+extension RelayWaitpoint {
+  init(_ waitpoint: Components.Schemas.InboxWaitpoint) {
+    self.init(
+      id: waitpoint.id,
+      kind: waitpoint.kind == .approval ? .approval : .response,
+      status: Status(rawValue: waitpoint.status.rawValue) ?? .awaiting,
+      subjectDigest: waitpoint.subjectDigest,
+      options: waitpoint.options.map { Option(label: $0.label, value: $0.value) },
+      responder: waitpoint.responder.map {
+        Responder(kind: $0.kind == .agent ? .agent : .subscriber, recipientId: $0.recipientId)
+      },
+      respondedAt: waitpoint.respondedAt,
+      approvalURL: waitpoint.approvalUrl.flatMap(URL.init(string:))
     )
   }
 }

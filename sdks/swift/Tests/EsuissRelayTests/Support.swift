@@ -253,6 +253,33 @@ enum Fixtures {
     """
   }
 
+  static let waitpointId = "wp_01j9zq3k4m5n6p7q8r9s0t1v2w"
+  static let digest = String(repeating: "ab", count: 32)
+
+  static func item(id: String = itemId, version: Int = 1, extra: String) -> String {
+    String(item(id: id, version: version).dropLast()) + ",\(extra)}"
+  }
+
+  static func waitpoint(
+    kind: String = "response",
+    status: String = "awaiting",
+    approvalURL: String = "null"
+  ) -> String {
+    """
+    "waitpoint":{"id":"\(waitpointId)","kind":"\(kind)","status":"\(status)",\
+    "subject_digest":"\(digest)","options":[{"label":"Yes","value":"yes"},\
+    {"label":"No","value":"no"}],"responder":null,"responded_at":null,\
+    "approval_url":\(approvalURL)}
+    """
+  }
+
+  static func list(_ items: String...) -> String {
+    """
+    {"object":"list","data":[\(items.joined(separator: ","))],"has_more":false,\
+    "next_cursor":null,"previous_cursor":null,"cursor":"c1"}
+    """
+  }
+
   static func state(id: String = itemId, version: Int, read: Bool) -> String {
     """
     {"id":"\(id)","state_version":\(version),"seen":true,"read":\(read),"archived":false,\

@@ -37,6 +37,79 @@ final class PushTests: XCTestCase {
     XCTAssertEqual(body["token"] as? String, "ab01")
     XCTAssertNil(body["previous_token"])
     XCTAssertEqual(body["permission"] as? String, "granted")
+    XCTAssertNil(body["interruption_permissions"])
+  }
+
+  func testCH65RegistrationReportsTheInterruptionPermissions() async throws {
+    let harness = Harness()
+    let push = RelayPushAPI(
+      http: harness.http,
+      storage: MemoryDeviceStorage(),
+      settings: FixedSettings(
+        settings: RelayNotificationSettings(
+          permission: .granted, criticalAlerts: .disabled, timeSensitive: .enabled)
+      )
+    )
+    harness.transport.enqueue("registerMyDevice", .json(201, Fixtures.device()))
+    try await push.register(token: "ab01", environment: .production)
+    let body = try XCTUnwrap(harness.transport.requests("registerMyDevice").first).json
+    let permissions = try XCTUnwrap(body["interruption_permissions"] as? [String: Any])
+    XCTAssertEqual(permissions["critical_alerts"] as? String, "denied")
+    XCTAssertEqual(permissions["time_sensitive"] as? String, "granted")
+    XCTAssertNil(permissions["dnd_access"])
+  }
+
+  func testCH65InterruptionPermissionMapping() {
+    let unknown = RelayNotificationSettings(permission: .granted)
+    XCTAssertTrue(unknown.interruptionPermissions.isEmpty)
+    XCTAssertNil(RelayPushAPI.wire(unknown.interruptionPermissions))
+    let pending = RelayNotificationSettings(
+      permission: .notDetermined, criticalAlerts: .disabled, timeSensitive: .notSupported)
+    XCTAssertEqual(
+      pending.interruptionPermissions,
+      RelayInterruptionPermissions(criticalAlerts: .notDetermined, timeSensitive: nil)
+    )
+    XCTAssertEqual(RelayInterruptionPermission.of(.enabled, permission: .provisional), .granted)
+    XCTAssertEqual(RelayInterruptionPermission.of(.disabled, permission: .denied), .denied)
+    XCTAssertNil(RelayInterruptionPermission.of(.notSupported, permission: .granted))
+  }
+
+  func testCH33ContentIsFetchedByTheDeliveryId() async throws {
+    let harness = Harness()
+    let push = RelayPushAPI(
+      http: harness.http, storage: MemoryDeviceStorage(), settings: FixedSettings())
+    harness.transport.enqueue(
+      "getMyPushContent",
+      .json(
+        200,
+        """
+        {"object":"push_content","delivery_id":"\(Fixtures.deliveryId)",\
+        "notification_id":"ntf_01j9zq3k4m5n6p7q8r9s0t1v2w","channel":"push","locale":"en",\
+        "content":{"title":"Order shipped","subtitle":"Order 1","body":"On its way",\
+        "url":"https://shop.test/orders/1"}}
+        """
+      )
+    )
+    let payload = try XCTUnwrap(RelayPushPayload(userInfo: ["relay": ["id": Fixtures.deliveryId]]))
+    let fetched = await push.content(for: payload)
+    let content = try XCTUnwrap(fetched)
+    XCTAssertEqual(content.deliveryId, Fixtures.deliveryId)
+    XCTAssertEqual(content.title, "Order shipped")
+    XCTAssertEqual(content.subtitle, "Order 1")
+    XCTAssertEqual(content.body, "On its way")
+    XCTAssertEqual(content.url, URL(string: "https://shop.test/orders/1"))
+    XCTAssertEqual(content.locale, "en")
+    let request = try XCTUnwrap(harness.transport.requests("getMyPushContent").first)
+    XCTAssertEqual(request.request.path, "/v1/subscriber/push_content/\(Fixtures.deliveryId)")
+
+    harness.transport.enqueue(
+      "getMyPushContent", .problem(404, code: "delivery_not_found", retryable: false))
+    let missing = await push.content(for: payload)
+    XCTAssertNil(missing)
+    let item = try XCTUnwrap(RelayPushPayload(userInfo: ["relay": ["id": Fixtures.itemId]]))
+    let skipped = await push.content(for: item)
+    XCTAssertNil(skipped)
+    XCTAssertEqual(harness.transport.requests("getMyPushContent").count, 2)
   }
 
   func testCH32ReceiptNamesTheDelivery() async throws {
@@ -156,23 +229,26 @@ final class PushTests: XCTestCase {
   }
 
   func testCH33ContentIsFetchedOrTheGenericTextStays() async {
-    let item = RelayInboxItem(
-      id: Fixtures.itemId,
-      stateVersion: 1,
-      createdAt: Date(),
+    let pushed = RelayPushContent(
+      deliveryId: Fixtures.deliveryId,
+      notificationId: "ntf_01j9zq3k4m5n6p7q8r9s0t1v2w",
       title: "Order shipped",
-      body: "On its way"
+      subtitle: "Order 1",
+      body: "On its way",
+      url: URL(string: "https://shop.test/orders/1")
     )
     let receipts = Recorder()
     let fetched = RelayNotificationContentFiller(
-      resolve: { _ in item },
+      resolve: { _ in pushed },
       receipt: { id in receipts.append(id) }
     )
     let content = UNMutableNotificationContent()
     content.userInfo = ["relay": ["id": Fixtures.deliveryId]]
     let filled = await fetched.fill(content)
     XCTAssertEqual(filled.title, "Order shipped")
+    XCTAssertEqual(filled.subtitle, "Order 1")
     XCTAssertEqual(filled.body, "On its way")
+    XCTAssertEqual(RelayPushPayload(userInfo: filled.userInfo)?.url, pushed.url)
     XCTAssertEqual(receipts.values, [Fixtures.deliveryId])
 
     let failing = RelayNotificationContentFiller(resolve: { _ in nil }, receipt: { _ in })

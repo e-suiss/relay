@@ -21,6 +21,95 @@ final class UITests: XCTestCase {
     XCTAssertEqual(en.bellLabel(unseen: 0), "Notifications")
     XCTAssertEqual(tr.channelName("email"), "E-posta")
     XCTAssertEqual(RelayStrings(locale: Locale(identifier: "de_DE")).text("prefs.never"), "Never")
+    for status in RelayConsentStatus.allCases {
+      XCTAssertTrue(english.contains("consent.status.\(status.rawValue)"))
+    }
+    for key in [
+      "inbox.agent", "inbox.waitpoint.awaiting", "inbox.waitpoint.processing",
+      "inbox.waitpoint.responded", "inbox.waitpoint.respondedBySubscriber",
+      "inbox.waitpoint.respondedByAgent", "inbox.waitpoint.notAwaited", "inbox.approval.open",
+      "inbox.approval.hint", "consent.title", "consent.readOnly", "consent.manage",
+    ] {
+      XCTAssertTrue(english.contains(key), key)
+      XCTAssertNotEqual(tr.text(key), key)
+      XCTAssertNotEqual(en.text(key), key)
+    }
+    XCTAssertEqual(tr.text("inbox.agent"), "Yapay zekâ ajanı")
+    XCTAssertEqual(en.text("consent.status.pending_iys"), "Waiting for İYS registration")
+  }
+
+  func testAG35WaitpointStatesAreShownInWords() {
+    let en = RelayStrings(locale: Locale(identifier: "en_US"))
+    let tr = RelayStrings(locale: Locale(identifier: "tr_TR"))
+    var waitpoint = RelayWaitpoint(id: "wp_1", subjectDigest: "d", options: [.init(label: "Yes", value: "yes")])
+    XCTAssertEqual(en.waitpointStatus(waitpoint), "Waiting for your response")
+    waitpoint.status = .processing
+    XCTAssertEqual(tr.waitpointStatus(waitpoint), "Yanıt işleniyor")
+    waitpoint.status = .notAwaited
+    XCTAssertEqual(en.waitpointStatus(waitpoint), "No longer awaiting a response")
+    waitpoint.status = .responded
+    XCTAssertEqual(en.waitpointStatus(waitpoint), "Answered")
+    waitpoint.responder = .init(kind: .agent, recipientId: "rcp_1")
+    waitpoint.respondedAt = Date(timeIntervalSince1970: 1_800_000_000)
+    let responded = en.waitpointStatus(waitpoint)
+    XCTAssertTrue(responded.hasPrefix("Answered by an AI agent · "))
+    XCTAssertTrue(tr.waitpointStatus(waitpoint).hasPrefix("Bir yapay zekâ ajanı yanıtladı · "))
+  }
+
+  @MainActor
+  func testX44PC59ConsentsAreReadOnlyBesideThePreferences() async throws {
+    let harness = Harness()
+    let api = RelayPreferencesAPI(http: harness.http)
+    let model = RelayPreferencesModel(
+      api: api,
+      settings: FixedSettings(),
+      consentManagementURL: URL(string: "https://access.test/consents"),
+      brandNames: ["stn_01j9zq3k4m5n6p7q8r9s0t1v2w": "Shop"]
+    )
+    harness.transport.enqueue("getMyPreferences", .json(200, preferences(digest: "{}")))
+    harness.transport.enqueue(
+      "listMyConsents",
+      .json(
+        200,
+        """
+        {"object":"list","data":[{"object":"consent","id":"cns_01j9zq3k4m5n6p7q8r9s0t1v2w",\
+        "brand":"stn_01j9zq3k4m5n6p7q8r9s0t1v2w","channel":"email","status":"active",\
+        "consent_kind":"explicit_opt_in","recipient_type":"individual","source":"web",\
+        "occurred_at":"2026-11-01T09:30:00Z"},{"object":"consent",\
+        "id":"cns_01j9zq3k4m5n6p7q8r9s0t1v2x","brand":null,"channel":"sms",\
+        "status":"pending_iys","consent_kind":null,"recipient_type":null,"source":"store",\
+        "occurred_at":"2026-10-01T09:30:00Z"}],"has_more":false,"next_cursor":null,\
+        "previous_cursor":null}
+        """
+      )
+    )
+    await model.load()
+    XCTAssertEqual(model.consents.count, 2)
+    XCTAssertEqual(model.consents[0].status, .active)
+    XCTAssertEqual(model.consents[0].kind, "explicit_opt_in")
+    XCTAssertEqual(model.brandName(of: model.consents[0]), "Shop")
+    XCTAssertEqual(model.consents[1].status, .pendingIys)
+    XCTAssertNil(model.brandName(of: model.consents[1]))
+    XCTAssertEqual(model.consentManagementURL, URL(string: "https://access.test/consents"))
+    XCTAssertNotNil(model.preferences)
+    let request = try XCTUnwrap(harness.transport.requests("listMyConsents").first)
+    XCTAssertEqual(request.request.method, .get)
+    XCTAssertEqual(request.request.path, "/v1/subscriber/consents?limit=100")
+    XCTAssertTrue(harness.transport.requests("updateMyPreferences").isEmpty)
+  }
+
+  @MainActor
+  func testX44PreferencesStillShowWhenConsentsCannotBeRead() async {
+    let harness = Harness()
+    let model = RelayPreferencesModel(
+      api: RelayPreferencesAPI(http: harness.http), settings: FixedSettings())
+    harness.transport.enqueue("getMyPreferences", .json(200, preferences(digest: "{}")))
+    harness.transport.enqueue("listMyConsents", .problem(403, code: "auth_insufficient_scope"))
+    await model.load()
+    XCTAssertNotNil(model.preferences)
+    XCTAssertTrue(model.consents.isEmpty)
+    XCTAssertNil(model.lastError)
+    XCTAssertNil(model.consentManagementURL)
   }
 
   func testPC15PC16X51RowStates() {

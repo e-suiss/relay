@@ -249,6 +249,118 @@ final class InboxTests: XCTestCase {
     let ignored = await client.handleBackgroundPush(userInfo: ["aps": ["alert": "x"]])
     XCTAssertFalse(ignored)
   }
+
+  @MainActor
+  func testAG34AG35ItemCarriesTheSenderTypeAndTheWaitpoint() async throws {
+    let harness = Harness()
+    let client = harness.client()
+    harness.transport.enqueue(
+      "listMyInboxItems",
+      .json(
+        200,
+        Fixtures.list(
+          Fixtures.item(extra: "\"sender_type\":\"agent\",\"approval\":false,\(Fixtures.waitpoint())")
+        )
+      )
+    )
+    await client.store.coldSync()
+    let item = try XCTUnwrap(client.store.items.first)
+    XCTAssertEqual(item.senderType, .agent)
+    XCTAssertFalse(item.isApprovalRequest)
+    let waitpoint = try XCTUnwrap(item.waitpoint)
+    XCTAssertEqual(waitpoint.id, Fixtures.waitpointId)
+    XCTAssertEqual(waitpoint.kind, .response)
+    XCTAssertEqual(waitpoint.status, .awaiting)
+    XCTAssertEqual(waitpoint.subjectDigest, Fixtures.digest)
+    XCTAssertEqual(waitpoint.options.map(\.value), ["yes", "no"])
+    XCTAssertTrue(item.isAnswerable)
+    XCTAssertNil(item.approvalURL)
+  }
+
+  @MainActor
+  func testAG26ResponseCarriesTheValueAndTheSubjectDigest() async throws {
+    let harness = Harness()
+    let client = harness.client()
+    harness.transport.enqueue(
+      "listMyInboxItems",
+      .json(200, Fixtures.list(Fixtures.item(extra: "\"sender_type\":\"agent\",\(Fixtures.waitpoint())")))
+    )
+    await client.store.coldSync()
+    let item = try XCTUnwrap(client.store.items.first)
+    harness.transport.enqueue(
+      "respondToMyWaitpoint",
+      .json(
+        200,
+        """
+        {"object":"waitpoint_response_receipt","waitpoint_id":"\(Fixtures.waitpointId)",\
+        "status":"responded","responder":{"recipient_id":"rcp_01j9zq3k4m5n6p7q8r9s0t1v2w",\
+        "kind":"subscriber"},"evidence_level":"relay_session",\
+        "responded_at":"2026-11-01T09:31:00Z"}
+        """
+      )
+    )
+    await client.store.respond(to: item, with: RelayWaitpoint.Option(label: "Yes", value: "yes"))
+    let request = try XCTUnwrap(harness.transport.requests("respondToMyWaitpoint").first)
+    XCTAssertEqual(request.request.path, "/v1/subscriber/waitpoints/\(Fixtures.waitpointId)/response")
+    XCTAssertEqual(request.json["response"] as? String, "yes")
+    XCTAssertEqual(request.json["subject_digest"] as? String, Fixtures.digest)
+    XCTAssertNil(request.json["approval"])
+    let waitpoint = try XCTUnwrap(client.store.items.first?.waitpoint)
+    XCTAssertEqual(waitpoint.status, .responded)
+    XCTAssertEqual(waitpoint.responder?.kind, .subscriber)
+    XCTAssertNotNil(waitpoint.respondedAt)
+    XCTAssertFalse(try XCTUnwrap(client.store.items.first).isAnswerable)
+  }
+
+  @MainActor
+  func testAG35AClosedWaitpointIsNoLongerAwaited() async throws {
+    let harness = Harness()
+    let client = harness.client()
+    harness.transport.enqueue(
+      "listMyInboxItems", .json(200, Fixtures.list(Fixtures.item(extra: Fixtures.waitpoint()))))
+    await client.store.coldSync()
+    let item = try XCTUnwrap(client.store.items.first)
+    harness.transport.enqueue(
+      "respondToMyWaitpoint", .problem(409, code: "waitpoint_closed", retryable: false))
+    await client.store.respond(to: item, with: RelayWaitpoint.Option(label: "No", value: "no"))
+    XCTAssertEqual(client.store.items.first?.waitpoint?.status, .notAwaited)
+    XCTAssertEqual(client.store.lastError?.code, "waitpoint_closed")
+  }
+
+  @MainActor
+  func testIN6AG32AnApprovalItemOnlyLinksToTheApprovalSurface() async throws {
+    let harness = Harness()
+    let client = harness.client()
+    let approval = Fixtures.waitpoint(
+      kind: "approval", approvalURL: "\"https://access.test/approvals/1\"")
+    harness.transport.enqueue(
+      "listMyInboxItems",
+      .json(
+        200,
+        Fixtures.list(Fixtures.item(extra: "\"sender_type\":\"agent\",\"approval\":true,\(approval)"))
+      )
+    )
+    await client.store.coldSync()
+    let item = try XCTUnwrap(client.store.items.first)
+    XCTAssertTrue(item.isApprovalRequest)
+    XCTAssertFalse(item.isAnswerable)
+    XCTAssertEqual(item.approvalURL, URL(string: "https://access.test/approvals/1"))
+    await client.store.respond(to: item, with: RelayWaitpoint.Option(label: "Yes", value: "yes"))
+    XCTAssertTrue(harness.transport.requests("respondToMyWaitpoint").isEmpty)
+    do {
+      _ = try await client.inbox.respond(to: try XCTUnwrap(item.waitpoint), value: "yes")
+      XCTFail("expected a refusal")
+    } catch {
+      XCTAssertTrue(harness.transport.requests("respondToMyWaitpoint").isEmpty)
+    }
+  }
+
+  func testAG34AnAnnouncementHasNoSenderType() {
+    let item = RelayInboxItem(id: "ann_1", kind: .announcement, stateVersion: 1, createdAt: Date())
+    XCTAssertNil(item.senderType)
+    XCTAssertNil(item.waitpoint)
+    XCTAssertFalse(item.isApprovalRequest)
+  }
 }
 
 final class RecordingSteps: RelayLifecycleSteps, @unchecked Sendable {

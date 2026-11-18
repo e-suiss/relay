@@ -1,5 +1,6 @@
 import EsuissRelayAPI
 import Foundation
+import OpenAPIRuntime
 
 /// The subscriber's own inbox over REST (scopes `inbox:read` and `inbox:write`). Writes are intents,
 /// never states (IN-12, IN-31).
@@ -109,6 +110,43 @@ public final class RelayInboxAPI: Sendable {
         throw RelayError.invalidResponse("markAllMyInboxRead")
       }
       return RelayInboxCounters(try ok.body.json.counters)
+    }
+  }
+
+  // AG-26
+  // AG-35
+  /// Responds to a waitpoint that asks the subscriber with one of its option values, carrying the
+  /// subject digest the item showed. A response is never an approval: an approval waitpoint is
+  /// decided only on the Access approval surface (AG-32).
+  public func respond(to waitpoint: RelayWaitpoint, value: String) async throws
+    -> RelayWaitpointReceipt
+  {
+    guard waitpoint.kind == .response, let digest = waitpoint.subjectDigest else {
+      throw RelayError.invalidResponse("waitpoint is not answerable")
+    }
+    let response = try OpenAPIValueContainer(unvalidatedValue: value)
+    return try await http.perform(scope: .inboxWrite) { client in
+      let output = try await client.respondToMyWaitpoint(
+        .init(
+          path: .init(waitpointId: waitpoint.id),
+          body: .json(.init(response: response, subjectDigest: digest))
+        )
+      )
+      guard case .ok(let ok) = output else {
+        throw RelayError.invalidResponse("respondToMyWaitpoint")
+      }
+      let receipt = try ok.body.json
+      return RelayWaitpointReceipt(
+        waitpointId: receipt.waitpointId,
+        status: RelayWaitpoint.Status(rawValue: receipt.status.rawValue) ?? .processing,
+        responder: receipt.responder.map {
+          RelayWaitpoint.Responder(
+            kind: $0.kind == .agent ? .agent : .subscriber,
+            recipientId: $0.recipientId
+          )
+        },
+        respondedAt: receipt.respondedAt
+      )
     }
   }
 

@@ -163,6 +163,40 @@ public final class RelayInboxStore: ObservableObject {
     await commit(operation, item: item, snoozeUntil: snoozeUntil)
   }
 
+  // AG-26
+  // AG-35
+  /// Answers the item's waitpoint with one of its options. The item shows processing at once and
+  /// then what became of the response; an approval item is never answered here (IN-6, AG-32).
+  public func respond(to item: RelayInboxItem, with option: RelayWaitpoint.Option) async {
+    guard item.isAnswerable, let waitpoint = item.waitpoint,
+      waitpoint.options.contains(option)
+    else { return }
+    updateWaitpoint(of: item.id) { $0.status = .processing }
+    do {
+      let receipt = try await api.respond(to: waitpoint, value: option.value)
+      updateWaitpoint(of: item.id) { current in
+        current.status = receipt.status
+        if let responder = receipt.responder { current.responder = responder }
+        if let respondedAt = receipt.respondedAt { current.respondedAt = respondedAt }
+      }
+    } catch {
+      let closed = RelayHTTP.unwrap(error).code == "waitpoint_closed"
+      updateWaitpoint(of: item.id) { current in
+        current = waitpoint
+        if closed { current.status = .notAwaited }
+      }
+      record(error)
+    }
+  }
+
+  private func updateWaitpoint(of id: String, _ change: (inout RelayWaitpoint) -> Void) {
+    guard let index = items.firstIndex(where: { $0.id == id }),
+      var waitpoint = items[index].waitpoint
+    else { return }
+    change(&waitpoint)
+    items[index].waitpoint = waitpoint
+  }
+
   /// Takes back the last hide or archive before it reached the server.
   public func undo() {
     guard let pending = pendingUndo else { return }

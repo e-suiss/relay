@@ -3,15 +3,16 @@ import Foundation
 import UserNotifications
 
 // CH-33
-/// Fills a content-free Relay push in a Notification Service Extension. It fetches the content over
-/// TLS with the subscriber token and records the displayed receipt; when the content cannot be read
-/// in time the generic text stays, and the content never falls back into the push payload.
+/// Fills a content-free Relay push in a Notification Service Extension. It fetches the content by
+/// the delivery id the push carries over TLS with the subscriber token and records the displayed
+/// receipt; when the content cannot be read in time the generic text stays, and the content never
+/// falls back into the push payload.
 public struct RelayNotificationContentFiller: Sendable {
-  let resolve: @Sendable (RelayPushPayload) async -> RelayInboxItem?
+  let resolve: @Sendable (RelayPushPayload) async -> RelayPushContent?
   let receipt: @Sendable (String) async -> Void
 
   public init(
-    resolve: @escaping @Sendable (RelayPushPayload) async -> RelayInboxItem?,
+    resolve: @escaping @Sendable (RelayPushPayload) async -> RelayPushContent?,
     receipt: @escaping @Sendable (String) async -> Void
   ) {
     self.resolve = resolve
@@ -31,9 +32,17 @@ public struct RelayNotificationContentFiller: Sendable {
   {
     guard let payload = RelayPushPayload(userInfo: content.userInfo) else { return content }
     if let deliveryId = payload.deliveryId { await receipt(deliveryId) }
-    if let item = await resolve(payload), item.title != nil || item.body != nil {
-      content.title = item.title ?? ""
-      content.body = item.body ?? ""
+    if let fetched = await resolve(payload), fetched.hasText {
+      content.title = fetched.title ?? ""
+      content.subtitle = fetched.subtitle ?? ""
+      content.body = fetched.body ?? ""
+      if let url = fetched.url {
+        var userInfo = content.userInfo
+        var relay = userInfo["relay"] as? [String: Any] ?? [:]
+        relay["url"] = url.absoluteString
+        userInfo["relay"] = relay
+        content.userInfo = userInfo
+      }
       return content
     }
     if content.title.isEmpty && content.body.isEmpty {

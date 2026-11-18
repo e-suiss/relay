@@ -61,11 +61,23 @@ NavigationStack { RelayInboxView(store: client.store) }
 `RelayNotificationCenterDelegate` records displayed and clicked receipts and opens the preference
 centre when the user taps the app's notification settings in iOS Settings.
 
+The preference centre also lists the subscriber's commercial consents read-only. Pass
+`consentManagementURL` to `RelayPreferencesModel` to show a link to the page where your account
+system changes them; without it no link is shown.
+
+Inbox items written by an AI agent carry an agent label. An item that asks for a response shows its
+options as buttons while the response is awaited, then whether it is being processed, who answered
+and when, or that no answer is awaited any more. Approval requests only link to the approval page and
+are never answered in the app.
+
 ## Content-free push
 
 Subclass `RelayNotificationService` in your Notification Service Extension and return a push API that
-shares the app's device storage (an App Group suite). The extension fetches the content over TLS; when
-it cannot, the generic text stays on the lock screen.
+shares the app's device storage (an App Group suite). The extension fetches the content by the
+delivery id the push carries, over TLS; when it cannot, the generic text stays on the lock screen.
+
+Registration reports the Critical Alerts and Time Sensitive permissions the device knows, so a
+notification the device cannot take at its level is delivered one level lower.
 
 ## Behaviour
 

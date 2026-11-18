@@ -7,6 +7,8 @@ filter:
   operations:
     - getMyPreferences
     - updateMyPreferences
+    - listMyConsents
+    - getMyPushContent
     - registerMyDevice
     - deleteMyDevice
     - updateMyDeviceStatus
@@ -14,6 +16,7 @@ filter:
     - listMyInboxItems
     - getMyInboxItem
     - applyMyInboxIntent
+    - respondToMyWaitpoint
     - getMyInboxCounters
     - listMyInboxChanges
     - markAllMyInboxRead

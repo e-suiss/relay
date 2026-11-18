@@ -104,8 +104,10 @@ public final class RelayPushAPI: Sendable {
 
   // CH-28
   // CH-31
-  /// Registers or refreshes the APNs token with the current permission; call it on every app start
-  /// and whenever the token changes. A changed token names the token it replaces.
+  // CH-65
+  /// Registers or refreshes the APNs token with the current permission and the interruption
+  /// permissions the device knows; call it on every app start and whenever the token changes. A
+  /// changed token names the token it replaces.
   @discardableResult
   public func register(apnsToken: Data, environment: RelayApnsEnvironment) async throws -> String {
     let token = apnsToken.map { String(format: "%02x", $0) }.joined()
@@ -119,6 +121,7 @@ public final class RelayPushAPI: Sendable {
     let registration = Components.Schemas.DeviceRegistration(
       apnsEnvironment: environment == .sandbox ? .sandbox : .production,
       app: http.configuration.appIdentifier,
+      interruptionPermissions: RelayPushAPI.wire(current.interruptionPermissions),
       locale: RelayDeviceContext.locale(),
       permission: Components.Schemas.DevicePermission(rawValue: current.permission.rawValue)
         ?? .notDetermined,
@@ -233,12 +236,93 @@ public final class RelayPushAPI: Sendable {
   }
 
   // CH-33
-  /// Fetches the content of a content-free push over TLS. `nil` means the generic text stays: no
-  /// network, no time left, no permission or an identifier that does not name an inbox item.
-  public func content(for payload: RelayPushPayload) async -> RelayInboxItem? {
-    guard let itemId = payload.itemId else { return nil }
-    let api = RelayInboxAPI(http: http)
-    return try? await api.item(id: itemId)
+  /// Fetches the content of a content-free push over TLS by the delivery id it carries (`relay_id`).
+  /// `nil` means the generic text stays: no network, no time left, no permission, an unknown
+  /// delivery or an identifier that does not name a delivery.
+  public func content(for payload: RelayPushPayload) async -> RelayPushContent? {
+    guard let deliveryId = payload.deliveryId else { return nil }
+    return try? await content(deliveryId: deliveryId)
+  }
+
+  // CH-33
+  /// Fetches the rendered content of one of the subscriber's push deliveries (scope `inbox:read`).
+  public func content(deliveryId: String) async throws -> RelayPushContent {
+    try await http.perform(scope: .inboxRead) { client in
+      let output = try await client.getMyPushContent(.init(path: .init(deliveryId: deliveryId)))
+      guard case .ok(let ok) = output else { throw RelayError.invalidResponse("getMyPushContent") }
+      return RelayPushContent(try ok.body.json)
+    }
+  }
+
+  // CH-65
+  static func wire(_ permissions: RelayInterruptionPermissions)
+    -> Components.Schemas.DeviceInterruptionPermissions?
+  {
+    guard !permissions.isEmpty else { return nil }
+    return Components.Schemas.DeviceInterruptionPermissions(
+      criticalAlerts: permissions.criticalAlerts.flatMap {
+        Components.Schemas.DeviceInterruptionPermission(rawValue: $0.rawValue)
+      },
+      timeSensitive: permissions.timeSensitive.flatMap {
+        Components.Schemas.DeviceInterruptionPermission(rawValue: $0.rawValue)
+      }
+    )
+  }
+}
+
+// CH-33
+/// The rendered content of a content-free push, as it was sent; it is never rendered again.
+public struct RelayPushContent: Equatable, Sendable {
+  public let deliveryId: String
+  public let notificationId: String
+  public let channel: String
+  public let locale: String?
+  public let title: String?
+  public let subtitle: String?
+  public let body: String?
+  public let url: URL?
+
+  public init(
+    deliveryId: String,
+    notificationId: String,
+    channel: String = "push",
+    locale: String? = nil,
+    title: String? = nil,
+    subtitle: String? = nil,
+    body: String? = nil,
+    url: URL? = nil
+  ) {
+    self.deliveryId = deliveryId
+    self.notificationId = notificationId
+    self.channel = channel
+    self.locale = locale
+    self.title = title
+    self.subtitle = subtitle
+    self.body = body
+    self.url = url
+  }
+
+  /// Whether there is a text to show instead of the generic text.
+  public var hasText: Bool { title != nil || body != nil }
+}
+
+extension RelayPushContent {
+  init(_ content: Components.Schemas.PushContent) {
+    let fields = content.content.value
+    func text(_ key: String) -> String? {
+      guard let value = fields[key].flatMap({ $0 }) as? String, !value.isEmpty else { return nil }
+      return value
+    }
+    self.init(
+      deliveryId: content.deliveryId,
+      notificationId: content.notificationId,
+      channel: content.channel.rawValue,
+      locale: content.locale,
+      title: text("title"),
+      subtitle: text("subtitle"),
+      body: text("body"),
+      url: text("url").flatMap(URL.init(string:))
+    )
   }
 }
 

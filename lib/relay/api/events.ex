@@ -55,7 +55,7 @@ defmodule Relay.Api.Events do
   # API-81
   # WF-52
   # AG-75
-  @doc "Prepares a native event request outside any transaction. `opts`: `:source` (`:api` or `:cloudevents`), `:cloudevent` (its attributes), `:dedup_key` and `:erase_payload`, the reason (`security_subtype` or `retention_none`) for which the accepted event's data is erased once its deliveries end (`Relay.Api.PayloadErasure`). A request that states the sender type `agent` without an agent's credential is refused at `/actor/type`, so every agent notification names its agent (AG-48, INV-34)."
+  @doc "Prepares a native event request outside any transaction. `opts`: `:source` (`:api` or `:cloudevents`), `:cloudevent` (its attributes), `:dedup_key` and `:erase_payload`, the reason (`security_subtype` or `retention_none`) for which the accepted event's data is erased once its deliveries end (`Relay.Api.PayloadErasure`). Without the option the reason comes from the request itself: every event with a `security_subtype` or `retention: none` queues its erasure in its acceptance transaction, whatever path took it (INV-22, INV-26). A request that states the sender type `agent` without an agent's credential is refused at `/actor/type`, so every agent notification names its agent (AG-48, INV-34)."
   @spec prepare(context(), map(), keyword()) :: {:ok, prepared()} | {:error, Relay.Error.t()}
   def prepare(%{scope: scope} = ctx, body, opts \\ []) do
     cloudevent = Keyword.get(opts, :cloudevent)
@@ -126,10 +126,17 @@ defmodule Relay.Api.Events do
          agent_id: Map.get(ctx, :agent_id),
          correlation_digests: digests,
          webhook_events: hooks,
-         erase_payload: Keyword.get(opts, :erase_payload)
+         erase_payload: Keyword.get(opts, :erase_payload) || erase_reason(request)
        }}
     end
   end
+
+  # INV-22
+  # INV-26
+  # API-26
+  defp erase_reason(%{security_subtype: subtype}) when is_binary(subtype), do: "security_subtype"
+  defp erase_reason(%{retention_none: true}), do: "retention_none"
+  defp erase_reason(_request), do: nil
 
   # E-55
   # E-56

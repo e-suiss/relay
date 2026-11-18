@@ -10,18 +10,8 @@ defmodule RelayWeb.Api.SubjectExportApiTest do
   end
 
   defp audited(scope) do
-    {:ok, rows} =
-      Relay.Repo.in_scope(scope, fn _status ->
-        Relay.Repo.scoped_query!(
-          """
-          SELECT tenant_id, environment, target_type, target_id FROM relay.audit_log
-          WHERE action = 'subject.exported'
-          """,
-          []
-        ).rows
-      end)
-
-    Enum.map(rows, &Enum.drop(&1, 2))
+    for row <- TenantFixture.audit!(scope, "subject.exported"),
+        do: [row["target_type"], row["target_id"]]
   end
 
   describe "OP-26 per-person export" do

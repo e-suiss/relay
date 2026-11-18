@@ -427,6 +427,7 @@ defmodule Relay.TenantLifecycle.Closure do
   defp outcome({:ok, {:ok, value}}), do: {:ok, value}
   defp outcome({:ok, {:error, %Error{} = error}}), do: {:error, error}
   defp outcome({:error, %Error{} = error}), do: {:error, error}
+
   defp outcome({:error, _reason}),
     do: {:error, Error.new(:database_error, "closure write failed")}
 

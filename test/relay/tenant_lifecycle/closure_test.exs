@@ -44,11 +44,8 @@ defmodule Relay.TenantLifecycle.ClosureTest do
   end
 
   defp actions(tenant_id, environment) do
-    scoped(tenant_id, environment, fn ->
-      "SELECT action FROM relay.audit_log ORDER BY created_at, id"
-      |> rows!([])
-      |> List.flatten()
-    end)
+    scope = Relay.Scope.new!(tenant_id, environment)
+    for row <- RelayTest.TenantFixture.audit!(scope, nil), do: row["action"]
   end
 
   defp keys(tenant_id, environment) do
@@ -158,6 +155,7 @@ defmodule Relay.TenantLifecycle.ClosureTest do
 
       assert [%{"id" => "sub_" <> _, "state" => "active"}] =
                first |> String.split("\n", trim: true) |> Enum.map(&Jason.decode!/1)
+
       assert "tenant.export_ready" in actions(tenant.id, "live")
     end
 

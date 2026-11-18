@@ -353,6 +353,7 @@ defmodule Relay.Tenancy.Store do
   def tenant_key_custody_set(key_ref, digest, %Actor{} = actor) do
     [row] =
       Repo.call!("relay_fn.tenant_key_custody_set", [key_ref, digest] ++ Actor.params(actor))
+
     Repo.code!(row["tenant_key_custody_set"], [:changed, :unchanged, :tenant_closed])
   end
 

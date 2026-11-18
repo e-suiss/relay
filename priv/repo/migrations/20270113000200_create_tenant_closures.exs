@@ -36,7 +36,9 @@ defmodule Relay.Repo.Migrations.CreateTenantClosures do
             AND formats <@ ARRAY['jsonl', 'csv', 'parquet']::text[]),
       export_prefix text NOT NULL
         CONSTRAINT tenant_closures_export_prefix_check CHECK (char_length(export_prefix) <= 512),
-      export_manifest jsonb,
+      export_manifest jsonb
+        CONSTRAINT tenant_closures_export_manifest_check
+          CHECK (pg_column_size(export_manifest) <= 4194304),
       requested_step_up_ref text
         CONSTRAINT tenant_closures_requested_step_up_ref_check
           CHECK (char_length(requested_step_up_ref) <= 256),

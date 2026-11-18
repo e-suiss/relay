@@ -42,20 +42,8 @@ defmodule Relay.TenantLifecycle.KeyCustodyTest do
     rows |> Enum.map(&List.last/1) |> Enum.uniq()
   end
 
-  defp audit(scope, action) do
-    {:ok, rows} =
-      Repo.in_scope(scope, fn _status ->
-        Repo.scoped_query!(
-          """
-          SELECT tenant_id, environment, reason, actor_ref FROM relay.audit_log
-          WHERE action = $1
-          """,
-          [action]
-        ).rows
-      end)
-
-    Enum.map(rows, &Enum.drop(&1, 2))
-  end
+  defp audit(scope, action),
+    do: for(row <- TenantFixture.audit!(scope, action), do: [row["reason"], row["actor_ref"]])
 
   describe "OP-85 tenant key reference" do
     test "OP-85: a reference names the region's token and a key object of the tenant" do
@@ -156,6 +144,7 @@ defmodule Relay.TenantLifecycle.KeyCustodyTest do
       assert "pkcs11:token=relay-test;object=" <> ^label = ref
 
       other = TenantFixture.tenant!()
+
       assert {:ok, {"kek-test", "pkcs11:object=kek-test"}} =
                KeyCustody.wrapping(other.live, "kek-test")
     end

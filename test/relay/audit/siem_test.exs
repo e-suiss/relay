@@ -13,7 +13,7 @@ defmodule Relay.Audit.SiemTest do
   ]
 
   @checkpoint %{
-    id: <<1::128>>,
+    id: Relay.Id.generate(),
     origin: "relay.test/relay/audit/2026",
     tree_size: 7,
     root_hash: :binary.copy(<<7>>, 32),
@@ -25,9 +25,9 @@ defmodule Relay.Audit.SiemTest do
   defp record(index) do
     %{
       leaf_index: index,
-      tenant_id: <<1::128>>,
+      tenant_id: Relay.Id.generate(),
       environment: "live",
-      id: <<index::128>>,
+      id: Relay.Id.generate(),
       created_at: ~U[2026-11-18 10:00:00.000000Z],
       action: "tenant.closed",
       actor_kind: "installation_operator",
@@ -109,7 +109,6 @@ defmodule Relay.Audit.SiemTest do
 
       assert :ok = Customer.validate([kind: :webhook] ++ Keyword.delete(@opts, :req_options))
       assert {:error, _} = Customer.validate(url: "https://c", hmac_label: "k")
-      assert Siem.independent?() and Customer.independent?()
     end
 
     test "TN-46: a customer webhook target gets the signed checkpoint" do

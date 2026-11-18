@@ -2468,14 +2468,14 @@ codes:
     family: platform
     status: 503
     title: Key unavailable
-    retryable: false
+    retryable: true
     retry_after:
-      kind: none
-      seconds: null
-      max_seconds: null
+      kind: range
+      seconds: 5
+      max_seconds: 30
     extensions: []
     choice: false
-    description: "The tenant's own key in the region's key store cannot be reached, so the tenant's encrypted data is not read (OP-85). Nothing is retried until the key is reachable again; a key the tenant destroyed never comes back."
+    description: "The tenant's own key in the region's key store cannot be reached, so the tenant's encrypted data is not read (OP-85). A retry succeeds once the key is reachable again; a key the tenant destroyed never comes back."
     type: "{base_url}/v1/errors/key_unavailable"
   - code: tenant_closure_not_found
     family: resource

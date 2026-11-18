@@ -2504,11 +2504,11 @@
       "code": "key_unavailable",
       "family": "platform",
       "status": 503,
-      "retryable": false,
+      "retryable": true,
       "retry_after": {
-        "kind": "none",
-        "seconds": null,
-        "max_seconds": null
+        "kind": "range",
+        "seconds": 5,
+        "max_seconds": 30
       },
       "class": "server"
     },

@@ -315,5 +315,5 @@
   {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"},
   {"file": "20270113000000_add_tenant_key_custody.exs", "sha256": "1efe552ec8e62f02591ffe5daf2b19374c90613e596ae03be2218446b1f59b8d"},
   {"file": "20270113000100_validate_tenant_key_ref_check.exs", "sha256": "2bb61fffccfb785fe19983ce86fe9449dd54f09dd06e49ac074450fcc4721644"},
-  {"file": "20270113000200_create_tenant_closures.exs", "sha256": "5beff136660ab7ae162bd516d4958d18d01787904bb5318f411fa4d2db5f4cd8"}
+  {"file": "20270113000200_create_tenant_closures.exs", "sha256": "c42bc1058147c9a9e44b314c34884d06cad4cf49a1b007d1cd954abc2a82d2ae"}
 ]

@@ -49,6 +49,7 @@ defmodule Relay.Tenancy.KeyCustody do
       Relay.Keys.fingerprint_label(),
       Relay.Keys.cursor_label()
     ]
+
     installation = for {:ok, label} <- configured, do: label
 
     if ref.label in installation,

@@ -554,7 +554,7 @@ Every error is an RFC 9457 problem document whose `type` is `/v1/errors/<code>` 
 | `internal_error` | 500 | yes | 2 s | Internal error |
 | `iys_not_configured` | 404 | no |  | No İYS configuration |
 | `iys_upload_not_found` | 404 | no |  | İYS upload not found |
-| `key_unavailable` | 503 | no |  | Key unavailable |
+| `key_unavailable` | 503 | yes | 5–30 s | Key unavailable |
 | `kill_switch_not_found` | 404 | no |  | Kill switch not found |
 | `layout_archived` | 409 | no |  | Layout is archived |
 | `layout_in_use` | 409 | no |  | Layout is in use |

@@ -474,6 +474,12 @@
     "reason": "OP-9: the trigger rejects TRUNCATE on the tenant closures"
   },
   {
+    "path": "priv/repo/migrations/20270115000000_create_fault_injections.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-9: the trigger rejects TRUNCATE on the fault injections"
+  },
+  {
     "path": "lib/relay/templates/convert/liquid.ex",
     "rule": "physical_delete",
     "match": "rstrip truncate replace",

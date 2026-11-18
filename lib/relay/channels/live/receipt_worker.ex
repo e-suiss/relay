@@ -1,6 +1,6 @@
 defmodule Relay.Channels.Live.ReceiptWorker do
   @moduledoc """
-  The job that processes the receipts of one provider webhook request (WH-49): its arguments are the scope and at most 100 receipt identifiers (T-15). It hands them to the delivery report batcher (`Relay.Channels.Live.ReportBatcher`, T-41) and succeeds once every receipt of the job is written; a transient failure retries the job, and a receipt already processed is never processed again.
+  The job that processes the receipts of one provider webhook request (WH-49): its arguments are the scope and at most 100 receipt identifiers (T-15). It hands them to the delivery report batcher (`Relay.Channels.Live.ReportBatcher`, T-41) and succeeds once every receipt of the job is written; a transient failure retries the job, and a receipt already processed is never processed again. While a `delayed_delivery_report` fault injection holds the job, it is snoozed until its delay since the job was inserted has passed (OP-92).
   """
 
   use Relay.Worker, queue: :l1, max_attempts: 20, timeout: 60_000
@@ -19,17 +19,36 @@ defmodule Relay.Channels.Live.ReceiptWorker do
 
   # WH-49
   # T-41
+  # OP-92
   @impl Oban.Worker
-  def perform(%Oban.Job{args: %{"receipt_ids" => [_ | _] = texts} = args}) do
+  def perform(%Oban.Job{args: %{"receipt_ids" => [_ | _] = texts} = args} = job) do
     with {:ok, scope} <- Scope.from_job_args(args),
          {:ok, receipt_ids} <- parse(texts) do
-      ReportBatcher.process(scope, receipt_ids)
+      case delayed_s(scope, job) do
+        0 -> ReportBatcher.process(scope, receipt_ids)
+        seconds -> {:snooze, seconds}
+      end
     else
       {:error, _invalid} -> {:cancel, :invalid_args}
     end
   end
 
   def perform(%Oban.Job{}), do: {:cancel, :invalid_args}
+
+  defp delayed_s(scope, %Oban.Job{id: id, inserted_at: %DateTime{} = inserted_at}) do
+    point = %{tenant_id: scope.tenant_id, environment: scope.environment}
+
+    case Relay.FaultInjection.report_delay(point, id || 0) do
+      0 ->
+        0
+
+      ms ->
+        left = ms - DateTime.diff(Relay.Clock.utc_now(), inserted_at, :millisecond)
+        if left > 0, do: div(left + 999, 1_000), else: 0
+    end
+  end
+
+  defp delayed_s(_scope, _job), do: 0
 
   defp parse(texts) do
     Enum.reduce_while(texts, {:ok, []}, fn text, {:ok, acc} ->

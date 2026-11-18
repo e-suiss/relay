@@ -299,6 +299,30 @@ defmodule RelayWeb.Operator.Json do
     }
   end
 
+  # OP-92
+  @doc "A fault injection record."
+  @spec fault_injection(map()) :: map()
+  def fault_injection(record) do
+    %{
+      "object" => "fault_injection",
+      "id" => id("fij", record.id),
+      "scope_kind" => Atom.to_string(record.scope_kind),
+      "tenant_id" => id("ten", record.scope_tenant_id),
+      "environment" => Atom.to_string(record.target_environment),
+      "channel" => record.channel,
+      "provider" => record.provider,
+      "kind" => Atom.to_string(record.kind),
+      "rate_percent" => record.rate_percent,
+      "delay_ms" => record.delay_ms,
+      "reason" => record.reason,
+      "created_by" => record.created_by_ref,
+      "expires_at" => time(record.expires_at),
+      "status" => Atom.to_string(record.status),
+      "cleared_at" => time(record.cleared_at),
+      "created_at" => time(record.created_at)
+    }
+  end
+
   # TN-41
   @doc "A kill switch record."
   @spec kill_switch(map()) :: map()

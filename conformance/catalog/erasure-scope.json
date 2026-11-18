@@ -19,6 +19,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "fault_injections",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data: installation scope operator records, no recipient"
+    },
+    {
       "table": "imports",
       "personal_columns": [
         "content_ct"

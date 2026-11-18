@@ -30,6 +30,12 @@ description = "Published Suiss webhook profile and Standard Webhooks signature t
 paths = ['''^conformance/webhooks/vectors/''']
 
 [[allowlists]]
+description = "Synthetic idempotency key of an earlier Ruby SDK test revision"
+condition = "AND"
+paths = ['''^sdks/ruby/test/client_test\.rb$''']
+regexes = ['''^order-4821-shipped$''']
+
+[[allowlists]]
 description = "Synthetic device token fingerprint of the mobile SDK test fixtures"
 condition = "AND"
 paths = ['''^sdks/(swift/Tests|kotlin/relay/src/test)/''']

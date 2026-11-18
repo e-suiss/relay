@@ -29,6 +29,14 @@ defmodule RelayDev.SeedTest do
       assert ctx.report.workflow_version == 1
     end
 
+    test "T-65 X-43 X-35: the test plane job and the dev seed succeed over one sample", ctx do
+      args = Relay.Scope.to_job_args(ctx.plane)
+      assert Relay.Api.TestPlane.Seeder.perform(%Oban.Job{args: args}) == :ok
+      assert {:ok, again} = RelayDev.Seed.run()
+      assert again == ctx.report
+      assert Relay.Api.TestPlane.Seeder.perform(%Oban.Job{args: args}) == :ok
+    end
+
     test "T-65: the sample workflow is published in the test plane", ctx do
       assert {:ok, {:ok, %{"version_no" => 1}}} =
                Relay.Workflow.resolve_published(ctx.plane, "welcome")

@@ -372,6 +372,18 @@ channels:
         "$ref": "#/components/messages/audit.tenant_key.destroyed"
       audit.tenant_key.registered:
         "$ref": "#/components/messages/audit.tenant_key.registered"
+      audit.tenant.key_custody_changed:
+        "$ref": "#/components/messages/audit.tenant.key_custody_changed"
+      audit.tenant.export_ready:
+        "$ref": "#/components/messages/audit.tenant.export_ready"
+      audit.tenant.closure_confirmed:
+        "$ref": "#/components/messages/audit.tenant.closure_confirmed"
+      audit.tenant.shred_started:
+        "$ref": "#/components/messages/audit.tenant.shred_started"
+      audit.tenant.shredded:
+        "$ref": "#/components/messages/audit.tenant.shredded"
+      audit.subject.exported:
+        "$ref": "#/components/messages/audit.subject.exported"
       audit.waitpoint.cancelled:
         "$ref": "#/components/messages/audit.waitpoint.cancelled"
       audit.category.created:
@@ -827,6 +839,12 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.tenant.reactivated"
       - "$ref": "#/channels/auditLog/messages/audit.tenant_key.destroyed"
       - "$ref": "#/channels/auditLog/messages/audit.tenant_key.registered"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.key_custody_changed"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.export_ready"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.closure_confirmed"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.shred_started"
+      - "$ref": "#/channels/auditLog/messages/audit.tenant.shredded"
+      - "$ref": "#/channels/auditLog/messages/audit.subject.exported"
       - "$ref": "#/channels/auditLog/messages/audit.waitpoint.cancelled"
       - "$ref": "#/channels/auditLog/messages/audit.category.created"
       - "$ref": "#/channels/auditLog/messages/audit.category.updated"
@@ -6183,6 +6201,114 @@ components:
       x-relay-stage: 1
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.key_custody_changed:
+      name: tenant.key_custody_changed
+      title: tenant.key_custody_changed
+      summary: "A tenant's own key in the region's key store was set or changed, and its keys are wrapped under it."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.export_ready:
+      name: tenant.export_ready
+      title: tenant.export_ready
+      summary: "The full export of a closing tenant was written."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant_closure
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.closure_confirmed:
+      name: tenant.closure_confirmed
+      title: tenant.closure_confirmed
+      summary: "The tenant's explicit confirmation to destroy its keys early was recorded."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant_closure
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.shred_started:
+      name: tenant.shred_started
+      title: tenant.shred_started
+      summary: "The destruction of a closed tenant's keys started."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant_closure
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.tenant.shredded:
+      name: tenant.shredded
+      title: tenant.shredded
+      summary: "A closed tenant's keys of one environment were destroyed or restricted."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: tenant
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.subject.exported:
+      name: subject.exported
+      title: subject.exported
+      summary: "The data of one subscriber was exported."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: subscriber
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.waitpoint.cancelled:
       name: waitpoint.cancelled
       title: waitpoint.cancelled
@@ -9757,6 +9883,7 @@ x-relay-event-names:
   - sms_destination.stopped
   - stream.resync_required
   - subject.erased
+  - subject.exported
   - subject_key.retired
   - subscriber.deletion_requested
   - subscriber.resumed
@@ -9779,10 +9906,15 @@ x-relay-event-names:
   - template.updated
   - template.version_archived
   - tenant.closed
+  - tenant.closure_confirmed
   - tenant.created
   - tenant.defaults_updated
+  - tenant.export_ready
+  - tenant.key_custody_changed
   - tenant.reactivated
   - tenant.resumed
+  - tenant.shred_started
+  - tenant.shredded
   - tenant.suspended
   - tenant_key.destroyed
   - tenant_key.registered

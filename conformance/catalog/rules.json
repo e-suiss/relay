@@ -7228,7 +7228,7 @@
     "section": "§15",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 15
   },
   {
     "acceptance": "pending",
@@ -8796,7 +8796,7 @@
     "section": "§18",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 15
   },
   {
     "acceptance": "pending",
@@ -10508,6 +10508,22 @@
     "section": "§20",
     "status": "policy_default",
     "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-85",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "Bring your own key: tenant key label in the region HSM wraps the tenant's keys",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-86",
+    "section": "§20",
+    "status": "frozen_technical",
+    "title": "Two-step tenant closure: full export, then key destruction after 30 days",
     "verify_stage": 15
   },
   {

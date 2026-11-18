@@ -451,6 +451,12 @@ defmodule RelayWeb.Telemetry do
         tags: [:signal, :queue],
         description: "Largest share of one tenant or API client in the last window"
       ),
+      sum("relay.audit.stream.records.total",
+        event_name: [:relay, :audit, :stream],
+        measurement: :count,
+        tags: [:target, :result],
+        description: "Audit records streamed to a target, by result"
+      ),
       counter("relay.jobs.processed.total",
         event_name: [:relay, :jobs, :processed],
         tags: [:queue, :tenant],
@@ -684,6 +690,10 @@ defmodule RelayWeb.Telemetry do
       counter("relay.push.signing_unavailable.total",
         event_name: [:relay, :push, :signing_unavailable],
         description: "Push provider tokens the key store could not sign"
+      ),
+      counter("relay.keys.custody_unavailable.total",
+        event_name: [:relay, :keys, :custody_unavailable],
+        description: "Reads refused because a tenant's own key was unavailable"
       ),
       counter("relay.access.event_unresolved.total",
         event_name: [:relay, :access, :event, :unresolved],

@@ -59,6 +59,7 @@ defmodule Relay.Api do
       Page,
       Duration,
       Subscribers,
+      SubjectExport,
       Devices,
       Presence,
       Messaging,

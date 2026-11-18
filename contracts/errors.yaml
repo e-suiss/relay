@@ -2464,6 +2464,33 @@ codes:
     description: "No announcement of this tenant and environment has this identifier. Announcements of other tenants and environments also return 404."
     type: "{base_url}/v1/errors/inbox_announcement_not_found"
     choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
+  - code: key_unavailable
+    family: platform
+    status: 503
+    title: Key unavailable
+    retryable: true
+    retry_after:
+      kind: range
+      seconds: 5
+      max_seconds: 30
+    extensions: []
+    choice: false
+    description: "The tenant's own key in the region's key store cannot be reached, so the tenant's encrypted data is not read (OP-85). A retry succeeds once the key is reachable again; a key the tenant destroyed never comes back."
+    type: "{base_url}/v1/errors/key_unavailable"
+  - code: tenant_closure_not_found
+    family: resource
+    status: 404
+    title: Tenant closure not found
+    retryable: false
+    retry_after:
+      kind: none
+      seconds: null
+      max_seconds: null
+    extensions: []
+    choice: true
+    description: "The tenant has no closure request."
+    type: "{base_url}/v1/errors/tenant_closure_not_found"
+    choice_note: "Resource lookup and conflict codes. The spec names the *_not_found pattern and resource_conflict; the per-resource names are chosen by the contract."
   - code: shadow_difference_not_found
     family: resource
     status: 404

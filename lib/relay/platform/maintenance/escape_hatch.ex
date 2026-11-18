@@ -298,6 +298,51 @@ defmodule Relay.Platform.Maintenance.EscapeHatch do
          do: {:ok, MapSet.new(found)}
   end
 
+  # TN-49
+  @doc "Reads up to `limit` audit records of the log `origin` in leaf order from `from_index`, with their fields for the audit record stream; a leaf whose record is missing is skipped."
+  @spec audit_stream_page(String.t(), non_neg_integer(), pos_integer()) ::
+          {:ok, [map()]} | {:error, Relay.Error.t()}
+  def audit_stream_page(origin, from_index, limit) do
+    select(
+      """
+      SELECT l.leaf_index, a.tenant_id, a.environment::text, a.id, a.created_at, a.action::text,
+             a.actor_kind::text, a.actor_ref, a.on_behalf_of_ref, a.access_record_ref,
+             a.target_type, a.target_id, a.reason, a.record_digest
+      FROM relay.audit_leaves l
+      JOIN relay.audit_log a
+        ON a.tenant_id = l.audit_tenant_id AND a.environment = l.audit_environment
+       AND a.id = l.audit_id AND a.created_at = l.audit_created_at
+      WHERE l.log_origin = $1 AND l.leaf_index >= $2
+      ORDER BY l.leaf_index
+      LIMIT $3
+      """,
+      [origin, from_index, limit],
+      &stream_row/1
+    )
+  end
+
+  defp stream_row([index, tenant, environment, id, created_at, action | rest]) do
+    [actor_kind, actor_ref, on_behalf_of, access_record, target_type, target_id, reason, digest] =
+      rest
+
+    %{
+      leaf_index: index,
+      tenant_id: tenant,
+      environment: environment,
+      id: id,
+      created_at: created_at,
+      action: action,
+      actor_kind: actor_kind,
+      actor_ref: actor_ref,
+      on_behalf_of_ref: on_behalf_of,
+      access_record_ref: access_record,
+      target_type: target_type,
+      target_id: target_id,
+      reason: reason,
+      record_digest: digest
+    }
+  end
+
   @doc "Reads up to `limit` leaves of the log `origin` from `from_index`, with the audit record each one commits to (`nil` fields when the record is missing)."
   @spec audit_leaves(String.t(), non_neg_integer(), pos_integer()) ::
           {:ok, [map()]} | {:error, Relay.Error.t()}

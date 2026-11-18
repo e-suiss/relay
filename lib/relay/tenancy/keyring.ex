@@ -2,7 +2,7 @@ defmodule Relay.Tenancy.Keyring do
   @moduledoc """
   Production key provider: envelope encryption over the PKCS#11 key store.
 
-  A tenant key (`data`, `dek_wrap`) is 32 random bytes wrapped inside the key store under the region KEK with AES-256-GCM; the stored form is `version || iv || ciphertext || tag`, the IV drawn by the token. A subject data key is 32 random bytes wrapped under the tenant's `dek_wrap` key with AES-256-GCM in the same stored form. Unwrapped keys stay in `Relay.Tenancy.KeyCache` for ten minutes, so the key store is asked once per key and cache lifetime, never per message. A restricted data key (statutory retention) and a destroyed key are refused. Blind index HMACs are computed inside the key store; the HMAC key never leaves it.
+  A tenant key (`data`, `dek_wrap`) is 32 random bytes wrapped inside the key store under the region KEK with AES-256-GCM; the stored form is `version || iv || ciphertext || tag`, the IV drawn by the token. A subject data key is 32 random bytes wrapped under the tenant's `dek_wrap` key with AES-256-GCM in the same stored form. Unwrapped keys stay in `Relay.Tenancy.KeyCache` for ten minutes, so the key store is asked once per key and cache lifetime, never per message. A restricted data key (statutory retention) and a destroyed key are refused. A tenant key wrapped under the tenant's own key (`Relay.Tenancy.KeyCustody`) is unwrapped under that key, and when the key store cannot reach it the read fails closed with `key_unavailable`. Blind index HMACs are computed inside the key store; the HMAC key never leaves it.
 
   Keys are read in a transaction of their own and unwrapped after it commits, so none of these functions may run inside another transaction.
   """
@@ -12,6 +12,7 @@ defmodule Relay.Tenancy.Keyring do
   alias Relay.Error
   alias Relay.Redacted
   alias Relay.Tenancy.KeyCache
+  alias Relay.Tenancy.KeyCustody
   alias Relay.Tenancy.Store
 
   @version 1
@@ -36,6 +37,7 @@ defmodule Relay.Tenancy.Keyring do
   # TN-27
   # TN-66 (2)
   # OP-18
+  # OP-85
   @impl Relay.Tenancy.KeyProvider
   @doc "Returns the data key of a field scope; see `Relay.Tenancy.KeyProvider`."
   @spec data_key(Relay.Tenancy.KeyProvider.data_key_scope()) ::
@@ -171,7 +173,7 @@ defmodule Relay.Tenancy.Keyring do
            {:ok, aad} <- kek_aad(scope, record["id"], purpose),
            {:ok, label} <- Relay.Keys.label(record["kek_ref"]),
            {:ok, wrapped} <- stored(record["wrapped_key"]) do
-        Relay.Keys.unwrap(label, aad, wrapped)
+        KeyCustody.available(scope, label, Relay.Keys.unwrap(label, aad, wrapped))
       end
     end
 

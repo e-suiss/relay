@@ -4991,6 +4991,92 @@ class Operations(OperationsBase):
             response="json",
         ))
 
+    def get_provider_account_status(
+        self,
+        provider_account_id: m.Id_pva,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.ProviderAccountStatus:
+        """Get the status of a provider account."""
+        return _t.cast("m.ProviderAccountStatus", self._call(
+            "GET",
+            "/v1/provider_accounts/{provider_account_id}/status",
+            path={"provider_account_id": provider_account_id},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def get_provider_account_email_domains(
+        self,
+        provider_account_id: m.Id_pva,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.EmailDomainCheckList:
+        """Check the sending domains of an e-mail provider account."""
+        return _t.cast("m.EmailDomainCheckList", self._call(
+            "GET",
+            "/v1/provider_accounts/{provider_account_id}/email_domains",
+            path={"provider_account_id": provider_account_id},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def list_email_warmup_plans(
+        self,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.EmailWarmupPlanList:
+        """List the e-mail warm-up plans."""
+        return _t.cast("m.EmailWarmupPlanList", self._call(
+            "GET",
+            "/v1/email_warmup_plans",
+            path={},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
+    def quote_channel_cost(
+        self,
+        *,
+        channel: _t.Literal["sms", "voice", "whatsapp"],
+        country: str,
+        category: str | None = None,
+        quantity: int | None = None,
+        options: RequestOptions | None = None,
+    ) -> m.ChannelCostQuote:
+        """Quote the cost of a paid channel."""
+        return _t.cast("m.ChannelCostQuote", self._call(
+            "GET",
+            "/v1/channel_costs",
+            path={},
+            query={"channel": channel, "country": country, "category": category, "quantity": quantity},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
     def list_provider_invoices(
         self,
         *,

@@ -4635,6 +4635,70 @@ ChannelAdapterList = _t.TypedDict(
 )
 
 
+ProviderAccountStatus = _t.TypedDict(
+    "ProviderAccountStatus",
+    {
+        "object": _t.Literal["provider_account_status"],
+        "provider_account_id": "Id_pva",
+        "channel": "Channel",
+        "provider": str,
+        "data_residency": "ProviderAccountStatus_DataResidency",
+        "adapter": "ProviderAccountStatus_Adapter",
+        "circuit_breaker": "ProviderAccountStatus_CircuitBreaker",
+    },
+)
+
+
+BreakerState: _t.TypeAlias = _t.Literal["closed", "open", "half_open"]
+
+
+EmailDomainCheckList = _t.TypedDict(
+    "EmailDomainCheckList",
+    {
+        "object": _t.Literal["list"],
+        "data": list["EmailDomainCheck"],
+    },
+)
+
+
+EmailDomainCheck = _t.TypedDict(
+    "EmailDomainCheck",
+    {
+        "object": _t.Literal["email_domain_check"],
+        "stream": _t.Literal["transactional", "marketing"],
+        "domain": str,
+        "verified": bool,
+        "checked_at": str,
+        "records": list["EmailDomainCheck_RecordsItem"],
+        "findings": list["EmailDomainCheck_FindingsItem"],
+        "spf": "EmailDomainCheck_Spf",
+        "dmarc": _t.Union["EmailDomainCheck_DmarcOption1", None],
+    },
+)
+
+
+EmailWarmupPlanList = _t.TypedDict(
+    "EmailWarmupPlanList",
+    {
+        "object": _t.Literal["list"],
+        "data": list["EmailWarmupPlanList_DataItem"],
+    },
+)
+
+
+ChannelCostQuote = _t.TypedDict(
+    "ChannelCostQuote",
+    {
+        "object": _t.Literal["channel_cost_quote"],
+        "channel": _t.Literal["sms", "voice", "whatsapp"],
+        "country": str,
+        "category": _t.Union[str, None],
+        "quantity": int,
+        "data": list["ChannelCostQuote_DataItem"],
+    },
+)
+
+
 MessagingInboundRequest: _t.TypeAlias = dict[str, _t.Any]
 
 
@@ -6257,6 +6321,113 @@ ChannelAdapter_DeprecationsItem = _t.TypedDict(
 )
 
 
+ProviderAccountStatus_DataResidency = _t.TypedDict(
+    "ProviderAccountStatus_DataResidency",
+    {
+        "sends_data_abroad": bool,
+        "reference_region": _t.Literal["tr", "eu", "us"],
+        "abroad_countries": list[str],
+        "in_installation": bool,
+        "processing_countries": "CountryList",
+        "declared_processing_countries": list[str],
+        "transfer_basis": "TransferBasis",
+        "scc_notified_on": _t.Union[str, None],
+    },
+)
+
+
+ProviderAccountStatus_Adapter = _t.TypedDict(
+    "ProviderAccountStatus_Adapter",
+    {
+        "declared": bool,
+        "adapter_version": _t.Union[str, None],
+        "activated": bool,
+        "deprecation_warning": bool,
+        "deprecations": list["ProviderAccountStatus_Adapter_DeprecationsItem"],
+    },
+)
+
+
+ProviderAccountStatus_CircuitBreaker = _t.TypedDict(
+    "ProviderAccountStatus_CircuitBreaker",
+    {
+        "provider": "BreakerState",
+        "account": "BreakerState",
+        "observed_by": _t.Literal["node"],
+    },
+)
+
+
+EmailDomainCheck_RecordsItem = _t.TypedDict(
+    "EmailDomainCheck_RecordsItem",
+    {
+        "purpose": _t.Literal["return_path", "dkim", "spf", "dmarc"],
+        "type": _t.Literal["CNAME", "TXT"],
+        "name": str,
+        "value": _t.Union[str, None],
+    },
+)
+
+
+EmailDomainCheck_FindingsItem = _t.TypedDict(
+    "EmailDomainCheck_FindingsItem",
+    {
+        "severity": _t.Literal["error", "warning", "suggestion"],
+        "code": str,
+        "subject": str,
+    },
+)
+
+
+EmailDomainCheck_Spf = _t.TypedDict(
+    "EmailDomainCheck_Spf",
+    {
+        "record": _t.Union[str, None],
+        "lookups": int,
+        "void_lookups": int,
+    },
+)
+
+
+EmailDomainCheck_DmarcOption1 = _t.TypedDict(
+    "EmailDomainCheck_DmarcOption1",
+    {
+        "name": str,
+        "policy": _t.Union[str, None],
+        "org_domain": str,
+    },
+)
+
+
+EmailWarmupPlanList_DataItem = _t.TypedDict(
+    "EmailWarmupPlanList_DataItem",
+    {
+        "id": str,
+        "applies_to": _t.Literal["domain", "ip"],
+        "until_day": int,
+        "steps": list["EmailWarmupPlanList_DataItem_StepsItem"],
+    },
+)
+
+
+ChannelCostQuote_DataItem = _t.TypedDict(
+    "ChannelCostQuote_DataItem",
+    {
+        "provider_account_id": "Id_pva",
+        "provider": str,
+        "routable": bool,
+        "paid": bool,
+        "priced": bool,
+        "source": _t.Literal["provider_declaration", "whatsapp_rate_card"],
+        "currency": _t.Union[str, None],
+        "unit": _t.Union[str, None],
+        "unit_price_micros": _t.Union[int, None],
+        "total_micros": _t.Union[int, None],
+        "tier_from": _t.Union[int, None],
+    },
+)
+
+
 WhatsappTemplate_Preview = _t.TypedDict(
     "WhatsappTemplate_Preview",
     {
@@ -6547,6 +6718,26 @@ AgentMessageUntrusted_Source_AuthorOption1 = _t.TypedDict(
     {
         "kind": _t.Literal["human", "system", "agent"],
         "id": str,
+    },
+)
+
+
+ProviderAccountStatus_Adapter_DeprecationsItem = _t.TypedDict(
+    "ProviderAccountStatus_Adapter_DeprecationsItem",
+    {
+        "api": str,
+        "sunset_on": _t.Union[str, None],
+    },
+)
+
+
+EmailWarmupPlanList_DataItem_StepsItem = _t.TypedDict(
+    "EmailWarmupPlanList_DataItem_StepsItem",
+    {
+        "from_day": int,
+        "daily_cap": int,
+        "domain_hourly_cap": int,
+        "domains": dict[str, int],
     },
 )
 

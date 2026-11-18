@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_inbox_title">Bildirimler</string>
+    <string name="relay_inbox_empty">Henüz bildirim yok</string>
+    <string name="relay_inbox_mark_all_read">Tümünü okundu yap</string>
+    <string name="relay_inbox_unread">Okunmadı</string>
+    <string name="relay_inbox_mark_read">Okundu yap</string>
+    <string name="relay_inbox_mark_unread">Okunmadı yap</string>
+    <string name="relay_inbox_archive">Arşivle</string>
+    <string name="relay_inbox_hide">Gizle</string>
+    <string name="relay_inbox_undo">Geri al</string>
+    <string name="relay_inbox_updated_elsewhere">Başka cihazda güncellendi</string>
+    <string name="relay_inbox_load_more">Daha fazla göster</string>
+    <string name="relay_bell_label">Bildirimler, %1$d yeni</string>
+    <string name="relay_bell_label_none">Bildirimler</string>
+    <string name="relay_prefs_title">Bildirim tercihleri</string>
+    <string name="relay_prefs_on">Açık</string>
+    <string name="relay_prefs_off">Kapalı</string>
+    <string name="relay_prefs_locked_on">Açık (kilitli)</string>
+    <string name="relay_prefs_admin_disabled">Yöneticiniz kapattı</string>
+    <string name="relay_prefs_device_disabled">Cihaz ayarlarından kapalı</string>
+    <string name="relay_prefs_open_settings">Ayarları aç</string>
+    <string name="relay_prefs_permission_pending">İzin bekleniyor</string>
+    <string name="relay_prefs_allow">İzin ver</string>
+    <string name="relay_prefs_off_prompt">Bu bildirimleri nasıl almak istersiniz?</string>
+    <string name="relay_prefs_instant">Anında al</string>
+    <string name="relay_prefs_digest">Özet al</string>
+    <string name="relay_prefs_never">Hiç alma</string>
+    <string name="relay_prefs_cancel">Vazgeç</string>
+    <string name="relay_level_passive">Sessiz</string>
+    <string name="relay_level_active">Standart</string>
+    <string name="relay_level_time_sensitive">Zamana duyarlı</string>
+    <string name="relay_level_critical">Kritik</string>
+    <string name="relay_channel_push">Push</string>
+    <string name="relay_channel_web_push">Web push</string>
+    <string name="relay_channel_email">E-posta</string>
+    <string name="relay_channel_sms">SMS</string>
+    <string name="relay_channel_voice">Sesli arama</string>
+    <string name="relay_channel_whatsapp">WhatsApp</string>
+    <string name="relay_channel_slack">Slack</string>
+    <string name="relay_channel_teams">Microsoft Teams</string>
+    <string name="relay_channel_telegram">Telegram</string>
+    <string name="relay_channel_discord">Discord</string>
+    <string name="relay_channel_in_app">Uygulama içi</string>
+    <string name="relay_channel_webhook">Webhook</string>
+</resources>

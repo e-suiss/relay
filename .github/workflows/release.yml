@@ -29,6 +29,7 @@ jobs:
       - run: mix deps.get --check-locked
       - run: mix relay.lint.tests --release
       - run: mix relay.release.gate
+      - run: mix relay.runbooks.bundle --out "relay-runbooks-$GITHUB_REF_NAME.html" --label "$GITHUB_REF_NAME"
       - run: mix deps.get --only prod --check-locked
         env:
           MIX_ENV: prod
@@ -73,6 +74,7 @@ jobs:
           body_path: RELEASE_NOTES.md
           files: |
             relay-${{ github.ref_name }}.cdx.json
+            relay-runbooks-${{ github.ref_name }}.html
             relay-*.tgz
 
   reproducibility:

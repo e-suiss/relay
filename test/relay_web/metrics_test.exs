@@ -2,8 +2,6 @@ defmodule RelayWeb.MetricsTest do
   use RelayWeb.ConnCase, async: false
 
   @rules "deploy/observability/alerts.yaml"
-  @runbooks "deploy/observability/runbooks.md"
-  @runbook_base "https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#"
   @reconciliation ~w(relay_reconciliation_drift_total relay_reconciliation_lag_milliseconds)
   @forbidden [:message_id, :campaign_id, :template_id, :recipient, :user, :device, :token, :pid]
 
@@ -78,7 +76,6 @@ defmodule RelayWeb.MetricsTest do
       exported = Enum.map(RelayWeb.Telemetry.exported_metrics(), &prometheus_name/1)
       recorded = for rule <- rules(), rule["record"], uniq: true, do: rule["record"]
       names = exported ++ recorded ++ @reconciliation ++ ["ALERTS"]
-      runbooks = File.read!(@runbooks)
 
       assert length(exported) == length(Enum.uniq(exported))
 
@@ -86,8 +83,8 @@ defmodule RelayWeb.MetricsTest do
         assert Enum.any?(names, &(rule["expr"] =~ ~r/\b#{Regex.escape(&1)}(_bucket)?\b/)), alert
         assert rule["labels"]["severity"] in ["page", "warning", "ticket"], alert
         assert rule["labels"]["decision"] =~ ~r/^[A-Z]+-\d+$/, alert
-        assert rule["annotations"]["runbook_url"] == @runbook_base <> String.downcase(alert)
-        assert runbooks =~ ~r/^## #{alert}$/m, alert
+        assert "runbooks/" <> _ = url = rule["annotations"]["runbook_url"]
+        assert File.regular?(url), alert
       end
     end
 

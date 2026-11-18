@@ -125,7 +125,6 @@ defmodule Relay.Tenancy.KillSwitchDrillTest do
           actor_kind: "installation_operator",
           actor_ref: "drill@example",
           on_behalf_of_ref: "drill@example",
-          access_record_ref: nil,
           target_type: "kill_switch",
           target_id: Relay.Id.to_string(emergency),
           reason: "emergency drill"

@@ -1529,6 +1529,39 @@ public sealed partial class RelayApi
         return _client.SendJsonAsync(Operations.ListSimulatedResults, [], query, null, options, cancellationToken);
     }
 
+    /// <summary>List the seed recipients of the test plane</summary>
+    public Task<JsonNode> ListSeedRecipientsAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.ListSeedRecipients, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Reset the seed recipients of the test plane</summary>
+    public Task<JsonNode> ResetSeedRecipientsAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.ResetSeedRecipients, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>List the test inbox</summary>
+    public Task<Page> ListTestInboxMessagesAsync(
+        int? limit = null,
+        string? startingAfter = null,
+        string? endingBefore = null,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("limit", limit);
+        query.Add("starting_after", startingAfter);
+        query.Add("ending_before", endingBefore);
+        return _client.ListAsync(Operations.ListTestInboxMessages, [], query, null, options, cancellationToken);
+    }
+
     /// <summary>List waitpoints</summary>
     public Task<Page> ListWaitpointsAsync(
         int? limit = null,

@@ -2480,6 +2480,49 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :list_test_inbox_messages,
+      method: :get,
+      path: "/v1/test/inbox",
+      path_params: [],
+      query: [
+        {:limit, :integer, false},
+        {:starting_after, :string, false},
+        {:ending_before, :string, false}
+      ],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: true,
+      response: :json
+    },
+    %Operation{
+      id: :list_seed_recipients,
+      method: :get,
+      path: "/v1/test/seed-recipients",
+      path_params: [],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :reset_seed_recipients,
+      method: :post,
+      path: "/v1/test/seed-recipients/reset",
+      path_params: [],
+      query: [],
+      idempotency: :required,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :list_simulated_results,
       method: :get,
       path: "/v1/test/simulated-results",

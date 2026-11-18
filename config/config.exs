@@ -120,6 +120,8 @@ config :relay, Relay.Access,
   consent_handler: Relay.Preferences.AccessConsentHandler,
   relationship_handler: Relay.Operators.AccessRelationshipHandler
 
+config :relay, Relay.Tenancy.Provisioning, test_plane: Relay.Api.TestPlane
+
 config :relay, Relay.Iys, runtime: Relay.Iys.Live
 
 config :relay, Relay.Policy.IysGate, impl: Relay.Iys.Gate

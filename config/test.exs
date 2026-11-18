@@ -29,6 +29,8 @@ config :relay, Relay.ReportRepo, enabled: false
 
 config :relay, Oban, testing: :manual
 
+config :relay, Relay.Tenancy.Provisioning, test_plane: nil
+
 config :relay, Relay.Platform.Outbox, dispatcher: false
 
 config :relay, Relay.Delivery, auto_replay: false, channel: nil

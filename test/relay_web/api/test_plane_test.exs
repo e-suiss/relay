@@ -12,6 +12,8 @@ defmodule RelayWeb.Api.TestPlaneTest do
             seed_no_device seed_fallback_timezone)
 
   setup do
+    Application.put_env(:relay, Relay.Tenancy.Provisioning, test_plane: Relay.Api.TestPlane)
+    on_exit(fn -> Application.put_env(:relay, Relay.Tenancy.Provisioning, test_plane: nil) end)
     tenant = TenantFixture.tenant!()
 
     %{

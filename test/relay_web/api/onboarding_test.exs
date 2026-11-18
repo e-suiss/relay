@@ -7,6 +7,11 @@ defmodule RelayWeb.Api.OnboardingTest do
 
   @background ["Relay.Api.TestPlane.Seeder", "Relay.Delivery.Send"]
 
+  setup do
+    Application.put_env(:relay, Relay.Tenancy.Provisioning, test_plane: Relay.Api.TestPlane)
+    on_exit(fn -> Application.put_env(:relay, Relay.Tenancy.Provisioning, test_plane: nil) end)
+  end
+
   defp run_background(scope, done \\ MapSet.new(), rounds \\ 5)
   defp run_background(_scope, _done, 0), do: :ok
 

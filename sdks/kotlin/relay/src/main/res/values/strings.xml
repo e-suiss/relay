@@ -17,6 +17,8 @@
     <string name="relay_prefs_on">On</string>
     <string name="relay_prefs_off">Off</string>
     <string name="relay_prefs_locked_on">On (locked)</string>
+    <string name="relay_prefs_locked_subscriber">Locked: protects your account</string>
+    <string name="relay_prefs_locked_tenant">Locked: needed for the service</string>
     <string name="relay_prefs_admin_disabled">Turned off by your administrator</string>
     <string name="relay_prefs_device_disabled">Turned off in device settings</string>
     <string name="relay_prefs_open_settings">Open settings</string>

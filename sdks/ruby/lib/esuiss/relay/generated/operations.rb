@@ -3893,6 +3893,20 @@ module Esuiss
             request_options: request_options
           )
         end
+
+        # Get the fallback time zone report
+        def get_fallback_timezone_report(from:, to:, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/reports/fallback_timezones",
+            query: { "from" => from, "to" => to },
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
       end
     end
   end

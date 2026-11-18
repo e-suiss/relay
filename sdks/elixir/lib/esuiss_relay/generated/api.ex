@@ -901,6 +901,11 @@ defmodule EsuissRelay.Api do
   def get_delivery_report(client, opts \\ []),
     do: Client.call(client, Operations.fetch!(:get_delivery_report), [], nil, opts)
 
+  @doc "Get the fallback time zone report.\n\n`GET /v1/reports/fallback_timezones`\n\nQuery: `from`, `to`."
+  @spec get_fallback_timezone_report(Client.t(), keyword()) :: Client.result()
+  def get_fallback_timezone_report(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:get_fallback_timezone_report), [], nil, opts)
+
   @doc "Get the render and locale problem report.\n\n`GET /v1/reports/render_problems`\n\nQuery: `from`, `to`."
   @spec get_render_problem_report(Client.t(), keyword()) :: Client.result()
   def get_render_problem_report(client, opts \\ []),

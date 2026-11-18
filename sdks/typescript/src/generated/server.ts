@@ -4740,6 +4740,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/reports/fallback_timezones": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get the fallback time zone report
+     * @description Per UTC day and source, the sends whose time zone was inferred rather than the recipient's own: from a device (device), from the profile country (country) or the tenant default (tenant_default) (X-6, WF-46, PC-48). Each send is counted once, in the transaction that records its send decision; the delivery table carries no copy. from and to are UTC dates, to exclusive, at most 92 days apart.
+     */
+    get: operations["getFallbackTimezoneReport"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -7507,6 +7527,12 @@ export interface components {
       released_at?: components["schemas"]["Timestamp"] | null;
       released_by?: string | null;
       release_reason?: string | null;
+      /** @description When the kill switch took effect (TN-44): effect_delay_ms from its engaging transaction to the end of its queue sweep, the deliveries it holds paused in its own scope and when the sweep ended; null until the sweep ended. A platform record shows the paused deliveries of its own scope only. */
+      effect?: {
+        paused_count: number;
+        effect_delay_ms: number;
+        effective_at: components["schemas"]["Timestamp"];
+      } | null;
       created_at: components["schemas"]["Timestamp"];
     };
     KillSwitchList: components["schemas"]["ListEnvelope"] & {
@@ -10646,6 +10672,22 @@ export interface components {
       /** Format: date */
       to: string;
       rows: components["schemas"]["RenderProblemReportRow"][];
+    };
+    /** @description The sends in an inferred time zone of a period of the tenant environment, per UTC day and source (X-6, WF-46). */
+    FallbackTimezoneReport: {
+      /** @constant */
+      object: "fallback_timezone_report";
+      /** Format: date */
+      from: string;
+      /** Format: date */
+      to: string;
+      rows: {
+        /** Format: date */
+        day: string;
+        /** @enum {string} */
+        source: "device" | "country" | "tenant_default";
+        deliveries: number;
+      }[];
     };
   };
   responses: {
@@ -28752,6 +28794,60 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["RenderProblemReport"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      422: components["responses"]["UnprocessableContent"];
+      429: components["responses"]["TooManyRequests"];
+      500: components["responses"]["InternalError"];
+      503: components["responses"]["ServiceUnavailable"];
+    };
+  };
+  getFallbackTimezoneReport: {
+    parameters: {
+      query: {
+        /** @description First UTC day of the report. */
+        from: components["parameters"]["ReportFrom"];
+        /** @description UTC day after the last day of the report; at most 92 days after from. */
+        to: components["parameters"]["ReportTo"];
+      };
+      header?: {
+        /**
+         * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+         * @example 2026-11-01
+         */
+        "Relay-Version"?: components["parameters"]["RelayVersion"];
+        /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+        "Relay-Beta"?: components["parameters"]["RelayBeta"];
+        /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+        "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+        /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+        "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The report. */
+      200: {
+        headers: {
+          "Request-Id": components["headers"]["Request-Id"];
+          "Relay-Version": components["headers"]["Relay-Version"];
+          RateLimit: components["headers"]["RateLimit"];
+          "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+          "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+          "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+          "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+          Deprecation: components["headers"]["Deprecation"];
+          Sunset: components["headers"]["Sunset"];
+          Link: components["headers"]["Link"];
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["FallbackTimezoneReport"];
         };
       };
       400: components["responses"]["BadRequest"];

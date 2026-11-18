@@ -815,6 +815,9 @@ public static partial class Operations
     /// <summary>Get the render and locale problem report</summary>
     public static readonly Operation GetRenderProblemReport = new("getRenderProblemReport", "GET", "/v1/reports/render_problems", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
+    /// <summary>Get the fallback time zone report</summary>
+    public static readonly Operation GetFallbackTimezoneReport = new("getFallbackTimezoneReport", "GET", "/v1/reports/fallback_timezones", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>All operations, in contract order.</summary>
     public static readonly IReadOnlyList<Operation> All =
     [
@@ -1088,5 +1091,6 @@ public static partial class Operations
         GetWaitpointStats,
         GetVariantReport,
         GetRenderProblemReport,
+        GetFallbackTimezoneReport,
     ];
 }

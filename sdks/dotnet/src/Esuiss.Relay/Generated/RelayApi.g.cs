@@ -3208,4 +3208,17 @@ public sealed partial class RelayApi
         query.Add("to", to);
         return _client.SendJsonAsync(Operations.GetRenderProblemReport, [], query, null, options, cancellationToken);
     }
+
+    /// <summary>Get the fallback time zone report</summary>
+    public Task<JsonNode> GetFallbackTimezoneReportAsync(
+        string @from,
+        string to,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("from", @from);
+        query.Add("to", to);
+        return _client.SendJsonAsync(Operations.GetFallbackTimezoneReport, [], query, null, options, cancellationToken);
+    }
 }

@@ -1803,6 +1803,19 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :get_fallback_timezone_report,
+      method: :get,
+      path: "/v1/reports/fallback_timezones",
+      path_params: [],
+      query: [{:from, :string, true}, {:to, :string, true}],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :get_render_problem_report,
       method: :get,
       path: "/v1/reports/render_problems",

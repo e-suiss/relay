@@ -5647,4 +5647,22 @@ trait Operations
             options: $options,
         ));
     }
+
+    /**
+     * Get the fallback time zone report.
+     *
+     * @return array<string, mixed>
+     */
+    public function getFallbackTimezoneReport(
+        string $from,
+        string $to,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/reports/fallback_timezones',
+            query: ['from' => $from, 'to' => $to],
+            options: $options,
+        ));
+    }
 }

@@ -2707,6 +2707,16 @@ public final class RelayApi {
           Operation.Presence.NONE,
           "application/json",
           Operation.Response.JSON);
+  private static final Operation GET_FALLBACK_TIMEZONE_REPORT =
+      new Operation(
+          "getFallbackTimezoneReport",
+          "GET",
+          "/v1/reports/fallback_timezones",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
 
   private final Requester requester;
 
@@ -9679,5 +9689,31 @@ public final class RelayApi {
    */
   public JsonNode getRenderProblemReport(GetRenderProblemReportParams params) {
     return getRenderProblemReport(params, RequestOptions.none());
+  }
+
+  /**
+   * Get the fallback time zone report.
+   *
+   * <p>{@code GET /v1/reports/fallback_timezones}
+   *
+   * @param params the query parameters
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getFallbackTimezoneReport(
+      GetFallbackTimezoneReportParams params, RequestOptions options) {
+    return requester.json(GET_FALLBACK_TIMEZONE_REPORT, List.of(), params, null, options);
+  }
+
+  /**
+   * Get the fallback time zone report.
+   *
+   * <p>{@code GET /v1/reports/fallback_timezones}
+   *
+   * @param params the query parameters
+   * @return the response body
+   */
+  public JsonNode getFallbackTimezoneReport(GetFallbackTimezoneReportParams params) {
+    return getFallbackTimezoneReport(params, RequestOptions.none());
   }
 }

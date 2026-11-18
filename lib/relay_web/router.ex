@@ -1303,6 +1303,12 @@ defmodule RelayWeb.Router do
     oban_dashboard("/queues", resolver: RelayWeb.Operator.Panel, oban_name: Oban)
   end
 
+  # X-47
+  scope "/console", RelayWeb do
+    get "/", ConsoleController, :show
+    get "/*path", ConsoleController, :show
+  end
+
   # API-36
   scope "/v1", RelayWeb.Api do
     match :*, "/*path", FallbackController, :not_found

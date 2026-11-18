@@ -1,0 +1,170 @@
+{
+  "track": "sdk",
+  "version": "1",
+  "operation": "sdk.retry_decision",
+  "rule": ["X-29", "API-65", "API-38", "API-49"],
+  "description": "When an SDK retries a request and how long it waits. Only an error whose retryable is true (see errors.json) or a request that never got a response (network error, timeout) is retried, and only while retries remain. The wait is the Retry-After header (delta seconds or HTTP-date, never negative), else the problem's retry_after member, else exponential backoff with full jitter: floor(random * min(cap_ms, base_ms * 2^(retry - 1))) where retry counts from 1 and random is in [0, 1). A Retry-After longer than max_retry_after_s is not waited for: the error is surfaced. An unparseable Retry-After falls back to backoff.",
+  "policy": {
+    "max_retries": 3,
+    "base_ms": 500,
+    "cap_ms": 8000,
+    "max_retry_after_s": 60,
+    "jitter": "full"
+  },
+  "backoff": [
+    { "retry": 1, "random": 0.0, "min_ms": 0, "max_ms": 500, "delay_ms": 0 },
+    { "retry": 1, "random": 0.5, "min_ms": 0, "max_ms": 500, "delay_ms": 250 },
+    { "retry": 2, "random": 0.5, "min_ms": 0, "max_ms": 1000, "delay_ms": 500 },
+    { "retry": 3, "random": 0.25, "min_ms": 0, "max_ms": 2000, "delay_ms": 500 },
+    { "retry": 4, "random": 0.999, "min_ms": 0, "max_ms": 4000, "delay_ms": 3996 },
+    { "retry": 5, "random": 0.75, "min_ms": 0, "max_ms": 8000, "delay_ms": 6000 },
+    { "retry": 6, "random": 0.75, "min_ms": 0, "max_ms": 8000, "delay_ms": 6000 },
+    { "retry": 10, "random": 0.1, "min_ms": 0, "max_ms": 8000, "delay_ms": 800 }
+  ],
+  "decisions": [
+    {
+      "name": "retryable-500-backoff",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 500, "headers": {}, "body": { "type": "https://relay.example.com/v1/errors/internal_error", "title": "Internal error", "status": 500, "code": "internal_error", "retryable": true } },
+      "expect": { "retry": true, "delay_ms": 250 }
+    },
+    {
+      "name": "retryable-500-retry-after-seconds",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 500, "headers": { "retry-after": "2" }, "body": { "type": "https://relay.example.com/v1/errors/internal_error", "title": "Internal error", "status": 500, "code": "internal_error", "retryable": true, "retry_after": 2 } },
+      "expect": { "retry": true, "delay_ms": 2000 }
+    },
+    {
+      "name": "rate-limited-retry-after-seconds",
+      "retry": 2,
+      "random": 0.9,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 429, "headers": { "retry-after": "7" }, "body": { "type": "https://relay.example.com/v1/errors/rate_limited", "title": "Rate limit exceeded", "status": 429, "code": "rate_limited", "retryable": true, "retry_after": 7 } },
+      "expect": { "retry": true, "delay_ms": 7000 }
+    },
+    {
+      "name": "unavailable-retry-after-http-date",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 503, "headers": { "retry-after": "Wed, 18 Nov 2026 10:00:12 GMT" }, "body": null },
+      "expect": { "retry": true, "delay_ms": 12000 }
+    },
+    {
+      "name": "retry-after-http-date-in-the-past",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 503, "headers": { "retry-after": "Wed, 18 Nov 2026 09:59:00 GMT" }, "body": null },
+      "expect": { "retry": true, "delay_ms": 0 }
+    },
+    {
+      "name": "retry-after-zero",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 504, "headers": { "retry-after": "0" }, "body": null },
+      "expect": { "retry": true, "delay_ms": 0 }
+    },
+    {
+      "name": "retry-after-too-long",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 429, "headers": { "retry-after": "61" }, "body": { "type": "https://relay.example.com/v1/errors/rate_limited", "title": "Rate limit exceeded", "status": 429, "code": "rate_limited", "retryable": true, "retry_after": 61 } },
+      "expect": { "retry": false, "reason": "retry_after_too_long" }
+    },
+    {
+      "name": "retry-after-at-limit",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 429, "headers": { "retry-after": "60" }, "body": { "type": "https://relay.example.com/v1/errors/rate_limited", "title": "Rate limit exceeded", "status": 429, "code": "rate_limited", "retryable": true, "retry_after": 60 } },
+      "expect": { "retry": true, "delay_ms": 60000 }
+    },
+    {
+      "name": "retry-after-unparseable-falls-back",
+      "retry": 2,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 503, "headers": { "retry-after": "soon" }, "body": null },
+      "expect": { "retry": true, "delay_ms": 500 }
+    },
+    {
+      "name": "retry-after-negative-falls-back",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 503, "headers": { "retry-after": "-3" }, "body": null },
+      "expect": { "retry": true, "delay_ms": 250 }
+    },
+    {
+      "name": "body-retry-after-without-header",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 409, "headers": {}, "body": { "type": "https://relay.example.com/v1/errors/idempotency_key_in_progress", "title": "Request in progress", "status": 409, "code": "idempotency_key_in_progress", "retryable": true, "retry_after": 1 } },
+      "expect": { "retry": true, "delay_ms": 1000 }
+    },
+    {
+      "name": "not-retryable-with-retry-after",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 429, "headers": { "retry-after": "5" }, "body": { "type": "https://relay.example.com/v1/errors/quota_exhausted", "title": "Quota exhausted", "status": 429, "code": "quota_exhausted", "retryable": false } },
+      "expect": { "retry": false, "reason": "not_retryable" }
+    },
+    {
+      "name": "validation-not-retried",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 422, "headers": {}, "body": { "type": "https://relay.example.com/v1/errors/validation_failed", "title": "Validation failed", "status": 422, "code": "validation_failed", "retryable": false } },
+      "expect": { "retry": false, "reason": "not_retryable" }
+    },
+    {
+      "name": "bad-gateway-without-problem-not-retried",
+      "retry": 1,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 502, "headers": { "content-type": "text/html" }, "body": "<html>Bad Gateway</html>" },
+      "expect": { "retry": false, "reason": "not_retryable" }
+    },
+    {
+      "name": "unavailable-without-body-backoff",
+      "retry": 3,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 503, "headers": {}, "body": null },
+      "expect": { "retry": true, "delay_ms": 1000 }
+    },
+    {
+      "name": "retries-exhausted",
+      "retry": 4,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "response": { "status": 500, "headers": {}, "body": { "type": "https://relay.example.com/v1/errors/internal_error", "title": "Internal error", "status": 500, "code": "internal_error", "retryable": true } },
+      "expect": { "retry": false, "reason": "retries_exhausted" }
+    },
+    {
+      "name": "network-error-backoff",
+      "retry": 2,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "network_error": true,
+      "expect": { "retry": true, "delay_ms": 500 }
+    },
+    {
+      "name": "network-error-retries-exhausted",
+      "retry": 4,
+      "random": 0.5,
+      "now": "2026-11-18T10:00:00Z",
+      "network_error": true,
+      "expect": { "retry": false, "reason": "retries_exhausted" }
+    }
+  ]
+}

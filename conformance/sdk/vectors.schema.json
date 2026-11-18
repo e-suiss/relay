@@ -1,0 +1,468 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://relay.example.com/conformance/sdk/vectors.schema.json",
+  "title": "Relay SDK conformance vectors",
+  "description": "Schema of the language-neutral vector files under conformance/sdk/vectors/<version>/ that every Relay SDK is tested against.",
+  "type": "object",
+  "required": ["track", "version", "operation", "rule", "description"],
+  "properties": {
+    "track": { "const": "sdk" },
+    "version": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+    "operation": {
+      "enum": ["sdk.error_classify", "sdk.retry_decision", "sdk.idempotency", "sdk.paginate", "sdk.webhook_verify"]
+    },
+    "rule": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/rule_id" } },
+    "description": { "type": "string", "minLength": 1 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "operation": { "const": "sdk.error_classify" } } },
+      "then": { "$ref": "#/$defs/error_classify" }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "sdk.retry_decision" } } },
+      "then": { "$ref": "#/$defs/retry_decision" }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "sdk.idempotency" } } },
+      "then": { "$ref": "#/$defs/idempotency" }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "sdk.paginate" } } },
+      "then": { "$ref": "#/$defs/paginate" }
+    },
+    {
+      "if": { "properties": { "operation": { "const": "sdk.webhook_verify" } } },
+      "then": { "$ref": "#/$defs/webhook_verify" }
+    }
+  ],
+  "$defs": {
+    "rule_id": { "type": "string", "pattern": "^[A-Z]+-[0-9]+$" },
+    "name": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "error_class": { "enum": ["auth", "validation", "rate_limit", "idempotency", "server"] },
+    "status": { "type": "integer", "minimum": 100, "maximum": 599 },
+    "error_status": { "type": "integer", "minimum": 400, "maximum": 599 },
+    "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+    "headers": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z0-9-]+$" },
+      "additionalProperties": { "type": "string" }
+    },
+    "response": {
+      "type": "object",
+      "required": ["status", "headers", "body"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "$ref": "#/$defs/status" },
+        "headers": { "$ref": "#/$defs/headers" },
+        "body": {}
+      }
+    },
+    "network_error": {
+      "type": "object",
+      "required": ["network_error"],
+      "additionalProperties": false,
+      "properties": { "network_error": { "const": true } }
+    },
+    "error_classify": {
+      "type": "object",
+      "required": ["source", "classes", "family_classes", "fallback", "status_defaults", "cases", "catalog"],
+      "properties": {
+        "source": { "const": "contracts/errors.yaml" },
+        "classes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/error_class" },
+          "uniqueItems": true,
+          "minItems": 5,
+          "maxItems": 5
+        },
+        "family_classes": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/error_class" }
+        },
+        "fallback": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["status_min", "status_max", "class"],
+            "additionalProperties": false,
+            "properties": {
+              "status_min": { "$ref": "#/$defs/error_status" },
+              "status_max": { "$ref": "#/$defs/error_status" },
+              "class": { "$ref": "#/$defs/error_class" }
+            }
+          }
+        },
+        "status_defaults": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["status", "retryable"],
+            "additionalProperties": false,
+            "properties": {
+              "status": { "$ref": "#/$defs/error_status" },
+              "code": { "$ref": "#/$defs/code" },
+              "retryable": { "type": "boolean" },
+              "retry_after_seconds": {
+                "oneOf": [
+                  { "type": "integer", "minimum": 0 },
+                  { "type": "string", "pattern": "^[0-9]+-[0-9]+$" }
+                ]
+              },
+              "retry_after": { "const": "window" }
+            }
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "response", "expect"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/name" },
+              "response": { "$ref": "#/$defs/response" },
+              "expect": {
+                "type": "object",
+                "required": ["class", "code", "status", "retryable"],
+                "additionalProperties": false,
+                "properties": {
+                  "class": { "$ref": "#/$defs/error_class" },
+                  "code": { "oneOf": [{ "$ref": "#/$defs/code" }, { "type": "null" }] },
+                  "status": { "$ref": "#/$defs/error_status" },
+                  "retryable": { "type": "boolean" },
+                  "retry_after_s": { "type": "integer", "minimum": 0 },
+                  "request_id": { "type": "string" },
+                  "field_errors": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        "catalog": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["code", "family", "status", "retryable", "retry_after", "class"],
+            "additionalProperties": false,
+            "properties": {
+              "code": { "$ref": "#/$defs/code" },
+              "family": { "type": "string", "pattern": "^[a-z]+$" },
+              "status": { "$ref": "#/$defs/error_status" },
+              "retryable": { "type": "boolean" },
+              "retry_after": {
+                "type": "object",
+                "required": ["kind", "seconds", "max_seconds"],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": { "enum": ["none", "fixed", "range", "window"] },
+                  "seconds": { "type": ["integer", "null"], "minimum": 0 },
+                  "max_seconds": { "type": ["integer", "null"], "minimum": 0 }
+                }
+              },
+              "class": { "$ref": "#/$defs/error_class" }
+            }
+          }
+        }
+      }
+    },
+    "retry_decision": {
+      "type": "object",
+      "required": ["policy", "backoff", "decisions"],
+      "properties": {
+        "policy": {
+          "type": "object",
+          "required": ["max_retries", "base_ms", "cap_ms", "max_retry_after_s", "jitter"],
+          "additionalProperties": false,
+          "properties": {
+            "max_retries": { "type": "integer", "minimum": 0 },
+            "base_ms": { "type": "integer", "minimum": 1 },
+            "cap_ms": { "type": "integer", "minimum": 1 },
+            "max_retry_after_s": { "type": "integer", "minimum": 0 },
+            "jitter": { "const": "full" }
+          }
+        },
+        "backoff": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["retry", "random", "min_ms", "max_ms", "delay_ms"],
+            "additionalProperties": false,
+            "properties": {
+              "retry": { "type": "integer", "minimum": 1 },
+              "random": { "type": "number", "minimum": 0, "exclusiveMaximum": 1 },
+              "min_ms": { "type": "integer", "minimum": 0 },
+              "max_ms": { "type": "integer", "minimum": 0 },
+              "delay_ms": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "decisions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "retry", "random", "now", "expect"],
+            "oneOf": [{ "required": ["response"] }, { "required": ["network_error"] }],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/name" },
+              "retry": { "type": "integer", "minimum": 1 },
+              "random": { "type": "number", "minimum": 0, "exclusiveMaximum": 1 },
+              "now": { "type": "string", "format": "date-time" },
+              "response": { "$ref": "#/$defs/response" },
+              "network_error": { "const": true },
+              "expect": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": ["retry", "delay_ms"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "retry": { "const": true },
+                      "delay_ms": { "type": "integer", "minimum": 0 }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["retry", "reason"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "retry": { "const": false },
+                      "reason": { "enum": ["not_retryable", "retries_exhausted", "retry_after_too_long"] }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "idempotency": {
+      "type": "object",
+      "required": ["key_length", "cases"],
+      "properties": {
+        "key_length": {
+          "type": "object",
+          "required": ["min", "max"],
+          "additionalProperties": false,
+          "properties": {
+            "min": { "type": "integer", "minimum": 1 },
+            "max": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "calls"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/name" },
+              "distinct_keys_across_calls": { "type": "boolean" },
+              "calls": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["method", "path", "takes_idempotency_key", "responses", "expect"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "method": { "enum": ["GET", "POST", "PUT", "PATCH", "DELETE"] },
+                    "path": { "type": "string", "pattern": "^/v1/" },
+                    "takes_idempotency_key": { "type": "boolean" },
+                    "caller_idempotency": { "type": "string", "minLength": 8, "maxLength": 255 },
+                    "responses": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "oneOf": [{ "$ref": "#/$defs/response" }, { "$ref": "#/$defs/network_error" }]
+                      }
+                    },
+                    "expect": {
+                      "type": "object",
+                      "required": ["requests", "key_sent", "outcome"],
+                      "additionalProperties": false,
+                      "properties": {
+                        "requests": { "type": "integer", "minimum": 1 },
+                        "key_sent": { "type": "boolean" },
+                        "same_key_on_every_request": { "type": "boolean" },
+                        "sent_idempotency": { "type": "string" },
+                        "outcome": { "enum": ["success", "error"] },
+                        "replayed": { "type": "boolean" },
+                        "error_class": { "$ref": "#/$defs/error_class" },
+                        "error_code": { "$ref": "#/$defs/code" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "required": ["object", "data", "has_more", "next_cursor", "previous_cursor"],
+      "additionalProperties": false,
+      "properties": {
+        "object": { "const": "list" },
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": { "id": { "type": "string" } }
+          }
+        },
+        "has_more": { "type": "boolean" },
+        "next_cursor": { "type": ["string", "null"] },
+        "previous_cursor": { "type": ["string", "null"] }
+      }
+    },
+    "page_params": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "starting_after": { "type": "string", "minLength": 1 },
+        "ending_before": { "type": "string", "minLength": 1 }
+      }
+    },
+    "paginate": {
+      "type": "object",
+      "required": ["cases", "rejections"],
+      "properties": {
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "params", "exchanges", "expect"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/name" },
+              "params": { "$ref": "#/$defs/page_params" },
+              "take": { "type": "integer", "minimum": 1 },
+              "exchanges": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["query", "page"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "query": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "limit": { "type": "string", "pattern": "^[1-9][0-9]*$" },
+                        "starting_after": { "type": "string" },
+                        "ending_before": { "type": "string" }
+                      }
+                    },
+                    "page": { "$ref": "#/$defs/page" }
+                  }
+                }
+              },
+              "expect": {
+                "type": "object",
+                "required": ["items", "requests"],
+                "additionalProperties": false,
+                "properties": {
+                  "items": { "type": "array", "items": { "type": "string" } },
+                  "requests": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        "rejections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "params", "expect"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/name" },
+              "params": { "$ref": "#/$defs/page_params" },
+              "expect": {
+                "type": "object",
+                "required": ["requests", "error"],
+                "additionalProperties": false,
+                "properties": {
+                  "requests": { "const": 0 },
+                  "error": { "const": "both_cursors" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "webhook_verify": {
+      "type": "object",
+      "required": ["signatures", "cases"],
+      "properties": {
+        "signatures": { "const": "conformance/webhooks/vectors/1/signature.json" },
+        "cases": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "base", "keys", "headers", "expect"],
+            "additionalProperties": false,
+            "properties": {
+              "name": { "$ref": "#/$defs/name" },
+              "base": { "type": "string", "minLength": 1 },
+              "keys": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": { "enum": ["ed25519_public_key", "hmac_secret"] }
+              },
+              "now": { "type": "integer", "minimum": 0 },
+              "body_hex": { "type": "string", "pattern": "^([0-9a-f]{2})*$" },
+              "headers": {
+                "type": "object",
+                "additionalProperties": { "type": ["string", "null"] }
+              },
+              "expect": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": ["ok", "scheme"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "ok": { "const": true },
+                      "scheme": { "enum": ["v1a", "v1"] }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["ok", "error"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "ok": { "const": false },
+                      "error": {
+                        "enum": ["missing_header", "duplicate_header", "malformed_header", "timestamp_out_of_tolerance", "no_matching_signature"]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

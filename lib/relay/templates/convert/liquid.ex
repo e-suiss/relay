@@ -111,8 +111,7 @@ defmodule Relay.Templates.Convert.Liquid do
         {markup, ""}
 
       {at, _size} ->
-        {binary_part(markup, 0, at),
-         String.trim(binary_part(markup, at, byte_size(markup) - at))}
+        {binary_part(markup, 0, at), String.trim(binary_part(markup, at, byte_size(markup) - at))}
     end
   end
 
@@ -231,7 +230,7 @@ defmodule Relay.Templates.Convert.Liquid do
     end
   end
 
-  defp statement(name, args, trims, line, state) when is_map_key(@blocks, name) do
+  defp statement(name, _args, trims, line, state) when is_map_key(@blocks, name) do
     case state.stack do
       [{open, _line} | rest] ->
         if open in Map.fetch!(@blocks, name),
@@ -600,6 +599,7 @@ defmodule Relay.Templates.Convert.Liquid do
 
   defp lex(<<char, rest::binary>>, acc) when char in [?<, ?>],
     do: lex(rest, [{:op, <<char>>} | acc])
+
   defp lex(<<?., rest::binary>>, acc), do: lex(rest, [:dot | acc])
   defp lex(<<?[, rest::binary>>, acc), do: lex(rest, [:lbracket | acc])
   defp lex(<<?], rest::binary>>, acc), do: lex(rest, [:rbracket | acc])

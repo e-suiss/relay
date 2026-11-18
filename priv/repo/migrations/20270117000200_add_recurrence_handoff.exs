@@ -10,6 +10,7 @@ defmodule Relay.Repo.Migrations.AddRecurrenceHandoff do
     execute("ALTER TABLE relay.recurrences ADD COLUMN handoff_at timestamptz")
     execute("ALTER TABLE relay.recurrences ADD COLUMN handoff_last_run_at timestamptz")
     execute("ALTER TABLE relay.recurrences ADD COLUMN handoff_cursor text")
+
     execute(
       "ALTER TABLE relay.recurrences ADD COLUMN handoff_dry_run boolean NOT NULL DEFAULT false"
     )

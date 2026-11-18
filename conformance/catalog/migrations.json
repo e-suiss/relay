@@ -315,7 +315,7 @@
   {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"},
   {"file": "20270117000000_create_imports.exs", "sha256": "ceb2591052fefae0dafe9dd60ff3bd7194bbb507d4250d8aebdf15aefd493912"},
   {"file": "20270117000100_create_import_functions.exs", "sha256": "616d7c21632c0c4440ee14fce8f41c629cec30076685710dfca21c5067dd96e9"},
-  {"file": "20270117000200_add_recurrence_handoff.exs", "sha256": "93e500c9ab4adedc41e5975fd12332bdfddfcd05b30f0e59bda9bf2fd5a83429"},
+  {"file": "20270117000200_add_recurrence_handoff.exs", "sha256": "06c47216867a03e5607d531a0d696f11263b34eeec33a3a6baa2f4a6c0b95d4e"},
   {"file": "20270117000300_validate_recurrence_handoff_checks.exs", "sha256": "03e2ce1f4b025e9acd17ca5eadeb57a2aa321cf77a6f4ae7bbffd8c0abfabc58"},
   {"file": "20270117000400_rebuild_reference_check_for_imports.exs", "sha256": "def4ae4643669e1a39c6b1852408295b3caac4b843843a8b899afd7041762cba"}
 ]

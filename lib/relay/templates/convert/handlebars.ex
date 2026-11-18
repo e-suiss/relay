@@ -144,8 +144,7 @@ defmodule Relay.Templates.Convert.Handlebars do
         {markup, ""}
 
       {at, _size} ->
-        {binary_part(markup, 0, at),
-         String.trim(binary_part(markup, at, byte_size(markup) - at))}
+        {binary_part(markup, 0, at), String.trim(binary_part(markup, at, byte_size(markup) - at))}
     end
   end
 
@@ -417,13 +416,6 @@ defmodule Relay.Templates.Convert.Handlebars do
     end
   end
 
-  defp index_name(ctx) do
-    case Enum.find(ctx, &match?({tag, _name} when tag in [:loop, :index], &1)) do
-      {:index, name} -> name
-      _loop_or_none -> nil
-    end
-  end
-
   defp operand(literal, line, _ctx, state) do
     case literal do
       {:str, text} ->
@@ -433,6 +425,13 @@ defmodule Relay.Templates.Convert.Handlebars do
 
       other ->
         {state, other}
+    end
+  end
+
+  defp index_name(ctx) do
+    case Enum.find(ctx, &match?({tag, _name} when tag in [:loop, :index], &1)) do
+      {:index, name} -> name
+      _loop_or_none -> nil
     end
   end
 

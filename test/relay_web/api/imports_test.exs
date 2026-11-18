@@ -79,7 +79,8 @@ defmodule RelayWeb.Api.ImportsTest do
       assert is_list(report["data_residency"]["providers"])
     end
 
-    test "OP-55 (3): a refusal wins, a grant needs its evidence and an unknown stays unknown", ctx do
+    test "OP-55 (3): a refusal wins, a grant needs its evidence and an unknown stays unknown",
+         ctx do
       evidence = %{
         "occurred_at" => "2026-01-01T10:00:00Z",
         "consent_kind" => "explicit_opt_in",
@@ -244,6 +245,7 @@ defmodule RelayWeb.Api.ImportsTest do
       ]
 
       first = imported!(ctx, "scheduled", rows)["report"]
+
       assert [%{"line" => 1, "legacy_ref" => "job-1", "event_id" => "evt_" <> _}] =
                first["confirmations"]
 
@@ -254,7 +256,8 @@ defmodule RelayWeb.Api.ImportsTest do
       assert again["counts"]["unchanged"] == 1
     end
 
-    test "OP-97, OP-56: a cron job is handed over in one call and its first run is a dry run", ctx do
+    test "OP-97, OP-56: a cron job is handed over in one call and its first run is a dry run",
+         ctx do
       F.workflow!(ctx.scope, ctx.token, "reminder")
       external_id = "cron-" <> TenantFixture.random()
       body = %{"external_id" => external_id, "email" => "r@example.com"}

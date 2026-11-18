@@ -53,6 +53,28 @@ jobs:
         with:
           version-file: .tool-versions
           version-type: strict
+      - name: toolchain python
+        if: hashFiles('sdks/python/regenerate.sh') != ''
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.15.2"
+      - name: toolchain go
+        if: hashFiles('sdks/go/regenerate.sh') != ''
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.3"
+          cache: false
+      - name: toolchain ruby
+        if: hashFiles('sdks/ruby/regenerate.sh') != ''
+        uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: "4.0.9"
+      - name: toolchain php
+        if: hashFiles('sdks/php/regenerate.sh') != ''
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.5"
+          tools: composer
       - name: toolchain node
         if: hashFiles('web/regenerate.sh') != ''
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

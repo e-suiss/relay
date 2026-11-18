@@ -24230,6 +24230,386 @@ paths:
       x-relay-stage: 6
       x-relay-choice: true
       x-relay-choice-note: "Verification is a POST action that answers 202 with the account; the check itself runs as a job (contract choice)."
+  "/v1/provider_accounts/{provider_account_id}/status":
+    get:
+      operationId: getProviderAccountStatus
+      tags:
+        - channels
+      summary: Get the status of a provider account
+      description: "What the panel warns about for a provider account: whether it sends data abroad, that is whether a processing country of the account or of its provider's declaration lies outside the installation region (CH-6); the adapter version, whether the adapter receives traffic and the deprecated provider APIs it uses (CH-4); and the state of the provider circuit breaker and of the account's own breaker (T-25). Breaker state is node-local and read from the node that answers; a breaker that saw no call is closed."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/ManagedProviderAccountId"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Get the status of a provider account.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ProviderAccountStatus"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - provider_account_not_found
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "Path and response shape chosen by the contract; the reference country of an EU region is the EEA."
+  "/v1/provider_accounts/{provider_account_id}/email_domains":
+    get:
+      operationId: getProviderAccountEmailDomains
+      tags:
+        - channels
+      summary: Check the sending domains of an e-mail provider account
+      description: "The sending domain wizard (CH-36) for each e-mail stream the account's settings name: the DNS records to publish (return path CNAME, the DKIM selector TXT, the SPF TXT and the recommended DMARC record), the findings of a live DNS check (SPF lookup and void lookup counts, return path CNAME and alignment, DKIM key size, algorithm, selector rotation and multi-string records, DMARC by tree walk with legacy tag warnings) and whether the domain is verified, that is has no error finding. A record value Relay cannot know, such as a provider's SPF include or a DKIM public key not held here, is null. An account of another channel has no stream."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/ManagedProviderAccountId"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Check the sending domains of an e-mail provider account.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/EmailDomainCheckList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - provider_account_not_found
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "Path and response shape chosen by the contract; the checks run on request."
+  "/v1/email_warmup_plans":
+    get:
+      operationId: listEmailWarmupPlans
+      tags:
+        - channels
+      summary: List the e-mail warm-up plans
+      description: "The warm-up plans of new sending domains and IP addresses from the active email_warmup_plans data set (CH-42), or the bundled plans when no version is active; each step caps the mail of a day and, per recipient domain, of an hour. Mail over the plan is deferred, never refused."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: List the e-mail warm-up plans.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/EmailWarmupPlanList"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "Path and response shape chosen by the contract."
+  "/v1/channel_costs":
+    get:
+      operationId: quoteChannelCost
+      tags:
+        - channels
+      summary: Quote the cost of a paid channel
+      description: "The unit price and total of quantity units of a paid channel (sms, voice or whatsapp) for a destination country and an optional category, per provider account of the channel in the scope (CH-18): SMS and voice from the provider declaration's price table at the base volume tier, WhatsApp from the rate card in force (CH-58). A price the data does not hold is unpriced with a null price, never zero."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - name: channel
+          in: query
+          required: true
+          schema:
+            type: string
+            enum:
+              - sms
+              - voice
+              - whatsapp
+        - name: country
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^[A-Z]{2}$"
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+            pattern: "^[a-z][a-z_]{0,31}$"
+        - name: quantity
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10000000
+            default: 1
+      security:
+        - access_bearer:
+            - read
+        - access_bearer:
+            - config
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Quote the cost of a paid channel.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/ChannelCostQuote"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - validation_failed
+      x-relay-scopes:
+        - read
+        - config
+      x-relay-role: tenant_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "Path, parameters and response shape chosen by the contract; the base tier is the conservative price."
   "/v1/provider_invoices":
     get:
       operationId: listProviderInvoices

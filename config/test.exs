@@ -51,6 +51,10 @@ config :relay, keys: RelayTest.Keys
 
 config :relay, Relay.Webhooks, resolver: RelayTest.WebhookResolver
 
+config :relay, Relay.Channels.Email,
+  resolver: RelayTest.EmailResolver,
+  return_path_target: "bounces.relay.test"
+
 config :relay, Relay.Iys,
   runtime: Relay.Iys.Live,
   rate_limits: false,

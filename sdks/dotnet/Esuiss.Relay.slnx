@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/generator/">
+    <Project Path="generator/Esuiss.Relay.Generator/Esuiss.Relay.Generator.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Esuiss.Relay/Esuiss.Relay.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Esuiss.Relay.Tests/Esuiss.Relay.Tests.csproj" />
+  </Folder>
+</Solution>

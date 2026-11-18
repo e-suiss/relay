@@ -102,8 +102,16 @@ defmodule RelayWeb.Api.Response do
 
   # INV-2
   # API-51
-  @doc "Answers an exception raised while serving an API request: a database that cannot serve is `service_unavailable`, anything else `internal_error`."
+  # OP-88
+  # OP-30
+  @doc "Answers an exception raised while serving an API request: a database that cannot serve is `service_unavailable`, anything else `internal_error`. A request that waited too long for a free database connection is load shedding, not a failure: it is answered `503` with `Retry-After`, logged as a warning and counted as `[:relay, :postgres, :pool_shed]`."
   @spec exception(Plug.Conn.t(), Exception.t(), Exception.stacktrace()) :: Plug.Conn.t()
+  def exception(conn, %DBConnection.ConnectionError{reason: :queue_timeout}, _stacktrace) do
+    :telemetry.execute([:relay, :postgres, :pool_shed], %{count: 1}, %{})
+    Logger.warning("no database connection was free in time; the request is shed")
+    problem(conn, Relay.Error.new(:service_unavailable, "the request could not be served"))
+  end
+
   def exception(conn, exception, stacktrace) do
     Logger.error(Exception.format(:error, exception, stacktrace))
 

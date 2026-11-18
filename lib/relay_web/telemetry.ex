@@ -376,7 +376,9 @@ defmodule RelayWeb.Telemetry do
   # T-6
   # T-68 (3)
   # TN-62
-  @doc "The operations metrics: oldest job age per lane, provider breaker state, noisy neighbour shares, jobs per tenant (busiest tenants only) and the request budget counters."
+  # OP-88
+  # OP-30
+  @doc "The operations metrics: oldest job age and depth per lane, the connection pooling rule, database pool load shedding, provider breaker state, noisy neighbour shares, jobs per tenant (busiest tenants only) and the request budget counters."
   @spec operations_metrics() :: [Telemetry.Metrics.t()]
   def operations_metrics do
     [
@@ -385,6 +387,26 @@ defmodule RelayWeb.Telemetry do
         measurement: fn %{ms: ms} -> ms / 1000 end,
         tags: [:lane],
         description: "Age of the oldest job waiting in each lane"
+      ),
+      last_value("relay.queue.depth",
+        event_name: [:relay, :queue, :depth],
+        measurement: :count,
+        tags: [:lane],
+        description: "Available jobs waiting in each lane, capped at 100000"
+      ),
+      last_value("relay.postgres.pool_rule.exceeded",
+        event_name: [:relay, :postgres, :pool_rule],
+        measurement: :exceeded,
+        description: "1 when the nodes' connection demand exceeds half of max_connections without a pooler"
+      ),
+      last_value("relay.postgres.pool_rule.demand",
+        event_name: [:relay, :postgres, :pool_rule],
+        measurement: :demand,
+        description: "Connection demand of the installation: nodes times pool times two"
+      ),
+      counter("relay.postgres.pool_shed.total",
+        event_name: [:relay, :postgres, :pool_shed],
+        description: "API requests answered 503 because no database connection was free in time"
       ),
       last_value("relay.breaker.open",
         event_name: [:relay, :breaker, :state],

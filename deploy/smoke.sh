@@ -43,6 +43,10 @@ RELAY_ACCESS_CLIENT_ID=app_relay_smoke
 RELAY_ACCESS_PEP_CERT_FILE=/run/access-pep/tls.crt
 RELAY_ACCESS_CA_FILE=/run/access-pep/ca.crt
 RELAY_TRUSTED_PROXIES=0.0.0.0/0,::/0
+RELAY_REGION=tr
+RELAY_EGRESS_IPS=192.0.2.10
+RELAY_NODE_COUNT=1
+RELAY_DATABASE_POOLER=none
 PORT=${port}
 METRICS_PORT=${metrics_port}
 SECRET_KEY_BASE_FILE=/run/secret-key-base
@@ -175,6 +179,10 @@ curl -fsSI "$base/console/" | grep -qi "^content-security-policy: default-src 'n
 curl -fsS -H 'X-Forwarded-Proto: https' -H 'X-Forwarded-Host: relay.example' "$base/.well-known/relay-configuration" \
   | grep -q '"issuer": *"https://localhost"' || fail "a trusted proxy's HTTPS request was not served with the configured issuer"
 
+# OP-90
+curl -fsS -H 'X-Forwarded-Proto: https' "$base/.well-known/relay-configuration" | grep -q '"192.0.2.10"' \
+  || fail "the egress addresses are not published"
+
 # OP-71 (9)
 curl -fsS "http://localhost:${metrics_port}/metrics" | grep -q '^# TYPE relay_' || fail "metrics port does not serve /metrics"
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$base/metrics")" = 404 ] || fail "the API port serves /metrics"
@@ -209,6 +217,13 @@ if run -e RELAY_ROLES=api -e RELAY_TRUSTED_PROXIES=10.0.0.0/33 "$image" start >"
 fi
 grep -q "RELAY_TRUSTED_PROXIES names a malformed range" "$work/bad-proxies.log" \
   || { cat "$work/bad-proxies.log" >&2; fail "a malformed trusted proxy range was not reported"; }
+
+# OP-90
+if run -e RELAY_ROLES=api -e RELAY_REGION=eu "$image" start >"$work/wrong-region.log" 2>&1; then
+  fail "a node whose RELAY_REGION is not the installation region started"
+fi
+grep -q "region check failed" "$work/wrong-region.log" \
+  || { cat "$work/wrong-region.log" >&2; fail "a region mismatch was not reported"; }
 
 # TN-68 (1)
 if run -e RELAY_ROLES=api -e SECRET_KEY_BASE_FILE=/run/missing-secret-key-base "$image" start >"$work/no-key-base.log" 2>&1; then

@@ -2,7 +2,7 @@ defmodule Relay.Platform.LoadShed.Control do
   @moduledoc """
   One step of the `load_shed_controller` singleton task: sample the queue delay of every lane on the database clock, apply the CoDel law and the shedding order (`Relay.Platform.LoadShed.control/3`), record each transition under the controller's fencing token, and announce it on the `relay:s:signal:load_shed` signal. The lane timers live in the task state, so a new leader continues them.
 
-  Telemetry: `[:relay, :load_shed, :transition]` for every recorded transition with the lane, phase and rule, `[:relay, :load_shed, :delay]` with each lane's sample; an engaged `l0` is an alarm and is logged as an error.
+  Telemetry: `[:relay, :load_shed, :transition]` for every recorded transition with the lane, phase and rule, `[:relay, :load_shed, :delay]` with each lane's sample, `[:relay, :queue, :depth]` with the available jobs of each lane (T-6, OP-88); an engaged `l0` is an alarm and is logged as an error.
   """
 
   require Logger
@@ -24,6 +24,7 @@ defmodule Relay.Platform.LoadShed.Control do
     with {:ok, now_ms, delays} <- Store.sample(queues |> Map.values() |> List.flatten()),
          samples = Map.new(queues, fn {lane, names} -> {lane, lane_delay(names, delays)} end),
          :ok <- Enum.each(samples, fn {lane, delay} -> report(lane, delay) end),
+         :ok <- report_depth(queues),
          {states, transitions} = LoadShed.control(LoadShed.load(saved), samples, now_ms),
          :ok <- record(transitions, fencing_token) do
       if transitions != [], do: announce(states, now_ms)
@@ -44,6 +45,21 @@ defmodule Relay.Platform.LoadShed.Control do
 
   defp report(lane, delay),
     do: :telemetry.execute([:relay, :load_shed, :delay], %{ms: delay || 0}, %{lane: lane})
+
+  # T-6
+  # OP-88
+  defp report_depth(queues) do
+    case Store.depth(queues |> Map.values() |> List.flatten()) do
+      {:ok, depths} ->
+        Enum.each(queues, fn {lane, names} ->
+          count = names |> Enum.map(&Map.get(depths, &1, 0)) |> Enum.sum()
+          :telemetry.execute([:relay, :queue, :depth], %{count: count}, %{lane: lane})
+        end)
+
+      {:error, error} ->
+        Logger.debug("queue depth unreadable", code: error.code)
+    end
+  end
 
   defp record(transitions, token) do
     Enum.reduce_while(transitions, :ok, fn transition, :ok ->

@@ -1001,6 +1001,18 @@
       "class": "server"
     },
     {
+      "code": "wrong_region",
+      "family": "request",
+      "status": 421,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
       "code": "event_not_found",
       "family": "resource",
       "status": 404,

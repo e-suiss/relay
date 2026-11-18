@@ -24,3 +24,5 @@ auditStore:
   bucket: relay-audit
   region: eu-central-1
   accessKeyId: relay
+region: tr
+egressIps: [192.0.2.10, "2001:db8::10"]

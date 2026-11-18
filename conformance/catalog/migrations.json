@@ -312,5 +312,8 @@
   {"file": "20270111000200_validate_device_interruption_permissions_check.exs", "sha256": "11f18b43e09dfb2d8aa1abbaaeebc65a0b3ce3a2d7df56f689b3002b49c40270"},
   {"file": "20270111000300_create_fallback_zone_counts.exs", "sha256": "913c2a826e892013702885e8cab74e1540730e397e31ea80d036a06c0cb83915"},
   {"file": "20270111000400_create_kill_switch_effects.exs", "sha256": "63a2f9fe1285bdfc13a4451f18439c5cf2f3d180032f9e67fe4499291136cf47"},
-  {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"}
+  {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"},
+  {"file": "20270114000000_create_access_tenant_region_refused.exs", "sha256": "3284fd77f3d85b9c04431dc3707a6cd7632524b4900f3af0308447596aec3c1a"},
+  {"file": "20270114000100_index_access_event_receipts_region.exs", "sha256": "fe5f97a38d78a5f9a4bc275618b0a9071cdd0d142c3de1a13999609a23616092"},
+  {"file": "20270114000200_tune_hot_leaf_autovacuum.exs", "sha256": "eb3948c46bc08e0adf57392c2bdc34d4fb6686da0c5dedd26ac6899282af1194"}
 ]

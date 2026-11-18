@@ -174,3 +174,14 @@ GatewayTimeout:
     "application/problem+json":
       schema:
         "$ref": "./problem.yaml#/Problem"
+MisdirectedRequest:
+  description: "The token or request belongs to a tenant of another data region (wrong_region). Relay never forwards between regions; send the request to the base URL of the tenant's region."
+  headers:
+    Request-Id:
+      "$ref": "./headers.yaml#/Request-Id"
+    Relay-Version:
+      "$ref": "./headers.yaml#/Relay-Version"
+  content:
+    "application/problem+json":
+      schema:
+        "$ref": "./problem.yaml#/Problem"

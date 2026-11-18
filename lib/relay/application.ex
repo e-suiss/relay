@@ -69,7 +69,8 @@ defmodule Relay.Application do
         Relay.Realtime.children() ++
         Relay.Webhooks.children() ++
         Relay.Iys.children() ++
-        Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]
+        Relay.Platform.Leadership.children(roles) ++
+        [RelayWeb.Endpoint.supervised()] ++ Relay.Platform.drain_children()
 
     # T-45
     Supervisor.start_link(children,

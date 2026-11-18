@@ -53,6 +53,14 @@ if config_env() == :prod do
 
   config :relay, RelayWeb.Api, trusted_proxies: Relay.Config.Env.cidrs!("RELAY_TRUSTED_PROXIES")
 
+  config :relay, Relay.Region, configured: Relay.Config.Env.fetch!("RELAY_REGION")
+
+  config :relay, Relay.Api.Discovery, egress_ips: Relay.Config.Env.cidrs!("RELAY_EGRESS_IPS")
+
+  config :relay, Relay.Platform.PoolRule,
+    nodes: Relay.Config.Env.integer!("RELAY_NODE_COUNT"),
+    pooler: Relay.Config.Env.choice!("RELAY_DATABASE_POOLER", ["none", "pgbouncer"])
+
   config :relay, Relay.Api.PreviewSandbox, host: System.get_env("RELAY_PREVIEW_HOST")
 
   config :relay, Relay.Agents.Live,

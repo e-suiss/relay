@@ -114,6 +114,37 @@ defmodule Relay.Api.EdgeUnitTest do
 
       assert log =~ "pool timeout"
     end
+
+    test "OP-88: a request that waited too long for a database connection is shed with 503 and Retry-After" do
+      ref = make_ref()
+      parent = self()
+
+      :telemetry.attach(
+        ref,
+        [:relay, :postgres, :pool_shed],
+        fn _event, measurements, _meta, _ -> send(parent, {:shed, measurements}) end,
+        nil
+      )
+
+      on_exit(fn -> :telemetry.detach(ref) end)
+      conn = conn(:post, "https://relay.test/v1/events")
+      timeout = %DBConnection.ConnectionError{
+        message: "dropped from queue",
+        reason: :queue_timeout
+      }
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          shed = Response.exception(conn, timeout, [])
+          assert shed.status == 503
+          assert Plug.Conn.get_resp_header(shed, "retry-after") == ["5"]
+          assert Jason.decode!(shed.resp_body)["code"] == "service_unavailable"
+        end)
+
+      assert_received {:shed, %{count: 1}}
+      assert log =~ "the request is shed"
+      refute log =~ "dropped from queue"
+    end
   end
 
   describe "API-8 transport and API-55 beta" do

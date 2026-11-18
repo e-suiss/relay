@@ -43,6 +43,8 @@ config :relay, Relay.Platform.Leadership, enabled: false
 
 config :relay, Relay.Platform.LoadShed, watcher: false
 
+config :relay, Relay.Platform.Drain, enabled: false
+
 config :relay, Relay.Platform.Capacity, sampler: false
 
 config :relay, Relay.Tenancy.KillSwitch.Cache, enabled: false

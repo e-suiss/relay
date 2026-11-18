@@ -4,12 +4,19 @@ on:
   schedule:
     - cron: "17 2 * * *"
   workflow_dispatch:
+  pull_request:
+    paths:
+      - "load/drain.sh"
+      - ".github/workflows/nightly.yml"
+      - "lib_dev/relay_dev/drain.ex"
+      - "lib_dev/mix/tasks/relay.dev.drain.ex"
 
 permissions:
   contents: read
 
 jobs:
   full:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -50,10 +57,61 @@ jobs:
           name: load-shed-bench-${{ github.run_id }}
           path: load-shed-bench.txt
 
+  deploy-drain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      MIX_ENV: dev
+      SOFTHSM2_CONF: ${{ github.workspace }}/deploy/softhsm/softhsm2.conf
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends softhsm2 opensc
+      - run: rustup toolchain install
+        working-directory: native/pkcs11_port
+      - run: rustup toolchain install
+        working-directory: native/mjml_port
+      - name: relay port
+        run: |
+          native/build.sh
+          mkdir -p priv/native
+          cp native/pkcs11_port/target/release/pkcs11_port priv/native/pkcs11_port
+          cp native/pkcs11_port/target/release/pkcs11_port.sha256 priv/native/pkcs11_port.sha256
+          cp native/mjml_port/target/release/mjml_port priv/native/mjml_port
+          (cd priv/native && sha256sum mjml_port > mjml_port.sha256)
+      - name: relay keys
+        run: |
+          mkdir -p deploy/softhsm/tokens
+          softhsm2-util --init-token --free --label relay-dev --pin 1234 --so-pin 12345678
+          printf 1234 > deploy/softhsm/pin
+          PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so PKCS11_TOKEN=relay-dev PKCS11_PIN_FILE=deploy/softhsm/pin \
+            KEY_STORE_KEK_LABEL=kek-dev KEY_STORE_FINGERPRINT_LABEL=fingerprint-dev KEY_STORE_CURSOR_LABEL=cursor-dev \
+            KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
+      - name: relay test plane
+        run: |
+          echo 'config :relay, RelayWeb.Api, trusted_proxies: ["127.0.0.1/32"]' >> config/dev.exs
+          mix deps.get --check-locked
+          mix ecto.setup
+          mix relay.audit.store
+          mix relay.dev.seed || mix relay.dev.seed
+          mix compile
+      - run: load/drain.sh load/output/drain
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: deploy-drain-${{ github.run_id }}
+          path: load/output/drain
+
   live-destinations:
+    if: github.event_name != 'pull_request'
     uses: ./.github/workflows/live-destinations.yml
 
   load:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

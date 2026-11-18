@@ -26,6 +26,19 @@ defmodule Relay.Config.Env do
     end
   end
 
+  # OP-88
+  @doc "Returns a required environment variable that must be one of `choices`."
+  @spec choice!(String.t(), [String.t(), ...]) :: String.t()
+  def choice!(name, choices) do
+    value = fetch!(name)
+
+    unless value in choices do
+      raise Error, "environment variable #{name} must be one of: #{Enum.join(choices, ", ")}"
+    end
+
+    value
+  end
+
   # sobelow_skip ["Traversal.FileModule"]
   @doc "Reads a secret from the file named by a required environment variable."
   @spec file!(String.t()) :: String.t()

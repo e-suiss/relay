@@ -4,6 +4,10 @@ defmodule RelayWeb.MetricsTest do
   @rules "deploy/observability/alerts.yaml"
   @runbooks "deploy/observability/runbooks.md"
   @runbook_base "https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#"
+  @runbook_files "runbooks/"
+  @exporter_queries "deploy/helm/relay/files/postgres-exporter-queries.yaml"
+  @platform_metrics ~w(kubelet_volume_stats_available_bytes node_filesystem_avail_bytes
+                       container_memory_working_set_bytes)
   @reconciliation ~w(relay_reconciliation_drift_total relay_reconciliation_lag_milliseconds)
   @forbidden [:message_id, :campaign_id, :template_id, :recipient, :user, :device, :token, :pid]
 
@@ -66,6 +70,28 @@ defmodule RelayWeb.MetricsTest do
     for %{"rules" => rules} <- groups, rule <- rules, do: rule
   end
 
+  defp exporter_metrics do
+    {:ok, queries} = YamlElixir.read_from_file(@exporter_queries)
+
+    for {query, %{"metrics" => metrics}} <- queries,
+        metric <- metrics,
+        {column, %{"usage" => usage}} <- metric,
+        usage != "LABEL",
+        do: "#{query}_#{column}"
+  end
+
+  defp assert_runbook(@runbook_base <> anchor, alert, runbooks) do
+    assert anchor == String.downcase(alert), alert
+    assert runbooks =~ ~r/^## #{alert}$/m, alert
+  end
+
+  defp assert_runbook(@runbook_files <> file, alert, _runbooks) do
+    content = File.read!(Path.join("runbooks", file))
+    [_, front] = Regex.run(~r/\A---\n(.*?)\n---\n/s, content)
+    {:ok, meta} = YamlElixir.read_from_string(front)
+    assert alert in meta["alerts"], alert
+  end
+
   describe "OP-69 alarms" do
     test "OP-69: every alarm metric has an alert rule" do
       names = Enum.map(RelayWeb.Telemetry.alarm_metrics(), &prometheus_name/1)
@@ -77,7 +103,8 @@ defmodule RelayWeb.MetricsTest do
     test "OP-37: every alert reads an exported or recorded metric and links its runbook" do
       exported = Enum.map(RelayWeb.Telemetry.exported_metrics(), &prometheus_name/1)
       recorded = for rule <- rules(), rule["record"], uniq: true, do: rule["record"]
-      names = exported ++ recorded ++ @reconciliation ++ ["ALERTS"]
+      names = exported ++ recorded ++ @reconciliation ++ exporter_metrics() ++ @platform_metrics
+      names = names ++ ["ALERTS"]
       runbooks = File.read!(@runbooks)
 
       assert length(exported) == length(Enum.uniq(exported))
@@ -86,8 +113,7 @@ defmodule RelayWeb.MetricsTest do
         assert Enum.any?(names, &(rule["expr"] =~ ~r/\b#{Regex.escape(&1)}(_bucket)?\b/)), alert
         assert rule["labels"]["severity"] in ["page", "warning", "ticket"], alert
         assert rule["labels"]["decision"] =~ ~r/^[A-Z]+-\d+$/, alert
-        assert rule["annotations"]["runbook_url"] == @runbook_base <> String.downcase(alert)
-        assert runbooks =~ ~r/^## #{alert}$/m, alert
+        assert_runbook(rule["annotations"]["runbook_url"], alert, runbooks)
       end
     end
 

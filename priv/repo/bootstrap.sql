@@ -106,6 +106,7 @@ DECLARE
     "relay_ops.access_pairing_apply": ["relay_worker"],
     "relay_ops.access_pairing_seen": ["relay_worker"],
     "relay_ops.access_pairing_tenants": ["relay_worker"],
+    "relay_ops.access_tenant_region_refused": ["relay_api", "relay_worker"],
     "relay_ops.api_client_generation": ["relay_api", "relay_worker"],
     "relay_ops.api_client_resolve": ["relay_api", "relay_worker"],
     "relay_ops.audit_checkpoint_publication_record": ["relay_worker"],

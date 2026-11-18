@@ -83,6 +83,7 @@
                  "lib/relay/api/schema.ex",
                  "lib/relay/datasets.ex",
                  "lib/relay/platform/backend.ex",
+                 "lib/relay/platform/drain.ex",
                  "lib/relay/platform/load_shed.ex",
                  "lib/relay/tenancy/kill_switch/cache.ex"
                ]

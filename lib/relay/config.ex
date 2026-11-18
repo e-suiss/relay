@@ -27,6 +27,7 @@ defmodule Relay.Config do
     Relay.BulkRepo,
     Relay.ReportRepo,
     Relay.Platform.LoadShed,
+    Relay.Platform.Drain,
     Relay.Platform.Capacity,
     Relay.Platform.MaintRepo,
     Relay.Platform.Leadership,
@@ -66,6 +67,9 @@ defmodule Relay.Config do
     Relay.Preferences,
     RelayWeb.Links,
     Relay.Api.PreviewSandbox,
+    Relay.Api.Discovery,
+    Relay.Region,
+    Relay.Platform.PoolRule,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]
@@ -80,7 +84,10 @@ defmodule Relay.Config do
     "RELAY_TRUSTED_PROXIES",
     "RELAY_PREVIEW_HOST",
     "RELAY_CONNECTORS_FILE",
-    "RELAY_EMAIL_RETURN_PATH_TARGET"
+    "RELAY_EMAIL_RETURN_PATH_TARGET",
+    "RELAY_EGRESS_IPS",
+    "RELAY_NODE_COUNT",
+    "RELAY_DATABASE_POOLER"
   ]
   @audit_keys [:log_host, :checkpoint_key, :publishers]
   @production Mix.env() == :prod

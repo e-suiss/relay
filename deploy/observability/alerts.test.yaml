@@ -577,3 +577,182 @@ tests:
       - eval_time: 75m
         alertname: RelayAccessAccountUnresolved
         exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'kubelet_volume_stats_available_bytes{namespace="relay",persistentvolumeclaim="relay-pg-1"}'
+        values: "20x80"
+      - series: 'kubelet_volume_stats_capacity_bytes{namespace="relay",persistentvolumeclaim="relay-pg-1"}'
+        values: "100x80"
+      - series: 'kubelet_volume_stats_available_bytes{namespace="relay",persistentvolumeclaim="relay-pg-2"}'
+        values: "10x80"
+      - series: 'kubelet_volume_stats_capacity_bytes{namespace="relay",persistentvolumeclaim="relay-pg-2"}'
+        values: "100x80"
+      - series: 'kubelet_volume_stats_available_bytes{namespace="relay",persistentvolumeclaim="valkey-data"}'
+        values: "1x80"
+      - series: 'kubelet_volume_stats_capacity_bytes{namespace="relay",persistentvolumeclaim="valkey-data"}'
+        values: "100x80"
+      - series: 'relay_pg_long_transaction_max_age_seconds{instance="pg"}'
+        values: "2000x80"
+      - series: 'relay_pg_xid_age{instance="pg"}'
+        values: "1200000000x80"
+      - series: 'relay_pg_replication_slot_inactive_seconds{instance="pg",slot_name="standby_1",slot_type="physical"}'
+        values: "2000x80"
+      - series: 'relay_pg_replication_slot_retained_bytes{instance="pg",slot_name="standby_1",slot_type="physical"}'
+        values: "60000000000x80"
+      - series: 'relay_pg_replication_slot_wal_at_risk{instance="pg",slot_name="standby_1",slot_type="physical"}'
+        values: "1x80"
+      - series: 'relay_pg_archiver_failing{instance="pg"}'
+        values: "1x80"
+      - series: 'relay_pg_dead_tuples_ratio{instance="pg",schemaname="relay",relname="delivery_events_p20270114"}'
+        values: "0.3x80"
+      - series: 'relay_pg_dead_tuples_ratio{instance="pg",schemaname="relay",relname="outbox_events_p202701"}'
+        values: "0.1x80"
+      - series: 'relay_pg_invalid_index_count{instance="pg"}'
+        values: "1x80"
+      - series: 'relay_postgres_pool_rule_exceeded{instance="relay-all-1"}'
+        values: "1x80"
+      - series: 'container_memory_working_set_bytes{namespace="relay",pod="relay-all-1",container="relay"}'
+        values: "838860800x80"
+      - series: 'container_spec_memory_limit_bytes{namespace="relay",pod="relay-all-1",container="relay"}'
+        values: "1073741824x80"
+      - series: 'container_memory_working_set_bytes{namespace="relay",pod="relay-all-2",container="relay"}'
+        values: "1000000000x80"
+      - series: 'container_spec_memory_limit_bytes{namespace="relay",pod="relay-all-2",container="relay"}'
+        values: "1073741824x80"
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: RelayPostgresDiskHigh
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-31, persistentvolumeclaim: relay-pg-1}
+            exp_annotations:
+              summary: "A PostgreSQL volume is more than 70% full"
+              runbook_url: runbooks/postgres-disk.md
+          - exp_labels: {severity: warning, decision: OP-31, persistentvolumeclaim: relay-pg-2}
+            exp_annotations:
+              summary: "A PostgreSQL volume is more than 70% full"
+              runbook_url: runbooks/postgres-disk.md
+      - eval_time: 15m
+        alertname: RelayPostgresDiskCritical
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-31, persistentvolumeclaim: relay-pg-2}
+            exp_annotations:
+              summary: "A PostgreSQL volume is more than 85% full"
+              runbook_url: runbooks/postgres-disk.md
+      - eval_time: 2m
+        alertname: RelayPostgresLongTransaction
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-81}
+            exp_annotations:
+              summary: "A PostgreSQL transaction has been open for more than five minutes"
+              runbook_url: runbooks/postgres-long-transaction.md
+      - eval_time: 2m
+        alertname: RelayPostgresLongTransactionCritical
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-81}
+            exp_annotations:
+              summary: "A PostgreSQL transaction has been open for more than thirty minutes"
+              runbook_url: runbooks/postgres-long-transaction.md
+      - eval_time: 2m
+        alertname: RelayPostgresXidAge
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-81}
+            exp_annotations:
+              summary: "The oldest unfrozen transaction ID is more than 600 million transactions old"
+              runbook_url: runbooks/postgres-xid-age.md
+      - eval_time: 2m
+        alertname: RelayPostgresXidAgeCritical
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-81}
+            exp_annotations:
+              summary: "The oldest unfrozen transaction ID is more than one billion transactions old"
+              runbook_url: runbooks/postgres-xid-age.md
+      - eval_time: 2m
+        alertname: RelayPostgresSlotInactive
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-81, slot_name: standby_1}
+            exp_annotations:
+              summary: "Replication slot standby_1 has had no consumer for more than thirty minutes"
+              runbook_url: runbooks/postgres-replication-slot.md
+      - eval_time: 15m
+        alertname: RelayPostgresSlotWalRetention
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-81, slot_name: standby_1}
+            exp_annotations:
+              summary: "Replication slot standby_1 keeps more than 75% of max_slot_wal_keep_size"
+              runbook_url: runbooks/postgres-replication-slot.md
+      - eval_time: 2m
+        alertname: RelayPostgresSlotWalAtRisk
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-31, slot_name: standby_1}
+            exp_annotations:
+              summary: "Replication slot standby_1 is about to lose or has lost WAL it needs"
+              runbook_url: runbooks/postgres-replication-slot.md
+      - eval_time: 5m
+        alertname: RelayPostgresArchiverFailing
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: RelayPostgresArchiverFailing
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-81}
+            exp_annotations:
+              summary: "WAL archiving has been failing for ten minutes"
+              runbook_url: runbooks/postgres-archiver.md
+      - eval_time: 35m
+        alertname: RelayPostgresDeadTuples
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-81, schemaname: relay, relname: delivery_events_p20270114}
+            exp_annotations:
+              summary: "More than 20% of the rows of relay.delivery_events_p20270114 are dead"
+              runbook_url: runbooks/postgres-vacuum.md
+      - eval_time: 70m
+        alertname: RelayPostgresInvalidIndex
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: OP-81}
+            exp_annotations:
+              summary: "An invalid index is left behind by a failed concurrent index build"
+              runbook_url: runbooks/postgres-index-health.md
+      - eval_time: 20m
+        alertname: RelayPoolRuleExceeded
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-88}
+            exp_annotations:
+              summary: "The nodes' connection demand exceeds half of max_connections without a pooler"
+              runbook_url: runbooks/postgres-pool-rule.md
+      - eval_time: 10m
+        alertname: RelayContainerMemoryHigh
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: RelayContainerMemoryHigh
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-89, namespace: relay, pod: relay-all-1, container: relay}
+            exp_annotations:
+              summary: "relay-all-1 uses more than 75% of its memory limit"
+              runbook_url: runbooks/container-memory.md
+          - exp_labels: {severity: warning, decision: OP-89, namespace: relay, pod: relay-all-2, container: relay}
+            exp_annotations:
+              summary: "relay-all-2 uses more than 75% of its memory limit"
+              runbook_url: runbooks/container-memory.md
+      - eval_time: 5m
+        alertname: RelayContainerMemoryCritical
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-89, namespace: relay, pod: relay-all-2, container: relay}
+            exp_annotations:
+              summary: "relay-all-2 uses more than 90% of its memory limit"
+              runbook_url: runbooks/container-memory.md
+  - interval: 1m
+    input_series:
+      - series: 'relay_pg_index_bloat_ratio{instance="pg",schemaname="relay",indexname="deliveries_pkey"}'
+        values: "0.6x430"
+      - series: 'relay_pg_index_bloat_ratio{instance="pg",schemaname="relay",indexname="tenants_pkey"}'
+        values: "0.2x430"
+    alert_rule_test:
+      - eval_time: 5h
+        alertname: RelayPostgresIndexBloat
+        exp_alerts: []
+      - eval_time: 7h
+        alertname: RelayPostgresIndexBloat
+        exp_alerts:
+          - exp_labels: {severity: ticket, decision: OP-81, schemaname: relay, indexname: deliveries_pkey}
+            exp_annotations:
+              summary: "Index relay.deliveries_pkey is estimated to be more than half bloat"
+              runbook_url: runbooks/postgres-index-health.md

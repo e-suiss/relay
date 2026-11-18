@@ -13,3 +13,6 @@ scrape_configs:
     label_value_length_limit: 128
     static_configs:
       - targets: ["host.docker.internal:9568"]
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]

@@ -27,9 +27,56 @@ defmodule Relay.Datasets do
   @type publish_result :: :published | :exists | :dataset_not_found | :scope_not_allowed
   @type activate_result :: :activated | :already_active | :version_not_found | :operator_pinned
 
-  @doc "Supervised children: the node-local cache of active versions."
+  # OP-90
+  @doc "Supervised children: the region check and the node-local cache of active versions."
   @spec children() :: [Supervisor.child_spec()]
-  def children, do: [Supervisor.child_spec(Cache, [])]
+  def children, do: [region_check_child(), Supervisor.child_spec(Cache, [])]
+
+  # OP-90
+  # INV-41
+  @doc "Child specification that compares the configured region (`RELAY_REGION`, `config :relay, Relay.Region, configured: code`) with the installation's region in the database while the supervision tree starts; a mismatch stops the node. A node without a configured region (development and test) checks nothing."
+  @spec region_check_child() :: Supervisor.child_spec()
+  def region_check_child do
+    %{id: :relay_region_check, start: {__MODULE__, :start_region_check, []}, restart: :temporary}
+  end
+
+  @doc "Supervisor start function of `region_check_child/0`: `:ignore` when the regions match."
+  @spec start_region_check() :: :ignore | {:error, Relay.Error.t()}
+  def start_region_check do
+    configured = :relay |> Application.get_env(Relay.Region, []) |> Keyword.get(:configured)
+
+    case region_check(configured, &installation_region/0) do
+      :ok ->
+        :ignore
+
+      {:error, error} ->
+        Logger.error("region check failed; the node does not start",
+          details: inspect(error.details)
+        )
+
+        {:error, error}
+    end
+  end
+
+  # OP-90
+  # INV-41
+  @doc "Compares a configured region with the installation's region read by `installed`; `nil` checks nothing."
+  @spec region_check(String.t() | nil, (-> String.t())) :: :ok | {:error, Relay.Error.t()}
+  def region_check(nil, _installed), do: :ok
+
+  def region_check(configured, installed) when is_binary(configured) do
+    case installed.() do
+      ^configured ->
+        :ok
+
+      other ->
+        {:error,
+         Relay.Error.new(:region_mismatch, "RELAY_REGION is not the installation region", %{
+           configured: configured,
+           installation: other
+         })}
+    end
+  end
 
   @doc "Returns the installation scope: the installation tenant's `live` environment."
   @spec installation_scope() :: Scope.t()

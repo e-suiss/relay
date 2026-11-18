@@ -20,6 +20,15 @@ defmodule Relay.Platform.LoadShed.Store do
   FROM unnest($1::text[]) AS q(queue)
   """
 
+  @depth """
+  SELECT q.queue,
+    (SELECT count(*) FROM (SELECT 1 FROM relay_queue.oban_jobs o
+                           WHERE o.state = 'available' AND o.queue = q.queue
+                           LIMIT $2) AS d)
+  FROM unnest($1::text[]) AS q(queue)
+  """
+  @depth_cap 100_000
+
   @doc "Reads the queue delay of each queue on the database clock, `nil` for a queue without an available job, with the database time; `repo` defaults to `Relay.QueueRepo`."
   @spec sample([String.t()], module()) ::
           {:ok, integer(), %{String.t() => non_neg_integer() | nil}} | {:error, Relay.Error.t()}
@@ -30,6 +39,20 @@ defmodule Relay.Platform.LoadShed.Store do
 
       {:error, error} ->
         failure(error)
+    end
+  rescue
+    error in DBConnection.ConnectionError -> failure(error)
+  end
+
+  # T-6
+  # OP-88
+  @doc "Counts the available jobs of each queue, capped at `cap` so that a deep backlog costs a bounded index scan; `repo` defaults to `Relay.QueueRepo`."
+  @spec depth([String.t()], pos_integer(), module()) ::
+          {:ok, %{String.t() => non_neg_integer()}} | {:error, Relay.Error.t()}
+  def depth(queues, cap \\ @depth_cap, repo \\ QueueRepo) do
+    case repo.query(@depth, [queues, cap]) do
+      {:ok, %{rows: rows}} -> {:ok, Map.new(rows, fn [queue, count] -> {queue, count} end)}
+      {:error, error} -> failure(error)
     end
   rescue
     error in DBConnection.ConnectionError -> failure(error)

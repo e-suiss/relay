@@ -1,0 +1,53 @@
+{{- if .Values.keda.enabled }}
+{{- range .Values.nodes }}
+{{- if eq .name $.Values.keda.node }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ $.Release.Name }}-{{ .name }}
+  labels:
+    app.kubernetes.io/name: relay
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    relay.suiss.app/node: {{ .name }}
+spec:
+  scaleTargetRef:
+    name: {{ $.Release.Name }}-{{ .name }}
+  minReplicaCount: {{ $.Values.keda.minReplicas }}
+  maxReplicaCount: {{ $.Values.keda.maxReplicas }}
+  pollingInterval: {{ $.Values.keda.pollingIntervalSeconds }}
+  cooldownPeriod: {{ $.Values.keda.cooldownPeriodSeconds }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: {{ $.Values.keda.scaleDownStabilizationSeconds }}
+          policies:
+            - type: Pods
+              value: 1
+              periodSeconds: 120
+        scaleUp:
+          policies:
+            - type: Percent
+              value: 25
+              periodSeconds: 60
+  triggers:
+    {{- range $.Values.keda.lanes }}
+    - type: prometheus
+      name: {{ .lane }}-oldest-job-age
+      metricType: Value
+      metadata:
+        serverAddress: {{ required "keda.prometheusAddress is required" $.Values.keda.prometheusAddress | quote }}
+        query: {{ printf "max(relay_queue_oldest_job_age_seconds{lane=%q}) or vector(0)" .lane | quote }}
+        threshold: {{ .ageSeconds | quote }}
+    - type: prometheus
+      name: {{ .lane }}-depth
+      metricType: AverageValue
+      metadata:
+        serverAddress: {{ required "keda.prometheusAddress is required" $.Values.keda.prometheusAddress | quote }}
+        query: {{ printf "max(relay_queue_depth{lane=%q}) or vector(0)" .lane | quote }}
+        threshold: {{ .depthPerNode | quote }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

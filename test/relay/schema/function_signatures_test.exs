@@ -414,7 +414,16 @@ defmodule Relay.Schema.FunctionSignaturesTest do
     "relay_fn.agent_block_set" => ~w(blocked lifted unchanged sender_not_found),
     "relay_fn.agent_message_send" =>
       ~w(sent self sender_not_found recipient_not_found recipient_inactive token_required token_invalid token_replayed rate_limited),
-    "relay_fn.mailbox_abuse_report" => ~w(reported already_reported not_found)
+    "relay_fn.mailbox_abuse_report" => ~w(reported already_reported not_found),
+    "relay_private.archive_begin" => ~w(started not_leader not_detached),
+    "relay_private.archive_verified" => ~w(verified not_leader not_found not_started),
+    "relay_private.archive_failed" => ~w(failed not_found not_started),
+    "relay_private.archive_drop" =>
+      ~w(archived not_leader not_found not_verified not_detached count_mismatch lock_timeout),
+    "relay_private.restore_prepare" => ~w(prepared exists not_partitioned),
+    "relay_private.staging_create" => ~w(created exists not_found),
+    "relay_private.staging_attach" => ~w(attached lock_timeout not_found),
+    "relay_private.restore_seal" => ~w(sealed not_found)
   }
 
   defp functions do

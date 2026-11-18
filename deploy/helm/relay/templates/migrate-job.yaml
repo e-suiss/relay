@@ -36,6 +36,9 @@ spec:
             - name: audit-store-secret
               mountPath: /run/secrets/relay-audit-store
               readOnly: true
+            - name: archive-store-secret
+              mountPath: /run/secrets/relay-archive-store
+              readOnly: true
             - name: secret-key-base
               mountPath: /run/secrets/relay-secret-key-base
               readOnly: true
@@ -52,6 +55,8 @@ spec:
                 path: queue-database-password
               - key: maint-password
                 path: maint-database-password
+              - key: archive-password
+                path: archive-database-password
               - key: report-password
                 path: report-database-password
         - name: migrator-password
@@ -69,6 +74,12 @@ spec:
         - name: audit-store-secret
           secret:
             secretName: {{ $.Values.auditStore.secretAccessKeySecret }}
+            items:
+              - key: secret-access-key
+                path: secret-access-key
+        - name: archive-store-secret
+          secret:
+            secretName: {{ $.Values.archiveStore.secretAccessKeySecret }}
             items:
               - key: secret-access-key
                 path: secret-access-key

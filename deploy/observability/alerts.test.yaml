@@ -613,3 +613,30 @@ tests:
       - eval_time: 9h15m
         alertname: RelayWakeUpTest
         exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_archive_failures'
+        values: "1 2 3x10"
+      - series: 'relay_archive_backlog_age_seconds'
+        values: "172000 172800 172900x10"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: RelayArchiveFailing
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: RelayArchiveFailing
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-84}
+            exp_annotations:
+              summary: "The cold archive failed three or more attempts in a row"
+              runbook_url: runbooks/archive-failure.md
+      - eval_time: 1m
+        alertname: RelayArchiveBacklog
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: RelayArchiveBacklog
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-15}
+            exp_annotations:
+              summary: "A detached partition has waited more than two days for the cold archive"
+              runbook_url: runbooks/archive-failure.md

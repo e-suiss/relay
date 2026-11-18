@@ -29,6 +29,9 @@ defmodule Relay.Config do
     Relay.Platform.LoadShed,
     Relay.Platform.Capacity,
     Relay.Platform.MaintRepo,
+    Relay.Platform.ArchiveRepo,
+    Relay.Platform.Maintenance.ArchiveTask,
+    Relay.Parquet,
     Relay.Platform.Leadership,
     Relay.Trace,
     Relay.Delivery,
@@ -69,7 +72,14 @@ defmodule Relay.Config do
     Relay.TenantLifecycle,
     Oban
   ]
-  @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]
+  @repos [
+    Relay.Repo,
+    Relay.QueueRepo,
+    Relay.BulkRepo,
+    Relay.ReportRepo,
+    Relay.Platform.MaintRepo,
+    Relay.Platform.ArchiveRepo
+  ]
   @os_env_keys [
     "RELAY_HOST",
     "RELAY_ROLES",
@@ -179,7 +189,18 @@ defmodule Relay.Config do
       raise Error, "audit publisher #{target} must take its secret from Relay.Config.SecretFiles"
     end
 
-    :ok
+    validate_archive_secret!(app_env)
+  end
+
+  # OP-84
+  # TN-67 (3)
+  defp validate_archive_secret!(app_env) do
+    archive = Keyword.get(app_env, Relay.Platform.Maintenance.ArchiveTask) || []
+    secret = get_in(archive, [:store, :secret_access_key])
+
+    if secret != nil and not callback?(secret),
+      do: raise(Error, "the archive store must take its secret from Relay.Config.SecretFiles"),
+      else: :ok
   end
 
   defp callback?({module, function, args})

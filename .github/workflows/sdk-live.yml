@@ -43,6 +43,8 @@ jobs:
         working-directory: native/pkcs11_port
       - run: rustup toolchain install
         working-directory: native/mjml_port
+      - run: rustup toolchain install
+        working-directory: native/archive_port
       - name: relay port
         run: |
           native/build.sh
@@ -51,6 +53,8 @@ jobs:
           cp native/pkcs11_port/target/release/pkcs11_port.sha256 priv/native/pkcs11_port.sha256
           cp native/mjml_port/target/release/mjml_port priv/native/mjml_port
           (cd priv/native && sha256sum mjml_port > mjml_port.sha256)
+          cp native/archive_port/target/release/archive_port priv/native/archive_port
+          (cd priv/native && sha256sum archive_port > archive_port.sha256)
       - name: relay keys
         run: |
           mkdir -p deploy/softhsm/tokens

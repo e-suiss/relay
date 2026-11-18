@@ -80,7 +80,7 @@ it cannot, the generic text stays on the lock screen.
 ## Development
 
 The models in `Sources/EsuissRelayAPI` are generated from the subscriber OpenAPI contract by a pinned
-`swift-openapi-generator`; run `scripts/generate.sh` and commit the result. CI regenerates and fails on
+`swift-openapi-generator`; run `regenerate.sh` and commit the result. CI regenerates and fails on
 any difference.
 
 Licensed under Apache-2.0.

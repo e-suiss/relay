@@ -76,7 +76,7 @@ RelayThemeProvider(RelayTheme(accent = brandColor)) {
 ## Development
 
 The models in `relay/src/generated` are generated from the subscriber OpenAPI contract by a pinned
-OpenAPI Generator; run `scripts/generate.sh` and commit the result. CI regenerates and fails on any
+OpenAPI Generator; run `regenerate.sh` and commit the result. CI regenerates and fails on any
 difference. Dependencies are locked (`relay/gradle.lockfile`) and verified
 (`gradle/verification-metadata.xml`).
 

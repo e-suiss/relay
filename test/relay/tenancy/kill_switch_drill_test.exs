@@ -40,7 +40,8 @@ defmodule Relay.Tenancy.KillSwitchDrillTest do
       %Snapshot{index: index} ->
         index |> Map.values() |> List.flatten() |> Enum.any?(&(&1.id == id))
 
-      :unknown -> false
+      :unknown ->
+        false
     end
   end
 

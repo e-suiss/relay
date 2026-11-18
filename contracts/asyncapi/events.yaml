@@ -526,6 +526,10 @@ channels:
         "$ref": "#/components/messages/audit.takedown.applied"
       audit.takedown.lifted:
         "$ref": "#/components/messages/audit.takedown.lifted"
+      audit.fault_injection.engaged:
+        "$ref": "#/components/messages/audit.fault_injection.engaged"
+      audit.fault_injection.cleared:
+        "$ref": "#/components/messages/audit.fault_injection.cleared"
       audit.channel_identity.changed:
         "$ref": "#/components/messages/audit.channel_identity.changed"
       audit.channel_identity.retired:
@@ -890,6 +894,8 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.sender_identity.archived"
       - "$ref": "#/channels/auditLog/messages/audit.takedown.applied"
       - "$ref": "#/channels/auditLog/messages/audit.takedown.lifted"
+      - "$ref": "#/channels/auditLog/messages/audit.fault_injection.engaged"
+      - "$ref": "#/channels/auditLog/messages/audit.fault_injection.cleared"
       - "$ref": "#/channels/auditLog/messages/audit.channel_identity.changed"
       - "$ref": "#/channels/auditLog/messages/audit.channel_identity.retired"
       - "$ref": "#/channels/auditLog/messages/audit.push_critical.changed"
@@ -8593,6 +8599,42 @@ components:
       x-relay-stage: 11
       x-relay-choice: true
       x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.fault_injection.engaged:
+      name: fault_injection.engaged
+      title: fault_injection.engaged
+      summary: "The installation operator engaged a fault injection for a game day or a chaos test."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: fault_injection
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
+    audit.fault_injection.cleared:
+      name: fault_injection.cleared
+      title: fault_injection.cleared
+      summary: "The installation operator cleared a fault injection before its TTL."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: fault_injection
+      x-relay-surface: audit
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: Audit action name chosen by the contract within the audit event families.
     audit.channel_identity.changed:
       name: channel_identity.changed
       title: channel_identity.changed
@@ -9526,6 +9568,8 @@ x-relay-event-names:
   - export.failed
   - export.requested
   - fanout.cancelled
+  - fault_injection.cleared
+  - fault_injection.engaged
   - inbox.counters_changed
   - inbox.item_created
   - inbox.item_updated

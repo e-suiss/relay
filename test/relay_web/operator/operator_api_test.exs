@@ -1138,6 +1138,7 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       clear = "/v1/operator/fault_injections/#{engaged["id"]}/clear"
       cleared = json(request(:post, clear, body: %{"reason" => "done"}, as: operator), 200)
       assert cleared["status"] == "cleared"
+
       assert json(request(:post, clear, body: %{"reason" => "done"}, as: operator), 200)["id"] ==
                engaged["id"]
 

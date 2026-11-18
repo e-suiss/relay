@@ -79,6 +79,7 @@ defmodule Relay.FaultInjectionTest do
   describe "OP-92 records and their gates" do
     test "OP-92: a test environment injection is engaged with its audit record" do
       spec = spec(channel: "sms", provider: "fake")
+
       assert {:ok, %{result: :engaged, id: "fij_" <> _ = external}} =
                FaultInjection.engage(spec, @operator)
 

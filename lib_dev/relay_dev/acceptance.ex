@@ -167,8 +167,10 @@ defmodule RelayDev.Acceptance do
     sender = Task.async(fn -> keep_sending(config, []) end)
     Process.sleep(3_000)
     started = System.monotonic_time(:millisecond)
+
     {_output, exit_status} =
       System.cmd("sh", ["-c", config.failover_command], stderr_to_stdout: true)
+
     Process.sleep(30_000)
     send(sender.pid, :stop)
     sent = Task.await(sender, 120_000)
@@ -207,6 +209,7 @@ defmodule RelayDev.Acceptance do
   defp archive_restore(config) do
     {_output, exit_status} =
       System.cmd("sh", ["-c", config.restore_command], stderr_to_stdout: true)
+
     {if(exit_status == 0, do: :passed, else: :failed), %{command_exit: exit_status}}
   end
 
@@ -313,7 +316,9 @@ defmodule RelayDev.Acceptance do
 
     credentials =
       case auth do
-        nil -> []
+        nil ->
+          []
+
         %{token: token, proof: proof} ->
           [{"authorization", "DPoP " <> token}, {"dpop", proof.(verb, public)}]
       end
@@ -334,7 +339,9 @@ defmodule RelayDev.Acceptance do
     options = if body, do: Keyword.put(options, :json, body), else: options
 
     case Req.request(options) do
-      {:ok, response} -> response
+      {:ok, response} ->
+        response
+
       {:error, exception} ->
         %Req.Response{status: 0, body: %{"error" => Exception.message(exception)}}
     end

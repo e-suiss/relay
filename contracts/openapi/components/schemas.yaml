@@ -3181,7 +3181,13 @@ TestRender:
     output:
       oneOf:
         - type: object
-          description: "The channel's rendered fields, such as subject, html and text for e-mail or title and body for the inbox."
+          description: "The channel's rendered fields, such as subject and text for e-mail or title and body for the inbox. E-mail HTML is never in it: it is shown only through sandbox_url."
+        - type: "null"
+    sandbox_url:
+      description: "For a render with HTML, the short-lived link of the sandboxed preview origin, shown only in an iframe with an empty sandbox attribute (TP-24, TP-39); null when no preview host is configured or the render has no HTML."
+      oneOf:
+        - type: string
+          format: uri
         - type: "null"
     rendered_at:
       "$ref": "#/Timestamp"
@@ -3834,6 +3840,52 @@ CategoryList:
           type: array
           items:
             "$ref": "#/Category"
+Subtenant:
+  type: object
+  description: "A sub-tenant: an organization of the tenant in Access, mirrored by Relay (TN-3)."
+  required:
+    - object
+    - id
+    - access_organization_id
+    - name
+    - state
+    - archived_at
+    - created_at
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: subtenant
+    id:
+      "$ref": "#/Id_stn"
+    access_organization_id:
+      type: string
+      maxLength: 128
+    name:
+      type: string
+      maxLength: 200
+    state:
+      type: string
+      enum:
+        - active
+        - archived
+    archived_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+SubtenantList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/Subtenant"
 CategoryCreate:
   type: object
   description: "Create a category. message_class is fixed here. locked defaults to false (always true for security), enabled to true, channel_defaults to empty and digest_allowed to false; default_expires_in and frequency left out apply the class defaults."

@@ -86,11 +86,10 @@ jobs:
       - id: scope
         env:
           EVENT: ${{ github.event_name }}
-          PR_BASE: ${{ github.event.pull_request.base.sha }}
           BEFORE: ${{ github.event.before }}
         run: |
           case "$EVENT" in
-            pull_request) base="$PR_BASE" ;;
+            pull_request) base=$(git rev-parse HEAD^1) ;;
             push) base="$BEFORE" ;;
             *) base="" ;;
           esac

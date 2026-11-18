@@ -32,6 +32,8 @@ jobs:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - name: toolchain java
         if: hashFiles('sdks/java/regenerate.sh') != ''
         uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
@@ -104,28 +106,20 @@ jobs:
       - name: commit and open the pull request
         run: |
           if [ -s "$RUNNER_TEMP/changes" ]; then
-            base_tree=$(gh api "repos/$REPO/git/commits/$GITHUB_SHA" --jq .tree.sha)
-            entries='[]'
-            while IFS="$(printf '\t')" read -r status path; do
-              if [ "$status" = "D" ]; then
-                entry=$(jq -n --arg path "$path" '{path: $path, mode: "100644", type: "blob", sha: null}')
-              else
-                mode=100644
-                [ -x "$path" ] && mode=100755
-                blob=$(base64 -w0 "$path" | jq -Rs '{content: ., encoding: "base64"}' | gh api "repos/$REPO/git/blobs" --input - --jq .sha)
-                entry=$(jq -n --arg path "$path" --arg mode "$mode" --arg sha "$blob" '{path: $path, mode: $mode, type: "blob", sha: $sha}')
-              fi
-              entries=$(jq -c --argjson entry "$entry" '. + [$entry]' <<< "$entries")
-            done < "$RUNNER_TEMP/changes"
-            tree=$(jq -n --arg base "$base_tree" --argjson tree "$entries" '{base_tree: $base, tree: $tree}' | gh api "repos/$REPO/git/trees" --input - --jq .sha)
-            commit=$(jq -n --arg message "$MESSAGE" --arg tree "$tree" --arg parent "$GITHUB_SHA" '{message: $message, tree: $tree, parents: [$parent]}' | gh api "repos/$REPO/git/commits" --input - --jq .sha)
-            if gh api "repos/$REPO/git/ref/heads/$BRANCH" > /dev/null 2>&1; then
-              gh api -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" -f sha="$commit" -F force=true > /dev/null
-            else
-              gh api "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$commit" > /dev/null
-            fi
+            result=$(bash .github/scripts/sdk-regenerate-push.sh)
+          else
+            result=unchanged
+          fi
+          if [ "$result" = "updated" ]; then
             if [ -z "$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number')" ]; then
-              gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$MESSAGE" --body "Regenerates the code generated from contracts/ on main: every sdks/*/regenerate.sh and web/regenerate.sh."
+              if ! gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$MESSAGE" --body "Regenerates the code generated from contracts/ on main: every sdks/*/regenerate.sh and web/regenerate.sh." 2> "$RUNNER_TEMP/pr.err"; then
+                cat "$RUNNER_TEMP/pr.err"
+                if grep -qi "not permitted to create or approve pull requests" "$RUNNER_TEMP/pr.err"; then
+                  echo "::notice::$BRANCH is updated; open its pull request by hand"
+                else
+                  exit 1
+                fi
+              fi
             fi
             gh workflow run ci.yml --repo "$REPO" --ref "$BRANCH"
             cut -f2 "$RUNNER_TEMP/changes" | awk -F/ '$1 == "sdks" { print $1 "/" $2; next } { print $1 }' | sort -u > "$RUNNER_TEMP/dirs"

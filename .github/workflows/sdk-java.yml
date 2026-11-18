@@ -48,9 +48,13 @@ jobs:
         name: drift check scope
         env:
           EVENT: ${{ github.event_name }}
-          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BEFORE: ${{ github.event.before }}
         run: |
           own=true
+          BASE="$BEFORE"
+          if [ "$EVENT" = "pull_request" ]; then
+            BASE=$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD^1)
+          fi
           if [ "$EVENT" != "workflow_dispatch" ] && [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
             if git -C "$GITHUB_WORKSPACE" diff --quiet "$BASE" HEAD -- sdks/java .github/workflows/sdk-java.yml; then
               own=false

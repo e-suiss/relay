@@ -312,5 +312,10 @@
   {"file": "20270111000200_validate_device_interruption_permissions_check.exs", "sha256": "11f18b43e09dfb2d8aa1abbaaeebc65a0b3ce3a2d7df56f689b3002b49c40270"},
   {"file": "20270111000300_create_fallback_zone_counts.exs", "sha256": "913c2a826e892013702885e8cab74e1540730e397e31ea80d036a06c0cb83915"},
   {"file": "20270111000400_create_kill_switch_effects.exs", "sha256": "63a2f9fe1285bdfc13a4451f18439c5cf2f3d180032f9e67fe4499291136cf47"},
-  {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"}
+  {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"},
+  {"file": "20270117000000_create_imports.exs", "sha256": "ceb2591052fefae0dafe9dd60ff3bd7194bbb507d4250d8aebdf15aefd493912"},
+  {"file": "20270117000100_create_import_functions.exs", "sha256": "616d7c21632c0c4440ee14fce8f41c629cec30076685710dfca21c5067dd96e9"},
+  {"file": "20270117000200_add_recurrence_handoff.exs", "sha256": "93e500c9ab4adedc41e5975fd12332bdfddfcd05b30f0e59bda9bf2fd5a83429"},
+  {"file": "20270117000300_validate_recurrence_handoff_checks.exs", "sha256": "03e2ce1f4b025e9acd17ca5eadeb57a2aa321cf77a6f4ae7bbffd8c0abfabc58"},
+  {"file": "20270117000400_rebuild_reference_check_for_imports.exs", "sha256": "def4ae4643669e1a39c6b1852408295b3caac4b843843a8b899afd7041762cba"}
 ]

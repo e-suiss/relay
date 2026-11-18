@@ -411,6 +411,13 @@ defmodule RelayWeb.Router do
 
     get "/exports/:export_id", ExportController, :show, private: %{relay_operation: "getExport"}
 
+    post "/imports", ImportController, :create, private: %{relay_operation: "createImport"}
+
+    get "/imports/:import_id", ImportController, :show, private: %{relay_operation: "getImport"}
+
+    post "/recurrence_handoffs", RecurrenceController, :handoff,
+      private: %{relay_operation: "createRecurrenceHandoff"}
+
     get "/recurrences", RecurrenceController, :index,
       private: %{relay_operation: "listRecurrences"}
 

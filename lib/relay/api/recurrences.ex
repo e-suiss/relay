@@ -25,6 +25,7 @@ defmodule Relay.Api.Recurrences do
   @sweep_min_age_ms 60_000
   @audience_rule "recurrence.audience_too_large"
   @missed_rule "recurrence.missed"
+  @handoff_rule "recurrence.handoff_dry_run"
   @suspended_snooze_s 300
   @lanes [:l1, :l2, :l3]
 
@@ -99,6 +100,75 @@ defmodule Relay.Api.Recurrences do
         {:error, limit_reached()}
     end
   end
+
+  # OP-97
+  # OP-56
+  @doc "Checks a cron handover outside any transaction: the rule is prepared as `prepare/2` does, and the legacy scheduler's next run must be the rule's first occurrence after now and its last run before it."
+  @spec prepare_handoff(Scope.t(), map()) :: {:ok, map()} | {:error, Relay.Error.t()}
+  def prepare_handoff(%Scope{} = scope, body) do
+    with {:ok, next_run_at} <- handoff_time(body["next_run_at"], "/next_run_at"),
+         {:ok, last_run_at} <- handoff_time(body["last_run_at"], "/last_run_at"),
+         {:ok, prepared} <- nested(prepare(scope, body["recurrence"])),
+         :ok <- handoff_match(prepared.attrs.next_at, next_run_at, last_run_at) do
+      {:ok, Map.put(prepared, :handoff, %{last_run_at: last_run_at, cursor: body["cursor"]})}
+    end
+  end
+
+  # OP-97
+  # OP-56
+  @doc "Records a prepared handover in one transaction, the request's: the rule, its handover state with a first occurrence that runs as a dry run, and its timer; `201` with its view."
+  @spec create_handoff(Scope.t(), map(), Relay.Actor.t()) :: answer()
+  def create_handoff(%Scope{} = scope, %{attrs: attrs, handoff: handoff} = prepared, actor) do
+    digest = digest(scope, "recurrence.created", attrs.id)
+
+    with :created <- Relay.Workflow.create_recurrence(attrs, digest, actor),
+         :handed_over <-
+           Relay.Workflow.handoff_recurrence(attrs.id, handoff.last_run_at, handoff.cursor) do
+      :ok = Relay.Workflow.queue_job!(timer(scope, attrs.id, attrs.fire_at))
+      row = Relay.Workflow.view_recurrence(attrs.id)
+      location = [{"location", "/v1/recurrences/" <> Views.id(@prefix, attrs.id)}]
+      {:ok, {201, location, view(row, prepared.subscriber_id)}}
+    else
+      :limit_reached -> {:error, limit_reached()}
+      _not_new -> {:error, handoff_mismatch("the rule cannot be handed over")}
+    end
+  end
+
+  defp handoff_time(nil, "/last_run_at"), do: {:ok, nil}
+
+  defp handoff_time(text, pointer) when is_binary(text) do
+    case DateTime.from_iso8601(text) do
+      {:ok, at, _offset} -> {:ok, at}
+      {:error, _reason} -> field(pointer, "invalid_format", "not a time")
+    end
+  end
+
+  defp handoff_time(_text, pointer), do: field(pointer, "required", "a time is required")
+
+  defp handoff_match(next_at, next_run_at, last_run_at) do
+    expected = DateTime.truncate(next_at, :second)
+
+    cond do
+      DateTime.compare(expected, DateTime.truncate(next_run_at, :second)) != :eq ->
+        {:error,
+         handoff_mismatch("the rule's first occurrence is #{DateTime.to_iso8601(expected)}")}
+
+      last_run_at != nil and DateTime.compare(last_run_at, next_run_at) != :lt ->
+        {:error, handoff_mismatch("the last run is not before the next run")}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp handoff_mismatch(detail), do: Relay.Error.new(:recurrence_handoff_mismatch, detail)
+
+  defp nested({:error, %Relay.Error{details: %{errors: errors}} = error}) when is_list(errors) do
+    errors = Enum.map(errors, &%{&1 | pointer: "/recurrence" <> &1.pointer})
+    {:error, %{error | details: %{error.details | errors: errors}}}
+  end
+
+  defp nested(result), do: result
 
   # WF-48
   @doc "Reads a rule in its own read transaction, with the subscriber's external id decrypted."
@@ -175,9 +245,21 @@ defmodule Relay.Api.Recurrences do
       "cancelled_at" => row["cancelled_at"],
       "completed_at" => row["completed_at"],
       "created_at" => row["created_at"],
-      "updated_at" => row["updated_at"]
+      "updated_at" => row["updated_at"],
+      "handoff" => handoff_view(row)
     }
   end
+
+  defp handoff_view(%{"handoff_at" => %DateTime{} = at} = row) do
+    %{
+      "handed_over_at" => at,
+      "last_run_at" => row["handoff_last_run_at"],
+      "cursor" => row["handoff_cursor"],
+      "dry_run_pending" => row["handoff_dry_run"] == true and row["occurrence_count"] == 0
+    }
+  end
+
+  defp handoff_view(_row), do: nil
 
   defp last(nil), do: nil
 
@@ -252,6 +334,19 @@ defmodule Relay.Api.Recurrences do
   end
 
   defp run(scope, %{send: nil} = due), do: record(scope, due, [])
+
+  # OP-97
+  defp run(scope, %{row: %{"handoff_dry_run" => true, "occurrence_count" => 0}} = due) do
+    key = "recurrence:" <> occurrence_key(due)
+
+    with {:ok, body} <- event_body(scope, due),
+         {:ok, _prepared} <- Events.prepare(context(scope), body, dedup_key: key) do
+      record(scope, due, [skipped(due.send, @handoff_rule)])
+    else
+      :erased -> erased(scope, due.row["id"])
+      {:error, error} -> refused(scope, due, error)
+    end
+  end
 
   defp run(scope, due) do
     case event_body(scope, due) do

@@ -35,6 +35,23 @@ defmodule RelayWeb.Api.RecurrenceController do
     end
   end
 
+  # OP-97
+  # OP-56
+  @spec handoff(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def handoff(conn, _params) do
+    %{scope: scope, body: body} = conn.assigns
+    actor = Work.actor(conn)
+
+    case Recurrences.prepare_handoff(scope, body) do
+      {:ok, prepared} ->
+        work = fn _status -> Recurrences.create_handoff(scope, prepared, actor) end
+        Work.idempotent(conn, work)
+
+      {:error, error} ->
+        Response.problem(conn, error)
+    end
+  end
+
   # WF-48
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, params) do

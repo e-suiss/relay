@@ -4828,6 +4828,80 @@ func (c *Client) VerifyProviderAccount(ctx context.Context, providerAccountID ID
 	return out, nil
 }
 
+// GetProviderAccountStatus calls GET /v1/provider_accounts/{provider_account_id}/status: Get the status of a provider account
+func (c *Client) GetProviderAccountStatus(ctx context.Context, providerAccountID IDPva, opts ...RequestOption) (*ProviderAccountStatus, error) {
+	r := newRequest("GET", "/v1/provider_accounts/"+pathSegment(providerAccountID)+"/status", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(ProviderAccountStatus)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GetProviderAccountEmailDomains calls GET /v1/provider_accounts/{provider_account_id}/email_domains: Check the sending domains of an e-mail provider account
+func (c *Client) GetProviderAccountEmailDomains(ctx context.Context, providerAccountID IDPva, opts ...RequestOption) (*EmailDomainCheckList, error) {
+	r := newRequest("GET", "/v1/provider_accounts/"+pathSegment(providerAccountID)+"/email_domains", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(EmailDomainCheckList)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ListEmailWarmupPlans calls GET /v1/email_warmup_plans: List the e-mail warm-up plans
+func (c *Client) ListEmailWarmupPlans(ctx context.Context, opts ...RequestOption) (*EmailWarmupPlanList, error) {
+	r := newRequest("GET", "/v1/email_warmup_plans", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(EmailWarmupPlanList)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// QuoteChannelCostParams holds the query and header parameters of QuoteChannelCost.
+type QuoteChannelCostParams struct {
+	Channel  string
+	Country  string
+	Category *string
+	Quantity *int64
+}
+
+// QuoteChannelCost calls GET /v1/channel_costs: Quote the cost of a paid channel
+func (c *Client) QuoteChannelCost(ctx context.Context, params *QuoteChannelCostParams, opts ...RequestOption) (*ChannelCostQuote, error) {
+	r := newRequest("GET", "/v1/channel_costs", false)
+	if params != nil {
+		r.addQuery("channel", formatValue(params.Channel))
+		r.addQuery("country", formatValue(params.Country))
+		if params.Category != nil {
+			r.addQuery("category", formatValue(*params.Category))
+		}
+		if params.Quantity != nil {
+			r.addQuery("quantity", formatValue(*params.Quantity))
+		}
+	}
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(ChannelCostQuote)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ListProviderInvoicesParams holds the query and header parameters of ListProviderInvoices.
 type ListProviderInvoicesParams struct {
 	Limit         *int64

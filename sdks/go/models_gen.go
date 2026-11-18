@@ -252,6 +252,9 @@ type BrandPatch struct {
 	PostalAddress  *string `json:"postal_address,omitempty"`
 }
 
+// BreakerState: A circuit breaker state as the answering node sees it; a breaker that saw no call is closed (T-25).
+type BreakerState = string
+
 // Campaign: A campaign (API-35, WF-44): its audience, its preview (X-14), its approvals (WF-62) and its progress record (T-23).
 type Campaign struct {
 	Object       string             `json:"object"`
@@ -614,6 +617,31 @@ type ChannelAdapterDeprecationsItem struct {
 type ChannelAdapterList struct {
 	Object string           `json:"object"`
 	Data   []ChannelAdapter `json:"data"`
+}
+
+// ChannelCostQuote: The cost of a paid channel selection per provider account (CH-18).
+type ChannelCostQuote struct {
+	Object   string                     `json:"object"`
+	Channel  string                     `json:"channel"`
+	Country  string                     `json:"country"`
+	Category *string                    `json:"category"`
+	Quantity int64                      `json:"quantity"`
+	Data     []ChannelCostQuoteDataItem `json:"data"`
+}
+
+// ChannelCostQuoteDataItem is generated from the Relay API contract.
+type ChannelCostQuoteDataItem struct {
+	ProviderAccountID IDPva   `json:"provider_account_id"`
+	Provider          string  `json:"provider"`
+	Routable          bool    `json:"routable"`
+	Paid              bool    `json:"paid"`
+	Priced            bool    `json:"priced"`
+	Source            string  `json:"source"`
+	Currency          *string `json:"currency"`
+	Unit              *string `json:"unit"`
+	UnitPriceMicros   *int64  `json:"unit_price_micros"`
+	TotalMicros       *int64  `json:"total_micros"`
+	TierFrom          *int64  `json:"tier_from"`
 }
 
 // ChannelDefaults: Default of each channel for subscribers who set nothing.
@@ -996,6 +1024,54 @@ type EmailCell struct {
 	TranslationApprovedBy *string `json:"translation_approved_by,omitempty"`
 }
 
+// EmailDomainCheck: The sending domain wizard of one e-mail stream (CH-36).
+type EmailDomainCheck struct {
+	Object    string                         `json:"object"`
+	Stream    string                         `json:"stream"`
+	Domain    string                         `json:"domain"`
+	Verified  bool                           `json:"verified"`
+	CheckedAt string                         `json:"checked_at"`
+	Records   []EmailDomainCheckRecordsItem  `json:"records"`
+	Findings  []EmailDomainCheckFindingsItem `json:"findings"`
+	Spf       EmailDomainCheckSpf            `json:"spf"`
+	Dmarc     *EmailDomainCheckDmarc         `json:"dmarc"`
+}
+
+// EmailDomainCheckDmarc is generated from the Relay API contract.
+type EmailDomainCheckDmarc struct {
+	Name      string  `json:"name"`
+	Policy    *string `json:"policy"`
+	OrgDomain string  `json:"org_domain"`
+}
+
+// EmailDomainCheckFindingsItem is generated from the Relay API contract.
+type EmailDomainCheckFindingsItem struct {
+	Severity string `json:"severity"`
+	Code     string `json:"code"`
+	Subject  string `json:"subject"`
+}
+
+// EmailDomainCheckList is generated from the Relay API contract.
+type EmailDomainCheckList struct {
+	Object string             `json:"object"`
+	Data   []EmailDomainCheck `json:"data"`
+}
+
+// EmailDomainCheckRecordsItem is generated from the Relay API contract.
+type EmailDomainCheckRecordsItem struct {
+	Purpose string  `json:"purpose"`
+	Type    string  `json:"type"`
+	Name    string  `json:"name"`
+	Value   *string `json:"value"`
+}
+
+// EmailDomainCheckSpf is generated from the Relay API contract.
+type EmailDomainCheckSpf struct {
+	Record      *string `json:"record"`
+	Lookups     int64   `json:"lookups"`
+	VoidLookups int64   `json:"void_lookups"`
+}
+
 // EmailOverride: Email override; from must be on a verified domain or the request fails with channel_not_configured.
 type EmailOverride struct {
 	Provider *string `json:"provider,omitempty"`
@@ -1070,6 +1146,28 @@ type EmailTracking struct {
 type EmailTrackingWrite struct {
 	OpenPixel bool `json:"open_pixel"`
 	WrapLinks bool `json:"wrap_links"`
+}
+
+// EmailWarmupPlanList: The warm-up plans of the active email_warmup_plans data set (CH-42).
+type EmailWarmupPlanList struct {
+	Object string                        `json:"object"`
+	Data   []EmailWarmupPlanListDataItem `json:"data"`
+}
+
+// EmailWarmupPlanListDataItem is generated from the Relay API contract.
+type EmailWarmupPlanListDataItem struct {
+	ID        string                                 `json:"id"`
+	AppliesTo string                                 `json:"applies_to"`
+	UntilDay  int64                                  `json:"until_day"`
+	Steps     []EmailWarmupPlanListDataItemStepsItem `json:"steps"`
+}
+
+// EmailWarmupPlanListDataItemStepsItem is generated from the Relay API contract.
+type EmailWarmupPlanListDataItemStepsItem struct {
+	FromDay         int64            `json:"from_day"`
+	DailyCap        int64            `json:"daily_cap"`
+	DomainHourlyCap int64            `json:"domain_hourly_cap"`
+	Domains         map[string]int64 `json:"domains"`
 }
 
 // EncryptedEnvelope: An end-to-end encrypted envelope (AG-56).
@@ -2375,6 +2473,51 @@ type ProviderAccountPatch struct {
 
 // ProviderAccountRole: Route role of a provider account (CH-13).
 type ProviderAccountRole = string
+
+// ProviderAccountStatus: The panel warnings of a provider account: data sent abroad (CH-6), adapter deprecation (CH-4) and circuit breaker state (T-25).
+type ProviderAccountStatus struct {
+	Object            string                              `json:"object"`
+	ProviderAccountID IDPva                               `json:"provider_account_id"`
+	Channel           Channel                             `json:"channel"`
+	Provider          string                              `json:"provider"`
+	DataResidency     ProviderAccountStatusDataResidency  `json:"data_residency"`
+	Adapter           ProviderAccountStatusAdapter        `json:"adapter"`
+	CircuitBreaker    ProviderAccountStatusCircuitBreaker `json:"circuit_breaker"`
+}
+
+// ProviderAccountStatusAdapter is generated from the Relay API contract.
+type ProviderAccountStatusAdapter struct {
+	Declared           bool                                           `json:"declared"`
+	AdapterVersion     *string                                        `json:"adapter_version"`
+	Activated          bool                                           `json:"activated"`
+	DeprecationWarning bool                                           `json:"deprecation_warning"`
+	Deprecations       []ProviderAccountStatusAdapterDeprecationsItem `json:"deprecations"`
+}
+
+// ProviderAccountStatusAdapterDeprecationsItem is generated from the Relay API contract.
+type ProviderAccountStatusAdapterDeprecationsItem struct {
+	API      string  `json:"api"`
+	SunsetOn *string `json:"sunset_on"`
+}
+
+// ProviderAccountStatusCircuitBreaker is generated from the Relay API contract.
+type ProviderAccountStatusCircuitBreaker struct {
+	Provider   BreakerState `json:"provider"`
+	Account    BreakerState `json:"account"`
+	ObservedBy string       `json:"observed_by"`
+}
+
+// ProviderAccountStatusDataResidency is generated from the Relay API contract.
+type ProviderAccountStatusDataResidency struct {
+	SendsDataAbroad             bool          `json:"sends_data_abroad"`
+	ReferenceRegion             string        `json:"reference_region"`
+	AbroadCountries             []string      `json:"abroad_countries"`
+	InInstallation              bool          `json:"in_installation"`
+	ProcessingCountries         CountryList   `json:"processing_countries"`
+	DeclaredProcessingCountries []string      `json:"declared_processing_countries"`
+	TransferBasis               TransferBasis `json:"transfer_basis"`
+	SccNotifiedOn               *string       `json:"scc_notified_on"`
+}
 
 // ProviderInvoice: A provider invoice of the tenant environment with its latest reconciliation (OP-38, OP-42).
 type ProviderInvoice struct {

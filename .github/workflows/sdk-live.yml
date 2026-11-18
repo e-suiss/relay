@@ -49,6 +49,8 @@ jobs:
           mkdir -p priv/native
           cp native/pkcs11_port/target/release/pkcs11_port priv/native/pkcs11_port
           cp native/pkcs11_port/target/release/pkcs11_port.sha256 priv/native/pkcs11_port.sha256
+          cp native/mjml_port/target/release/mjml_port priv/native/mjml_port
+          (cd priv/native && sha256sum mjml_port > mjml_port.sha256)
       - name: relay keys
         run: |
           mkdir -p deploy/softhsm/tokens

@@ -58,6 +58,7 @@ readiness="$(line 'drain: readiness withdrawn')"
 queues="$(line 'drain: queues stopped taking jobs')"
 jobs="$(line 'drain: running jobs finished')"
 realtime="$(line 'drain: realtime connections closed')"
+echo "drain: phases at log lines readiness=$readiness queues=$queues jobs=$jobs realtime=$realtime"
 [ -n "$readiness" ] && [ -n "$queues" ] && [ -n "$jobs" ] && [ -n "$realtime" ] || fail "a drain phase is missing from the log"
 [ "$readiness" -lt "$queues" ] && [ "$queues" -lt "$jobs" ] && [ "$jobs" -lt "$realtime" ] || fail "the drain phases ran out of order"
 

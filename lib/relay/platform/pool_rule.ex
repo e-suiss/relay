@@ -32,7 +32,7 @@ defmodule Relay.Platform.PoolRule do
       {Relay.Platform.MaintRepo, true, 2},
       {Relay.ReportRepo, Relay.ReportRepo.enabled?(), 4},
       {Relay.QueueRepo, worker?, 2},
-      {Relay.BulkRepo, worker?, nil}
+      {Relay.BulkRepo, worker?, pool_size(Relay.Repo, 10)}
     ]
     |> Enum.filter(fn {_repo, open?, _default} -> open? end)
     |> Enum.map(fn {repo, _open?, default} -> pool_size(repo, default) end)
@@ -68,12 +68,10 @@ defmodule Relay.Platform.PoolRule do
     verdict
   end
 
-  defp pool_size(Relay.BulkRepo, nil) do
-    :relay
-    |> Application.get_env(Relay.BulkRepo, [])
-    |> Keyword.get_lazy(:pool_size, fn -> pool_size(Relay.Repo, 10) end)
+  defp pool_size(repo, default) do
+    case :relay |> Application.get_env(repo, []) |> Keyword.get(:pool_size) do
+      size when is_integer(size) and size >= 0 -> size
+      _unset -> default
+    end
   end
-
-  defp pool_size(repo, default),
-    do: :relay |> Application.get_env(repo, []) |> Keyword.get(:pool_size, default)
 end

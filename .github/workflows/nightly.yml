@@ -95,6 +95,7 @@ jobs:
         run: |
           echo 'config :relay, RelayWeb.Api, trusted_proxies: ["127.0.0.1/32"]' >> config/dev.exs
           echo 'config :relay, RelayWeb.Endpoint, code_reloader: false' >> config/dev.exs
+          echo 'config :logger, level: :info' >> config/dev.exs
           mix deps.get --check-locked
           mix ecto.setup
           mix relay.audit.store

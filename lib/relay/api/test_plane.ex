@@ -178,7 +178,7 @@ defmodule Relay.Api.TestPlane do
       _ = Relay.Preferences.create_category(scope, category(), actor)
 
       case Relay.TemplateStore.template(@template, nil) do
-        nil -> Templates.create(scope, at, template_body(), actor)
+        nil -> created(Templates.create(scope, at, template_body(), actor))
         %{"live_version_no" => live} when is_integer(live) -> :live
         %{} -> :draft
       end
@@ -192,7 +192,17 @@ defmodule Relay.Api.TestPlane do
     end
   end
 
+  defp created({:error, %Relay.Error{code: :resource_conflict}}), do: :draft
+  defp created(answer), do: answer
+
   defp publish_template(scope, at, actor) do
+    case try_publish_template(scope, at, actor) do
+      :ok -> :ok
+      error -> if template_live(scope) == :ok, do: :ok, else: error
+    end
+  end
+
+  defp try_publish_template(scope, at, actor) do
     with {:ok, prepared} <- Templates.prepare_publish(scope, at, %{"accept_warnings" => true}) do
       publish = fn _status ->
         %{"version" => version} = Relay.TemplateStore.template(@template, nil)
@@ -204,6 +214,15 @@ defmodule Relay.Api.TestPlane do
         {:ok, {:error, error}} -> {:error, error}
         {:error, reason} -> {:error, reason}
       end
+    end
+  end
+
+  defp template_live(scope) do
+    read = fn _status -> Relay.TemplateStore.template(@template, nil) end
+
+    case Relay.TemplateStore.in_scope(scope, read) do
+      {:ok, %{"live_version_no" => live}} when is_integer(live) -> :ok
+      other -> {:error, {:sample_template_not_live, other}}
     end
   end
 
@@ -247,8 +266,11 @@ defmodule Relay.Api.TestPlane do
     end
 
     case Relay.TemplateStore.in_scope(scope, create) do
-      {:ok, {:ok, {:created, _id, _version}}} -> publish(scope, actor)
-      other -> {:error, other}
+      {:ok, {:ok, {result, _id, _version}}} when result in [:created, :key_conflict] ->
+        publish(scope, actor)
+
+      other ->
+        {:error, other}
     end
   end
 
@@ -257,12 +279,20 @@ defmodule Relay.Api.TestPlane do
       Relay.Workflow.request_publication(scope, @workflow, nil, "test plane sample", actor)
     end
 
-    with {:ok, {:ok, {result, version_id}}} when result in [:pending, :already_pending] <-
-           Relay.TemplateStore.in_scope(scope, request),
-         {:ok, {:published, _errors}} <- Relay.Workflow.run_gate(scope, version_id) do
-      :ok
-    else
-      other -> {:error, other}
+    case Relay.TemplateStore.in_scope(scope, request) do
+      {:ok, {:ok, {result, version_id}}} when result in [:pending, :already_pending] ->
+        _ = Relay.Workflow.run_gate(scope, version_id)
+        published(scope)
+
+      _other ->
+        published(scope)
+    end
+  end
+
+  defp published(scope) do
+    case Relay.Workflow.resolve_published(scope, @workflow) do
+      {:ok, {:ok, _published}} -> :ok
+      other -> {:error, {:sample_not_published, other}}
     end
   end
 

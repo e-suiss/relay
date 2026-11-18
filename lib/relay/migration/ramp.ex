@@ -37,7 +37,7 @@ defmodule Relay.Migration.Ramp do
 
   # OP-53
   @doc "The largest share a raise from `previous` may reach."
-  @spec ceiling(non_neg_integer()) :: non_neg_integer()
+  @spec ceiling(non_neg_integer()) :: number()
   def ceiling(previous), do: min(max(previous * @factor, @floor), 10_000)
 
   defp step(previous, previous, _at, _now), do: :same

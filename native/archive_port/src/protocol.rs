@@ -32,24 +32,12 @@ pub enum Status {
 /// A decoded request.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Request<'a> {
-    Open {
-        path: &'a str,
-        columns: Vec<String>,
-    },
-    Rows {
-        count: u32,
-        body: &'a [u8],
-    },
+    Open { path: &'a str, columns: Vec<String> },
+    Rows { count: u32, body: &'a [u8] },
     Close,
-    Verify {
-        path: &'a str,
-    },
-    ReadOpen {
-        path: &'a str,
-    },
-    ReadNext {
-        max_rows: u32,
-    },
+    Verify { path: &'a str },
+    ReadOpen { path: &'a str },
+    ReadNext { max_rows: u32 },
 }
 
 /// One row of a `Rows` request: its canonical encoding and its column values.
@@ -179,11 +167,7 @@ pub fn decode(frame: &[u8]) -> Result<Request<'_>, DecodeError> {
 }
 
 /// Splits the body of a `Rows` request into `count` rows of `columns` values each; every value is `0` for null or `1`, a four-byte length and the bytes.
-pub fn split_rows(
-    body: &[u8],
-    count: u32,
-    columns: usize,
-) -> Result<Vec<RawRow<'_>>, DecodeError> {
+pub fn split_rows(body: &[u8], count: u32, columns: usize) -> Result<Vec<RawRow<'_>>, DecodeError> {
     let mut cursor = Cursor { buf: body, at: 0 };
     let mut rows = Vec::new();
     for _ in 0..count {
@@ -225,12 +209,7 @@ pub fn encode_summary(rows: u64, digest: &[u8; 32], bytes: u64) -> Vec<u8> {
 }
 
 /// Encodes a successful verification: the summary followed by the column names of the file.
-pub fn encode_verified(
-    rows: u64,
-    digest: &[u8; 32],
-    bytes: u64,
-    columns: &[String],
-) -> Vec<u8> {
+pub fn encode_verified(rows: u64, digest: &[u8; 32], bytes: u64, columns: &[String]) -> Vec<u8> {
     let mut out = encode_summary(rows, digest, bytes);
     push_columns(&mut out, columns);
     out
@@ -340,7 +319,10 @@ mod tests {
         ] {
             assert_eq!(decode(&frame).unwrap_err().status, Status::BadRequest);
         }
-        assert_eq!(decode(&[2, OP_CLOSE]).unwrap_err().status, Status::UnsupportedVersion);
+        assert_eq!(
+            decode(&[2, OP_CLOSE]).unwrap_err().status,
+            Status::UnsupportedVersion
+        );
     }
 
     #[test]
@@ -368,8 +350,14 @@ mod tests {
         assert_eq!(&summary[42..50], &9u64.to_be_bytes());
         let verified = encode_verified(0, &[0; 32], 0, &["id".to_owned()]);
         assert_eq!(&verified[50..], &[0, 1, 0, 2, b'i', b'd']);
-        assert_eq!(encode_columns(&["id".to_owned()]), [VERSION, 0, 0, 1, 0, 2, b'i', b'd']);
+        assert_eq!(
+            encode_columns(&["id".to_owned()]),
+            [VERSION, 0, 0, 1, 0, 2, b'i', b'd']
+        );
         assert_eq!(encode_rows(1, &[0]), [VERSION, 0, 0, 0, 0, 1, 0]);
-        assert_eq!(encode_failure(Status::Io, "x"), [VERSION, Status::Io as u8, 0, 0, 0, 1, b'x']);
+        assert_eq!(
+            encode_failure(Status::Io, "x"),
+            [VERSION, Status::Io as u8, 0, 0, 0, 1, b'x']
+        );
     }
 }

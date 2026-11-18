@@ -153,9 +153,11 @@ impl Writer {
                 .values
                 .get(index)
                 .ok_or(Error::Shape("file has more columns than the schema"))?;
-            column
-                .typed::<ByteArrayType>()
-                .write_batch(values, Some(self.levels[index].as_slice()), None)?;
+            column.typed::<ByteArrayType>().write_batch(
+                values,
+                Some(self.levels[index].as_slice()),
+                None,
+            )?;
             column.close()?;
             index += 1;
         }
@@ -403,8 +405,14 @@ pub mod tests {
             writer.push(&[1, 0, 0, 0, 1, 0xff], &[Some(&[0xff][..])]),
             Err(Error::Encoding)
         ));
-        assert!(matches!(writer.push(&[0, 0], &[None, None]), Err(Error::Shape(_))));
+        assert!(matches!(
+            writer.push(&[0, 0], &[None, None]),
+            Err(Error::Shape(_))
+        ));
         assert!(matches!(Writer::create(&path, &names), Err(Error::Io(_))));
-        assert!(matches!(Writer::create(&scratch("none.parquet"), &[]), Err(Error::Shape(_))));
+        assert!(matches!(
+            Writer::create(&scratch("none.parquet"), &[]),
+            Err(Error::Shape(_))
+        ));
     }
 }

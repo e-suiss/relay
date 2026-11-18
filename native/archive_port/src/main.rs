@@ -180,7 +180,10 @@ fn absolute(path: &str) -> Result<&Path, Vec<u8>> {
     if path.is_absolute() {
         Ok(path)
     } else {
-        Err(protocol::encode_failure(Status::BadRequest, "path is not absolute"))
+        Err(protocol::encode_failure(
+            Status::BadRequest,
+            "path is not absolute",
+        ))
     }
 }
 
@@ -280,7 +283,10 @@ mod tests {
         assert!(matches!(read_frame(&mut reader), Ok(Some(Frame::Body(body))) if body == b"abc"));
         assert!(read_frame(&mut reader).unwrap().is_none());
         let mut oversized: &[u8] = &[0xff, 0xff, 0xff, 0xff];
-        assert!(matches!(read_frame(&mut oversized), Ok(Some(Frame::TooLarge(_)))));
+        assert!(matches!(
+            read_frame(&mut oversized),
+            Ok(Some(Frame::TooLarge(_)))
+        ));
         let mut truncated: &[u8] = &[0, 0, 0, 9, 1];
         assert!(read_frame(&mut truncated).is_err());
         let mut short: &[u8] = &[1, 2];
@@ -301,7 +307,10 @@ mod tests {
         assert_eq!(&closed[2..10], &3u64.to_be_bytes());
         let verified = session.handle(&verify(path));
         assert_eq!(&verified[..50], &closed[..]);
-        assert_eq!(&verified[50..], &[0, 2, 0, 2, b'i', b'd', 0, 4, b'n', b'a', b'm', b'e']);
+        assert_eq!(
+            &verified[50..],
+            &[0, 2, 0, 2, b'i', b'd', 0, 4, b'n', b'a', b'm', b'e']
+        );
     }
 
     #[test]
@@ -370,7 +379,10 @@ mod tests {
         let mut session = Session::default();
         let relative = session.handle(&open("relative.parquet", &["id"]));
         assert_eq!(relative[1], Status::BadRequest as u8);
-        assert_eq!(session.handle(&verify("relative.parquet"))[1], Status::BadRequest as u8);
+        assert_eq!(
+            session.handle(&verify("relative.parquet"))[1],
+            Status::BadRequest as u8
+        );
         let path = scratch("twice.parquet");
         let path = path.to_str().unwrap();
         assert_eq!(session.handle(&open(path, &["id"])), [1, 0]);

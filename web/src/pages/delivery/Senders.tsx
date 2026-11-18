@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useGet } from "../../api/hooks";
-import type { EmailDomainCheck, LooseRecord } from "../../api/pending";
-import type { Page, ServerSchemas } from "../../api/types";
+import type {
+  EmailDomainCheck,
+  EmailDomainCheckList,
+  EmailWarmupPlanList,
+  Page,
+  ServerSchemas,
+} from "../../api/types";
 import {
   DataTable,
   Loadable,
@@ -22,7 +27,7 @@ type DnsRecord = EmailDomainCheck["records"][number];
 // CH-36
 function DomainWizard({ account }: { account: ProviderAccount }) {
   const { t } = useI18n();
-  const checks = useGet<{ object: "list"; data: EmailDomainCheck[] }>(
+  const checks = useGet<EmailDomainCheckList>(
     `/v1/provider_accounts/${encodeURIComponent(account.id)}/email_domains`,
   );
   const records: Column<DnsRecord>[] = [
@@ -146,31 +151,53 @@ function EmailDomains() {
   );
 }
 
-function summary(plan: LooseRecord): string {
-  return Object.entries(plan)
-    .filter(
-      ([, value]) => typeof value === "string" || typeof value === "number",
-    )
-    .map(([key, value]) => `${key}: ${String(value)}`)
-    .join(" · ");
-}
+type WarmupPlan = EmailWarmupPlanList["data"][number];
+type WarmupStep = WarmupPlan["steps"][number];
 
 // CH-36
 function WarmUp() {
   const { t } = useI18n();
-  const plans = useGet<{ data?: LooseRecord[] }>("/v1/email_warmup_plans");
+  const plans = useGet<EmailWarmupPlanList>("/v1/email_warmup_plans");
+  const columns: Column<WarmupStep>[] = [
+    {
+      key: "from",
+      header: t("senders.fromDay"),
+      render: (row) => row.from_day,
+    },
+    {
+      key: "daily",
+      header: t("senders.dailyCap"),
+      render: (row) => row.daily_cap,
+    },
+    {
+      key: "hourly",
+      header: t("senders.domainHourlyCap"),
+      render: (row) => row.domain_hourly_cap,
+    },
+  ];
   return (
     <Section title={t("senders.warmup")}>
       <Loadable state={plans.state} onRetry={plans.reload}>
         {(data) =>
-          (data.data ?? []).length === 0 ? (
+          data.data.length === 0 ? (
             <p className="muted">{t("common.empty")}</p>
           ) : (
-            <ul>
-              {(data.data ?? []).map((plan, index) => (
-                <li key={index}>{summary(plan)}</li>
+            <div className="stack">
+              {data.data.map((plan: WarmupPlan) => (
+                <div key={plan.id} className="stack">
+                  <h3>
+                    <Mono>{plan.id}</Mono> · {plan.applies_to} ·{" "}
+                    {t("senders.untilDay", { day: plan.until_day })}
+                  </h3>
+                  <DataTable
+                    caption={plan.id}
+                    columns={columns}
+                    rows={plan.steps}
+                    rowKey={(row) => String(row.from_day)}
+                  />
+                </div>
               ))}
-            </ul>
+            </div>
           )
         }
       </Loadable>

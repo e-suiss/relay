@@ -1,8 +1,11 @@
 import { useId, useState, type SyntheticEvent } from "react";
 import { idempotencyKey } from "../../api/client";
 import { useGet, useMutation } from "../../api/hooks";
-import type { RegionHealth } from "../../api/pending";
-import type { OperatorSchemas, ServerSchemas } from "../../api/types";
+import type {
+  OperatorSchemas,
+  RegionHealth,
+  ServerSchemas,
+} from "../../api/types";
 import {
   KeyValues,
   Loadable,

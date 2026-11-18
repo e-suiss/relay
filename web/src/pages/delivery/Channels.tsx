@@ -1,10 +1,11 @@
 import { useId, useState, type SyntheticEvent } from "react";
 import { useGet } from "../../api/hooks";
 import type {
+  BreakerState,
   ChannelCostQuote,
   ProviderAccountStatus,
-} from "../../api/pending";
-import type { ServerSchemas } from "../../api/types";
+  ServerSchemas,
+} from "../../api/types";
 import {
   DataTable,
   KeyValues,
@@ -24,7 +25,7 @@ type ProviderAccount = ServerSchemas["ProviderAccount"];
 function Breaker({
   state,
 }: {
-  state: ProviderAccountStatus["circuit_breaker"]["provider"];
+  state: BreakerState;
 }) {
   const { t } = useI18n();
   const tone = state === "closed" ? "ok" : state === "open" ? "bad" : "warn";

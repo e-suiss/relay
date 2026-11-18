@@ -30,6 +30,14 @@ export type SubscriberPreferences = ServerSchemas["SubscriberPreferences"];
 export type TopicSubscription = ServerSchemas["TopicSubscription"];
 export type Topic = ServerSchemas["Topic"];
 
+export type BreakerState = ServerSchemas["BreakerState"];
+export type ProviderAccountStatus = ServerSchemas["ProviderAccountStatus"];
+export type EmailDomainCheck = ServerSchemas["EmailDomainCheck"];
+export type EmailDomainCheckList = ServerSchemas["EmailDomainCheckList"];
+export type EmailWarmupPlanList = ServerSchemas["EmailWarmupPlanList"];
+export type ChannelCostQuote = ServerSchemas["ChannelCostQuote"];
+export type RegionHealth = OperatorSchemas["RegionHealth"];
+
 export interface Problem {
   type?: string;
   title?: string;

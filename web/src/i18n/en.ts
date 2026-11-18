@@ -493,6 +493,10 @@ export const en = {
   "operator.check.ok": "OK",
   "operator.check.unavailable": "Unavailable",
   "operator.queuePanel": "Open the job queue panel",
+  "senders.fromDay": "From day",
+  "senders.dailyCap": "Daily cap",
+  "senders.domainHourlyCap": "Hourly cap per receiving domain",
+  "senders.untilDay": "until day {day}",
 } as const;
 
 export type MessageKey = keyof typeof en;

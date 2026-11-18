@@ -491,4 +491,8 @@ export const tr: Messages = {
   "operator.check.ok": "Çalışıyor",
   "operator.check.unavailable": "Ulaşılamıyor",
   "operator.queuePanel": "İş kuyruğu panelini aç",
+  "senders.fromDay": "Başlangıç günü",
+  "senders.dailyCap": "Günlük tavan",
+  "senders.domainHourlyCap": "Alıcı alan adı başına saatlik tavan",
+  "senders.untilDay": "{day}. güne kadar",
 };

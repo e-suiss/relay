@@ -30,7 +30,7 @@ class RetryPolicy:
 
     def backoff_ms(self, retry: int, random: float) -> int:
         """The full-jitter wait before retry number `retry`, counted from 1."""
-        return math.floor(random * min(self.cap_ms, self.base_ms * 2 ** (retry - 1)))
+        return math.floor(random * min(self.cap_ms, self.base_ms * (1 << (retry - 1))))
 
     def decide(
         self,

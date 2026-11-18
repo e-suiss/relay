@@ -3,8 +3,10 @@ defmodule Relay.RepositoryTest do
 
   describe "T-61 test discipline" do
     test "T-61: the pull request suite has a ten-minute budget" do
-      assert File.read!(".github/workflows/ci.yml") =~
-               ~r/check:\n\s+runs-on: [^\n]+\n\s+timeout-minutes: 10\n/
+      ci = File.read!(".github/workflows/ci.yml")
+      assert ci =~ ~r/check:\n\s+runs-on: [^\n]+\n\s+timeout-minutes: 10\n\s+needs: test\n/
+      assert ci =~ ~r/test:\n\s+name: [^\n]+\n\s+runs-on: [^\n]+\n\s+timeout-minutes: 10\n/
+      assert ci =~ "mix test --include integration --warnings-as-errors --partitions 3"
     end
   end
 

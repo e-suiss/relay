@@ -686,6 +686,20 @@ export const serverOperations = {
     paginated: false,
     contentType: null,
   },
+  getProviderAccountEmailDomains: {
+    method: "GET",
+    path: "/v1/provider_accounts/{provider_account_id}/email_domains",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
+  getProviderAccountStatus: {
+    method: "GET",
+    path: "/v1/provider_accounts/{provider_account_id}/status",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   getProviderInvoice: {
     method: "GET",
     path: "/v1/provider_invoices/{provider_invoice_id}",
@@ -978,6 +992,13 @@ export const serverOperations = {
     path: "/v1/channel_identities",
     idempotency: "none",
     paginated: true,
+    contentType: null,
+  },
+  listEmailWarmupPlans: {
+    method: "GET",
+    path: "/v1/email_warmup_plans",
+    idempotency: "none",
+    paginated: false,
     contentType: null,
   },
   listEscalationPolicies: {
@@ -1427,6 +1448,13 @@ export const serverOperations = {
     idempotency: "required",
     paginated: false,
     contentType: "application/json",
+  },
+  quoteChannelCost: {
+    method: "GET",
+    path: "/v1/channel_costs",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
   },
   receiveA2aPushNotification: {
     method: "POST",

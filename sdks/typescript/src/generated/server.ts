@@ -3768,6 +3768,86 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/v1/provider_accounts/{provider_account_id}/status": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get the status of a provider account
+     * @description What the panel warns about for a provider account: whether it sends data abroad, that is whether a processing country of the account or of its provider's declaration lies outside the installation region (CH-6); the adapter version, whether the adapter receives traffic and the deprecated provider APIs it uses (CH-4); and the state of the provider circuit breaker and of the account's own breaker (T-25). Breaker state is node-local and read from the node that answers; a breaker that saw no call is closed.
+     */
+    get: operations["getProviderAccountStatus"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/provider_accounts/{provider_account_id}/email_domains": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Check the sending domains of an e-mail provider account
+     * @description The sending domain wizard (CH-36) for each e-mail stream the account's settings name: the DNS records to publish (return path CNAME, the DKIM selector TXT, the SPF TXT and the recommended DMARC record), the findings of a live DNS check (SPF lookup and void lookup counts, return path CNAME and alignment, DKIM key size, algorithm, selector rotation and multi-string records, DMARC by tree walk with legacy tag warnings) and whether the domain is verified, that is has no error finding. A record value Relay cannot know, such as a provider's SPF include or a DKIM public key not held here, is null. An account of another channel has no stream.
+     */
+    get: operations["getProviderAccountEmailDomains"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/email_warmup_plans": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List the e-mail warm-up plans
+     * @description The warm-up plans of new sending domains and IP addresses from the active email_warmup_plans data set (CH-42), or the bundled plans when no version is active; each step caps the mail of a day and, per recipient domain, of an hour. Mail over the plan is deferred, never refused.
+     */
+    get: operations["listEmailWarmupPlans"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/channel_costs": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Quote the cost of a paid channel
+     * @description The unit price and total of quantity units of a paid channel (sms, voice or whatsapp) for a destination country and an optional category, per provider account of the channel in the scope (CH-18): SMS and voice from the provider declaration's price table at the base volume tier, WhatsApp from the rate card in force (CH-58). A price the data does not hold is unpriced with a null price, never zero.
+     */
+    get: operations["quoteChannelCost"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/provider_invoices": {
     parameters: {
       query?: never;
@@ -9265,6 +9345,129 @@ export interface components {
       transfer_basis?: components["schemas"]["TransferBasis"];
       scc_notified_on?: string | null;
       settings?: components["schemas"]["ProviderSettings"];
+    };
+    /**
+     * @description A circuit breaker state as the answering node sees it; a breaker that saw no call is closed (T-25).
+     * @enum {string}
+     */
+    BreakerState: "closed" | "open" | "half_open";
+    /** @description The panel warnings of a provider account: data sent abroad (CH-6), adapter deprecation (CH-4) and circuit breaker state (T-25). */
+    ProviderAccountStatus: {
+      /** @constant */
+      object: "provider_account_status";
+      provider_account_id: components["schemas"]["Id_pva"];
+      channel: components["schemas"]["Channel"];
+      provider: string;
+      data_residency: {
+        sends_data_abroad: boolean;
+        /** @enum {string} */
+        reference_region: "tr" | "eu" | "us";
+        abroad_countries: string[];
+        in_installation: boolean;
+        processing_countries: components["schemas"]["CountryList"];
+        declared_processing_countries: string[];
+        transfer_basis: components["schemas"]["TransferBasis"];
+        scc_notified_on: string | null;
+      };
+      adapter: {
+        declared: boolean;
+        adapter_version: string | null;
+        activated: boolean;
+        deprecation_warning: boolean;
+        deprecations: {
+          api: string;
+          sunset_on: string | null;
+        }[];
+      };
+      circuit_breaker: {
+        provider: components["schemas"]["BreakerState"];
+        account: components["schemas"]["BreakerState"];
+        /** @constant */
+        observed_by: "node";
+      };
+    };
+    /** @description The sending domain wizard of one e-mail stream (CH-36). */
+    EmailDomainCheck: {
+      /** @constant */
+      object: "email_domain_check";
+      /** @enum {string} */
+      stream: "transactional" | "marketing";
+      domain: string;
+      verified: boolean;
+      /** Format: date-time */
+      checked_at: string;
+      records: {
+        /** @enum {string} */
+        purpose: "return_path" | "dkim" | "spf" | "dmarc";
+        /** @enum {string} */
+        type: "CNAME" | "TXT";
+        name: string;
+        value: string | null;
+      }[];
+      findings: {
+        /** @enum {string} */
+        severity: "error" | "warning" | "suggestion";
+        code: string;
+        subject: string;
+      }[];
+      spf: {
+        record: string | null;
+        lookups: number;
+        void_lookups: number;
+      };
+      dmarc: {
+        name: string;
+        policy: string | null;
+        org_domain: string;
+      } | null;
+    };
+    EmailDomainCheckList: {
+      /** @constant */
+      object: "list";
+      data: components["schemas"]["EmailDomainCheck"][];
+    };
+    /** @description The warm-up plans of the active email_warmup_plans data set (CH-42). */
+    EmailWarmupPlanList: {
+      /** @constant */
+      object: "list";
+      data: {
+        id: string;
+        /** @enum {string} */
+        applies_to: "domain" | "ip";
+        until_day: number;
+        steps: {
+          from_day: number;
+          daily_cap: number;
+          domain_hourly_cap: number;
+          domains: {
+            [key: string]: number;
+          };
+        }[];
+      }[];
+    };
+    /** @description The cost of a paid channel selection per provider account (CH-18). A price the data does not hold is unpriced, never zero. */
+    ChannelCostQuote: {
+      /** @constant */
+      object: "channel_cost_quote";
+      /** @enum {string} */
+      channel: "sms" | "voice" | "whatsapp";
+      country: string;
+      category: string | null;
+      quantity: number;
+      data: {
+        provider_account_id: components["schemas"]["Id_pva"];
+        provider: string;
+        routable: boolean;
+        paid: boolean;
+        priced: boolean;
+        /** @enum {string} */
+        source: "provider_declaration" | "whatsapp_rate_card";
+        currency: string | null;
+        unit: string | null;
+        unit_price_micros: number | null;
+        total_micros: number | null;
+        tier_from: number | null;
+      }[];
     };
     /**
      * @description Provider invoice identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
@@ -24746,6 +24949,212 @@ export interface operations {
       403: components["responses"]["Forbidden"];
       404: components["responses"]["NotFound"];
       409: components["responses"]["Conflict"];
+      422: components["responses"]["UnprocessableContent"];
+      429: components["responses"]["TooManyRequests"];
+      500: components["responses"]["InternalError"];
+      503: components["responses"]["ServiceUnavailable"];
+    };
+  };
+  getProviderAccountStatus: {
+    parameters: {
+      query?: never;
+      header?: {
+        /**
+         * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+         * @example 2026-11-01
+         */
+        "Relay-Version"?: components["parameters"]["RelayVersion"];
+        /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+        "Relay-Beta"?: components["parameters"]["RelayBeta"];
+        /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+        "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+        /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+        "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+      };
+      path: {
+        /** @description Provider account identifier. */
+        provider_account_id: components["parameters"]["ManagedProviderAccountId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Get the status of a provider account. */
+      200: {
+        headers: {
+          "Request-Id": components["headers"]["Request-Id"];
+          "Relay-Version": components["headers"]["Relay-Version"];
+          RateLimit: components["headers"]["RateLimit"];
+          "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+          "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+          "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+          "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+          Deprecation: components["headers"]["Deprecation"];
+          Sunset: components["headers"]["Sunset"];
+          Link: components["headers"]["Link"];
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ProviderAccountStatus"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      429: components["responses"]["TooManyRequests"];
+      500: components["responses"]["InternalError"];
+      503: components["responses"]["ServiceUnavailable"];
+    };
+  };
+  getProviderAccountEmailDomains: {
+    parameters: {
+      query?: never;
+      header?: {
+        /**
+         * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+         * @example 2026-11-01
+         */
+        "Relay-Version"?: components["parameters"]["RelayVersion"];
+        /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+        "Relay-Beta"?: components["parameters"]["RelayBeta"];
+        /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+        "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+        /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+        "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+      };
+      path: {
+        /** @description Provider account identifier. */
+        provider_account_id: components["parameters"]["ManagedProviderAccountId"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Check the sending domains of an e-mail provider account. */
+      200: {
+        headers: {
+          "Request-Id": components["headers"]["Request-Id"];
+          "Relay-Version": components["headers"]["Relay-Version"];
+          RateLimit: components["headers"]["RateLimit"];
+          "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+          "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+          "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+          "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+          Deprecation: components["headers"]["Deprecation"];
+          Sunset: components["headers"]["Sunset"];
+          Link: components["headers"]["Link"];
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmailDomainCheckList"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
+      429: components["responses"]["TooManyRequests"];
+      500: components["responses"]["InternalError"];
+      503: components["responses"]["ServiceUnavailable"];
+    };
+  };
+  listEmailWarmupPlans: {
+    parameters: {
+      query?: never;
+      header?: {
+        /**
+         * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+         * @example 2026-11-01
+         */
+        "Relay-Version"?: components["parameters"]["RelayVersion"];
+        /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+        "Relay-Beta"?: components["parameters"]["RelayBeta"];
+        /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+        "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+        /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+        "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description List the e-mail warm-up plans. */
+      200: {
+        headers: {
+          "Request-Id": components["headers"]["Request-Id"];
+          "Relay-Version": components["headers"]["Relay-Version"];
+          RateLimit: components["headers"]["RateLimit"];
+          "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+          "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+          "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+          "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+          Deprecation: components["headers"]["Deprecation"];
+          Sunset: components["headers"]["Sunset"];
+          Link: components["headers"]["Link"];
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["EmailWarmupPlanList"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      429: components["responses"]["TooManyRequests"];
+      500: components["responses"]["InternalError"];
+      503: components["responses"]["ServiceUnavailable"];
+    };
+  };
+  quoteChannelCost: {
+    parameters: {
+      query: {
+        channel: "sms" | "voice" | "whatsapp";
+        country: string;
+        category?: string;
+        quantity?: number;
+      };
+      header?: {
+        /**
+         * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+         * @example 2026-11-01
+         */
+        "Relay-Version"?: components["parameters"]["RelayVersion"];
+        /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+        "Relay-Beta"?: components["parameters"]["RelayBeta"];
+        /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+        "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+        /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+        "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Quote the cost of a paid channel. */
+      200: {
+        headers: {
+          "Request-Id": components["headers"]["Request-Id"];
+          "Relay-Version": components["headers"]["Relay-Version"];
+          RateLimit: components["headers"]["RateLimit"];
+          "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+          "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+          "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+          "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+          Deprecation: components["headers"]["Deprecation"];
+          Sunset: components["headers"]["Sunset"];
+          Link: components["headers"]["Link"];
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ChannelCostQuote"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
       422: components["responses"]["UnprocessableContent"];
       429: components["responses"]["TooManyRequests"];
       500: components["responses"]["InternalError"];

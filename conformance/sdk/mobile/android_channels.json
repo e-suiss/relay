@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "rules": ["CH-30", "CH-65", "CH-68"],
+  "cases": [
+    {
+      "name": "every class",
+      "categories": [
+        {"key": "account_security", "class": "security"},
+        {"key": "approvals", "class": "action_required"},
+        {"key": "order_updates", "class": "transactional"},
+        {"key": "service_status", "class": "operational"},
+        {"key": "mentions", "class": "social"},
+        {"key": "campaigns", "class": "marketing"},
+        {"key": "background_sync", "class": "system"}
+      ],
+      "channels": [
+        {"id": "relay.account_security.passive", "category": "account_security", "level": "passive", "importance": "low", "bypass_dnd": false},
+        {"id": "relay.account_security.active", "category": "account_security", "level": "active", "importance": "default", "bypass_dnd": false},
+        {"id": "relay.account_security.time-sensitive", "category": "account_security", "level": "time-sensitive", "importance": "high", "bypass_dnd": false},
+        {"id": "relay.approvals.passive", "category": "approvals", "level": "passive", "importance": "low", "bypass_dnd": false},
+        {"id": "relay.approvals.active", "category": "approvals", "level": "active", "importance": "default", "bypass_dnd": false},
+        {"id": "relay.approvals.time-sensitive", "category": "approvals", "level": "time-sensitive", "importance": "high", "bypass_dnd": false},
+        {"id": "relay.order_updates.passive", "category": "order_updates", "level": "passive", "importance": "low", "bypass_dnd": false},
+        {"id": "relay.order_updates.active", "category": "order_updates", "level": "active", "importance": "default", "bypass_dnd": false},
+        {"id": "relay.order_updates.time-sensitive", "category": "order_updates", "level": "time-sensitive", "importance": "high", "bypass_dnd": false},
+        {"id": "relay.service_status.passive", "category": "service_status", "level": "passive", "importance": "low", "bypass_dnd": false},
+        {"id": "relay.service_status.active", "category": "service_status", "level": "active", "importance": "default", "bypass_dnd": false},
+        {"id": "relay.mentions.passive", "category": "mentions", "level": "passive", "importance": "low", "bypass_dnd": false},
+        {"id": "relay.mentions.active", "category": "mentions", "level": "active", "importance": "low", "bypass_dnd": false},
+        {"id": "relay.campaigns.passive", "category": "campaigns", "level": "passive", "importance": "low", "bypass_dnd": false}
+      ]
+    },
+    {
+      "name": "declared critical category",
+      "categories": [
+        {"key": "alarms", "class": "security", "critical": true}
+      ],
+      "channels": [
+        {"id": "relay.alarms.passive", "category": "alarms", "level": "passive", "importance": "low", "bypass_dnd": false},
+        {"id": "relay.alarms.active", "category": "alarms", "level": "active", "importance": "default", "bypass_dnd": false},
+        {"id": "relay.alarms.time-sensitive", "category": "alarms", "level": "time-sensitive", "importance": "high", "bypass_dnd": false},
+        {"id": "relay.alarms.critical", "category": "alarms", "level": "critical", "importance": "high", "bypass_dnd": true}
+      ]
+    },
+    {
+      "name": "system never gets a channel, even when declared critical",
+      "categories": [
+        {"key": "silent_refresh", "class": "system", "critical": true}
+      ],
+      "channels": []
+    }
+  ],
+  "invalid": [
+    {"name": "uppercase key", "categories": [{"key": "Orders", "class": "transactional"}]},
+    {"name": "key longer than 48", "categories": [{"key": "a234567890123456789012345678901234567890123456789", "class": "social"}]},
+    {"name": "unknown class", "categories": [{"key": "orders", "class": "urgent"}]}
+  ]
+}

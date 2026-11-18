@@ -41,6 +41,7 @@ export default defineConfig({
       { text: en["nav.guide"], link: "/guide/getting-started" },
       { text: en["nav.agents"], link: "/agents/" },
       { text: en["nav.sdks"], link: "/sdks/" },
+      { text: en["nav.operations"], link: "/operations/" },
       { text: en["nav.reference"], link: "/reference/" },
     ],
     sidebar: {
@@ -83,6 +84,32 @@ export default defineConfig({
         },
       ],
       "/sdks/": [{ text: "SDKs", items: sdkItems }],
+      "/operations/": [
+        {
+          text: "Deployment",
+          items: [
+            { text: "Overview", link: "/operations/" },
+            { text: "Regions and data residency", link: "/operations/regions" },
+            { text: "Front layer and TLS", link: "/operations/front-layer" },
+            { text: "Static egress IPs", link: "/operations/egress-ips" },
+            { text: "Licensed tenants in Türkiye", link: "/operations/licensed-tenants" },
+          ],
+        },
+        {
+          text: "Running Relay",
+          items: [
+            { text: "PostgreSQL HA and recovery", link: "/operations/postgres" },
+            { text: "Keys, HSM and BYOK", link: "/operations/keys" },
+            { text: "Self-host operations", link: "/operations/self-host" },
+            { text: "Capacity", link: "/operations/capacity" },
+            { text: "Portability", link: "/operations/portability" },
+          ],
+        },
+        {
+          text: "Moving to Relay",
+          items: [{ text: "Migration guide", link: "/operations/migration" }],
+        },
+      ],
       "/reference/": [
         {
           text: "Reference",

@@ -1,0 +1,15 @@
+{
+  "name": "Relay status",
+  "description": "Current state of the Relay notification service, by region and component.",
+  "contact": "Updates also go out from our operations e-mail address.",
+  "components": [
+    { "id": "api", "name": "Sending API", "regions": ["tr", "eu", "us"] },
+    { "id": "email", "name": "E-mail delivery", "regions": ["tr", "eu", "us"] },
+    { "id": "sms", "name": "SMS and voice delivery", "regions": ["tr", "eu", "us"] },
+    { "id": "push", "name": "Push delivery", "regions": ["tr", "eu", "us"] },
+    { "id": "chat", "name": "WhatsApp and chat delivery", "regions": ["tr", "eu", "us"] },
+    { "id": "inbox", "name": "In-app inbox and realtime", "regions": ["tr", "eu", "us"] },
+    { "id": "webhooks", "name": "Outbound webhooks", "regions": ["tr", "eu", "us"] },
+    { "id": "console", "name": "Console", "regions": ["tr", "eu", "us"] }
+  ]
+}

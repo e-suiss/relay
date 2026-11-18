@@ -1,8 +1,9 @@
 ---
 id: rollout-duplicates
+kind: alert
 severity: SEV2
 channels: [push, web_push, in_app]
-tenant_scope: tenant
+tenant_scope: some
 alerts: [RelayRolloutDuplicateWarn, RelayRolloutDuplicateFreeze, RelayRolloutDuplicateRollback]
 last_tested: 2026-11-18
 tested_by: none
@@ -29,9 +30,11 @@ Subscribers see the same notification twice, once from the existing system and o
 
 ## Decision tree
 
+```text
 - Rate above 0.1 percent: warn, do not raise any share.
 - Rate above 0.5 percent: freeze, no `PUT /v1/rollout` raise until fixed.
 - Rate above 1 percent: roll back the affected categories; stop the rollout when the category is not known.
+```
 
 ## Mitigation
 

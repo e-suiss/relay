@@ -1,8 +1,9 @@
 ---
 id: rollout-freeze
+kind: alert
 severity: SEV2
 channels: [all]
-tenant_scope: installation
+tenant_scope: all
 alerts: [RelayRolloutQueueFreeze, RelayRollout5xxFreeze, RelayRollout5xxRollback]
 last_tested: 2026-11-18
 tested_by: none
@@ -29,8 +30,10 @@ Traffic moved to Relay is delayed or refused; raising the rollout share would ma
 
 ## Decision tree
 
+```text
 - Queue age above twice the threshold, or `5xx` above 1 percent: freeze, no raise.
 - `5xx` above 5 percent: roll back the shares, or stop the rollout.
+```
 
 ## Mitigation
 

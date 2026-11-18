@@ -1,8 +1,9 @@
 ---
 id: rollout-unpermitted-send
+kind: alert
 severity: SEV1
 channels: [email, sms, push, whatsapp, voice]
-tenant_scope: tenant
+tenant_scope: some
 alerts: [RelayRolloutUnpermittedSend]
 last_tested: 2026-11-18
 tested_by: none
@@ -28,9 +29,11 @@ A message may reach someone who did not consent or who is suppressed: a complian
 
 ## Decision tree
 
+```text
 - Any case: stop the rollout at once.
 - The difference is in the existing system's data: fix the import before releasing.
 - The difference is in Relay's data: fix it and keep the stop until the coverage report shows no consent difference.
+```
 
 ## Mitigation
 

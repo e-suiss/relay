@@ -19,6 +19,8 @@ public interface RelayLifecycleSteps {
     public suspend fun drainQueue()
 
     public suspend fun disconnectRealtime()
+
+    public suspend fun flushDisplayedNotifications(): Unit = Unit
 }
 
 // IN-35
@@ -50,6 +52,7 @@ public class RelayLifecycle(
             if (!inForeground) return
             inForeground = false
             steps.disconnectRealtime()
+            steps.flushDisplayedNotifications()
         }
     }
 

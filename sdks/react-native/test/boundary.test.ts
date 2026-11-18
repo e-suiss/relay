@@ -51,7 +51,7 @@ describe('X-31 mobile SDK boundary', () => {
     for (const path of paths) {
       expect(path.startsWith('/v1/subscriber/') || path.startsWith('/v1/realtime/')).toBe(true);
       expect(path).not.toMatch(
-        /^\/v1\/events|notifications|\/token|portal|test_recipients|bulk|approval|profile/,
+        /^\/v1\/events|\/notifications|\/token|portal|test_recipients|bulk|approval|profile/,
       );
     }
   });

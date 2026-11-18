@@ -52,6 +52,17 @@ public class RelayInboxStore internal constructor(
     /** Called with the items that became read or left the inbox, to remove their notifications (IN-38). */
     public var onItemsRemoved: (List<RelayInboxItem>) -> Unit = {}
 
+    /** Called the first time the inbox component shows an item, to report it as displayed. */
+    public var onItemDisplayed: (RelayInboxItem) -> Unit = {}
+
+    private val displayedIds = mutableSetOf<String>()
+
+    /** Marks [item] as shown by an inbox component; each item counts once per store. */
+    public fun markDisplayed(item: RelayInboxItem) {
+        val first = synchronized(displayedIds) { displayedIds.add(item.id) }
+        if (first) onItemDisplayed(item)
+    }
+
     public fun dismissNotice() {
         mutableNotice.value = null
     }

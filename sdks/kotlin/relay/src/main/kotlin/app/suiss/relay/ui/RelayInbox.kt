@@ -138,7 +138,10 @@ public fun RelayInbox(
         }
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(items, key = { it.id }) { item ->
-                LaunchedEffect(item.id) { store.markSeen(listOf(item)) }
+                LaunchedEffect(item.id) {
+                    store.markDisplayed(item)
+                    store.markSeen(listOf(item))
+                }
                 RelayInboxRow(
                     item = item,
                     onOpen = {

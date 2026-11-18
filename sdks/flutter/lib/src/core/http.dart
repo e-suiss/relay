@@ -150,10 +150,37 @@ class RelayHttp {
     String? idempotencyKey,
     int? retries,
     Map<String, String> headers = const <String, String>{},
+  }) {
+    return sendPath(
+      op.method,
+      op.path,
+      name: op.name,
+      idempotencyRequired: op.idempotencyRequired,
+      pathParams: pathParams,
+      query: query,
+      body: body,
+      idempotencyKey: idempotencyKey,
+      retries: retries,
+      headers: headers,
+    );
+  }
+
+  /// Sends a call by method and path template for an operation the generated list does not hold yet; the client boundary and the retry rules of [send] still apply.
+  Future<RelayResponse> sendPath(
+    String method,
+    String path, {
+    required String name,
+    required bool idempotencyRequired,
+    Map<String, String> pathParams = const <String, String>{},
+    Map<String, String?> query = const <String, String?>{},
+    Object? body,
+    String? idempotencyKey,
+    int? retries,
+    Map<String, String> headers = const <String, String>{},
   }) async {
-    final Uri uri = url(op.path, pathParams: pathParams, query: query);
-    RelayBoundary.check(op.method, uri.path.substring(_basePrefixLength));
-    final String? key = op.idempotencyRequired
+    final Uri uri = url(path, pathParams: pathParams, query: query);
+    RelayBoundary.check(method, uri.path.substring(_basePrefixLength));
+    final String? key = idempotencyRequired
         ? (idempotencyKey ?? newIdempotencyKey())
         : null;
     final int limit = retries ?? maxRetries;
@@ -161,7 +188,7 @@ class RelayHttp {
     int attempt = 0;
     while (true) {
       final SubscriberToken tok = await token();
-      final http.Request request = http.Request(op.method, uri)
+      final http.Request request = http.Request(method, uri)
         ..headers.addAll(<String, String>{
           'Authorization': 'Bearer ${tok.token}',
           'Relay-Version': relayApiVersion,
@@ -207,7 +234,7 @@ class RelayHttp {
         continue;
       }
       logger.log(RelayLogLevel.warning, 'request.failed', <String, Object?>{
-        'operation': op.name,
+        'operation': name,
         'status': error.status,
         'code': error.code,
       });

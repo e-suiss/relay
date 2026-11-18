@@ -48,6 +48,10 @@ void main() {
       );
       expect(RelayBoundary.allows('POST', '/v1/subscriber/devices'), isTrue);
       expect(RelayBoundary.allows('GET', '/v1/realtime/websocket'), isTrue);
+      expect(
+        RelayBoundary.allows('POST', relayDisplayedNotificationsPath),
+        isTrue,
+      );
     });
 
     test(

@@ -17,6 +17,8 @@ export type { Problem } from './errors';
 export { ALLOWED_OPERATIONS } from './boundary';
 export { ConsentsClient } from './consents';
 export type { ConsentPageQuery } from './consents';
+export { DisplayedNotificationReporter, displayedDigest } from './displayed';
+export type { DisplayedNotificationDigest, DisplayedNotificationsAccepted } from './displayed';
 export { MESSAGES, resolveLocale, translate } from './i18n';
 export type { MessageKey, RelayLocale } from './i18n';
 export { inTab, InboxStore } from './inbox/store';

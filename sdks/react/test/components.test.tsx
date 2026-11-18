@@ -2,10 +2,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testi
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { RelayProvider, type RelayLinks } from "../src/context.js";
+import { notificationDigest } from "../src/displayed.js";
 import { Bell } from "../src/inbox/Bell.js";
 import { Inbox } from "../src/inbox/Inbox.js";
 import { WebhookPortal } from "../src/portal/WebhookPortal.js";
 import { PreferenceCenter } from "../src/preferences/PreferenceCenter.js";
+import { RelayRuntime } from "../src/runtime.js";
 import { noConsents, type ConsentView } from "../src/seams.js";
 import {
   createFakeRelay,
@@ -258,6 +260,40 @@ describe("X-16 X-17 inbox", () => {
     renderWith(relay, <Inbox />, { locale: "tr-TR" });
     expect(await screen.findByRole("heading", { name: "Bildirimler" })).toBeTruthy();
     expect(screen.getByTestId("relay-delete").textContent).toBe("Sil");
+  });
+
+  it("OP-54 reports the digests of rendered items when reporting is on", async () => {
+    const relay = createFakeRelay({ items: [fakeItem("inb_1"), fakeItem("inb_2")] });
+    const runtime = new RelayRuntime({
+      baseUrl: "https://relay.example.com",
+      token: relay.token,
+      fetch: relay.fetch,
+      realtime: false,
+      tabs: false,
+      storage: null,
+      reportDisplayedNotifications: true,
+    });
+    render(
+      <RelayProvider runtime={runtime} locale="en" colorScheme="light" links={links}>
+        <Inbox />
+      </RelayProvider>,
+    );
+    await screen.findAllByTestId("relay-inbox-item");
+    await waitFor(() => expect(runtime.displayed?.queued).toBe(2));
+    await runtime.displayed?.flush();
+    runtime.displayed?.stop();
+    const expected = [await notificationDigest("inb_1"), await notificationDigest("inb_2")];
+    expect(relay.state.displayed.map((entry) => entry.digest).sort()).toEqual(expected.sort());
+    expect(JSON.stringify(relay.state.displayed)).not.toContain("inb_");
+  });
+
+  it("OP-54 sends nothing when reporting is off", async () => {
+    const relay = createFakeRelay({ items: [fakeItem("inb_1")] });
+    renderWith(relay, <Inbox />);
+    await screen.findAllByTestId("relay-inbox-item");
+    expect(
+      relay.requests.filter((request) => request.path === "/v1/subscriber/displayed_notifications"),
+    ).toHaveLength(0);
   });
 });
 

@@ -73,6 +73,32 @@ is never answered in the app; its only action opens the approval page in the acc
 centre shows the subscriber's consents read-only, with a link to change them when you pass
 `consentChangeUrl`.
 
+## Displayed notification reporting
+
+Relay can measure how often the same notification is shown twice on a device. Reporting is off by
+default; turn it on in the configuration:
+
+```kotlin
+RelayConfiguration(
+    baseUrl = "https://relay.example.com",
+    appIdentifier = context.packageName,
+    tokenProvider = { refresh -> myBackend.relaySubscriberToken(refresh) },
+    reportDisplayedNotifications = true,
+)
+```
+
+The SDK then reports every push the data-message handler shows and every item the `RelayInbox`
+component shows. If your app shows a notification itself, report its identifier:
+
+```kotlin
+client.displayed.report(notificationId)
+```
+
+Only the SHA-256 digest of the identifier and the time it was shown leave the device, never the
+identifier or any content. Reports are sent in batches of up to 100 when 20 are waiting, every 30
+seconds and when the app goes to the background. A failed batch is retried with the same idempotency
+key on the next flush and dropped after 24 hours.
+
 ## Behaviour
 
 - Requests carry the pinned API version and a random idempotency key on every mutation; only

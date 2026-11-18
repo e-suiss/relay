@@ -15,6 +15,7 @@ export interface FakeRequest {
   readonly query: URLSearchParams;
   readonly body: Record<string, unknown> | null;
   readonly authorization: string | null;
+  readonly idempotencyKey: string | null;
 }
 
 /** The mutable state of the fake. */
@@ -27,6 +28,10 @@ export interface FakeRelayState {
   messages: Record<string, unknown>[];
   attempts: Record<string, Record<string, unknown>[]>;
   consents: FakeConsent[] | null;
+  /** The digests of displayed notifications the fake accepted, in arrival order. */
+  displayed: { digest: string; displayed_at: string }[];
+  /** When true, the displayed notifications operation answers 503. */
+  failDisplayed: boolean;
 }
 
 /** Options of {@link createFakeRelay}. */
@@ -208,6 +213,8 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
     messages: [...(options.messages ?? [])],
     attempts: {},
     consents: options.consents === undefined ? null : [...options.consents],
+    displayed: [],
+    failDisplayed: false,
   };
   const requests: FakeRequest[] = [];
   let sequence = 0;
@@ -409,6 +416,22 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
         has_more: false,
         next_cursor: null,
         previous_cursor: null,
+      });
+    }
+    if (path === "/v1/subscriber/displayed_notifications" && method === "POST") {
+      if (state.failDisplayed) return problem(503, "service_unavailable", "Try again later.");
+      const notifications = (body?.notifications ?? []) as FakeRelayState["displayed"];
+      const known = new Set(state.displayed.map((entry) => entry.digest));
+      let duplicates = 0;
+      for (const notification of notifications) {
+        if (known.has(notification.digest)) duplicates += 1;
+        known.add(notification.digest);
+        state.displayed.push(notification);
+      }
+      return json(202, {
+        object: "displayed_notifications",
+        accepted: notifications.length,
+        duplicates,
       });
     }
     if (path === "/v1/subscriber/preferences" && method === "GET")
@@ -625,6 +648,7 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
           ? (JSON.parse(init.body) as Record<string, unknown>)
           : null,
       authorization: headers.get("authorization"),
+      idempotencyKey: headers.get("idempotency-key"),
     };
     requests.push(request);
     return route(request);

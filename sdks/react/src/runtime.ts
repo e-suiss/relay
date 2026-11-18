@@ -6,6 +6,7 @@ import {
   type InboxSnapshot,
   type StorageLike,
 } from "@esuiss/relay/browser";
+import { apiDisplayedSender, DisplayedReporter } from "./displayed.js";
 import type { PendingMarkAllRead } from "./inbox/mark-all-read.js";
 import { narrowTokenProvider, type TokenProvider } from "./tokens.js";
 
@@ -23,6 +24,8 @@ export interface RelayRuntimeOptions {
   /** How long an undoable action waits before it is sent, in milliseconds (IN-15). */
   readonly undoWindowMs?: number;
   readonly storage?: StorageLike | null;
+  /** Reports digests of the identifiers of displayed notifications to Relay, which measures duplicate displays with them; off by default. */
+  readonly reportDisplayedNotifications?: boolean;
 }
 
 /** The inbox state components render. */
@@ -41,6 +44,8 @@ export class RelayRuntime {
   readonly subscriber: RelaySubscriberClient | null;
   readonly portal: RelaySubscriberClient | null;
   readonly inbox: InboxClient | null;
+  /** The reporter of displayed notifications; null unless `reportDisplayedNotifications` is on and a subscriber token is given. */
+  readonly displayed: DisplayedReporter | null;
   #state: InboxState = { snapshot: null, error: null, pendingMarkAllRead: null };
   readonly #listeners = new Set<() => void>();
   #users = 0;
@@ -76,11 +81,20 @@ export class RelayRuntime {
             ...(options.undoWindowMs === undefined ? {} : { undoWindowMs: options.undoWindowMs }),
             ...(options.storage === undefined ? {} : { storage: options.storage }),
           });
+    this.displayed =
+      options.reportDisplayedNotifications === true && this.subscriber !== null
+        ? new DisplayedReporter({ send: apiDisplayedSender(this.subscriber) })
+        : null;
   }
 
   /** The undo window of the runtime in milliseconds. */
   get undoWindowMs(): number {
     return this.options.undoWindowMs ?? 5000;
+  }
+
+  /** Reports that the app displayed a notification itself, by its Relay identifier; does nothing while reporting is off. */
+  reportDisplayed(id: string): void {
+    this.displayed?.report(id).catch(() => undefined);
   }
 
   /** The current inbox state. */

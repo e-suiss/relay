@@ -17,6 +17,7 @@ export const ALLOWED_OPERATIONS: readonly AllowedOperation[] = [
   { method: 'GET', path: '/v1/subscriber/devices/status', idempotencyKey: false },
   { method: 'PATCH', path: '/v1/subscriber/devices/{device_id}/status', idempotencyKey: false },
   { method: 'POST', path: '/v1/subscriber/push_receipts', idempotencyKey: true },
+  { method: 'POST', path: '/v1/subscriber/displayed_notifications', idempotencyKey: true },
   { method: 'GET', path: '/v1/subscriber/push_content/{delivery_id}', idempotencyKey: false },
   { method: 'GET', path: '/v1/subscriber/inbox/items', idempotencyKey: false },
   { method: 'GET', path: '/v1/subscriber/inbox/items/{item_id}', idempotencyKey: false },

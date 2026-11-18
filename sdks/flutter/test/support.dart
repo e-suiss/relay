@@ -355,3 +355,35 @@ class FakePushAdapter implements RelayPushAdapter {
     removed.addAll(tags);
   }
 }
+
+class Ticks {
+  final List<Duration> intervals = <Duration>[];
+  final List<void Function()> ticks = <void Function()>[];
+  int stopped = 0;
+
+  void Function() call(Duration interval, void Function() tick) {
+    intervals.add(interval);
+    ticks.add(tick);
+    return () {
+      stopped++;
+    };
+  }
+}
+
+hc.Response displayedAccepted() => json(<String, Object?>{
+  'object': 'displayed_notifications',
+  'accepted': 1,
+  'duplicates': 0,
+}, status: 202);
+
+List<Map<String, Object?>> displayedNotifications(hc.Request r) {
+  final Map<String, Object?> sent = jsonDecode(r.body) as Map<String, Object?>;
+  return <Map<String, Object?>>[
+    for (final Object? n in sent['notifications']! as List<Object?>)
+      n! as Map<String, Object?>,
+  ];
+}
+
+List<Object?> displayedDigests(hc.Request r) => <Object?>[
+  for (final Map<String, Object?> n in displayedNotifications(r)) n['digest'],
+];

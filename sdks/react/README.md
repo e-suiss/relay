@@ -50,6 +50,18 @@ Give the portal its own token:
 </RelayProvider>
 ```
 
+## Displayed notification reporting
+
+Relay can measure how often the same notification is shown more than once. The measurement is off by default; turn it on with `reportDisplayedNotifications`:
+
+```tsx
+<RelayProvider baseUrl="https://relay.example.com" token={getToken} reportDisplayedNotifications>
+  <InboxPopover />
+</RelayProvider>
+```
+
+Every inbox item the components render is then queued as the SHA-256 digest of its identifier with the time it was shown; the identifier and the content never leave the browser. The queue is sent in batches of up to 100: when 20 are waiting, every 30 seconds and when the page becomes hidden. A failed batch is retried on the next flush with the same Idempotency-Key, and batches older than 24 hours are dropped. To report a notification your app showed itself, call `reportDisplayed(notificationId)` on the runtime: `useRelay().runtime` inside the provider, or a `RelayRuntime` you share.
+
 ## Theming
 
 Every colour and shape is a CSS custom property, such as `--relay-color-accent`, `--relay-color-text`, `--relay-radius` and `--relay-font-family`. Set them in your stylesheet, or pass a `theme`, a `brand` and a sub-tenant's `subtenantBrand` (it wins where it sets a value). `brand.darkTheme` holds the tokens for the dark scheme; `colorScheme` is `light`, `dark` or `auto`.

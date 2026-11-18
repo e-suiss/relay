@@ -49,6 +49,7 @@ export function InboxPanel({
   const [now, setNow] = useState(() => Date.now());
   const headingId = useId();
   const seenSent = useRef(new Set<string>());
+  const displayedSent = useRef(new Set<string>());
   const inbox = runtime.inbox;
   const label = categoryLabel ?? ((category: string) => category);
 
@@ -94,6 +95,16 @@ export function InboxPanel({
       }
     }
   }, [inbox, shown]);
+
+  useEffect(() => {
+    if (runtime.displayed === null) return;
+    for (const item of shown) {
+      if (!displayedSent.current.has(item.id)) {
+        displayedSent.current.add(item.id);
+        runtime.reportDisplayed(item.id);
+      }
+    }
+  }, [runtime, shown]);
 
   const markAllRead = () => {
     if (

@@ -284,6 +284,51 @@ void main() {
       expect(server.requests, isEmpty);
     });
 
+    testWidgets('OP-95 the list reports each rendered item once', (
+      WidgetTester tester,
+    ) async {
+      final Server server = Server((hc.Request r) => displayedAccepted());
+      final RelayClient client = RelayClient(
+        baseUrl: base,
+        tokenProvider: TokenSource().call,
+        httpClient: server.client,
+        transports: <RelayRealtimeTransport>[],
+        random: FakeRandom(),
+        delay: Delays().call,
+        reportDisplayedNotifications: true,
+        periodic: Ticks().call,
+      );
+      client.inbox.replaceAll(<InboxItem>[
+        InboxItem.fromJson(item(inb1, title: 'Kargonuz yolda')),
+        InboxItem.fromJson(item(inb2, title: 'Faturanız hazır')),
+      ]);
+      await tester.pumpWidget(app(client, const RelayInboxList()));
+      await tester.pumpWidget(app(client, const RelayInboxList()));
+      expect(client.displayedNotifications.pending, 2);
+      await tester.runAsync(() => client.displayedNotifications.flush());
+      expect(server.calls, <String>[
+        'POST /v1/subscriber/displayed_notifications',
+      ]);
+      expect(displayedDigests(server.requests.single), <String>[
+        relayDisplayedDigest(inb1),
+        relayDisplayedDigest(inb2),
+      ]);
+    });
+
+    testWidgets('OP-95 the list reports nothing unless opted in', (
+      WidgetTester tester,
+    ) async {
+      final Server server = Server((hc.Request r) => json(null));
+      final RelayClient client = clientFor(server);
+      client.inbox.replaceAll(<InboxItem>[
+        InboxItem.fromJson(item(inb1, title: 'Kargonuz yolda')),
+      ]);
+      await tester.pumpWidget(app(client, const RelayInboxList()));
+      expect(client.displayedNotifications.pending, 0);
+      await tester.runAsync(() => client.displayedNotifications.flush());
+      expect(server.requests, isEmpty);
+    });
+
     testWidgets(
       'PC-17 turning a category off offers three choices with none preselected; never writes opt_out',
       (WidgetTester tester) async {

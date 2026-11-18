@@ -34,6 +34,7 @@ export 'src/realtime/phoenix.dart';
 export 'src/realtime/poll.dart';
 export 'src/realtime/sse.dart';
 export 'src/realtime/transport.dart';
+export 'src/telemetry/displayed.dart';
 export 'src/ui/bell.dart';
 export 'src/ui/inbox_list.dart';
 export 'src/ui/l10n.dart';

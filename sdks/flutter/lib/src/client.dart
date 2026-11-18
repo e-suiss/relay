@@ -10,6 +10,7 @@ import 'inbox/offline_queue.dart';
 import 'inbox/store.dart';
 import 'inbox/sync.dart';
 import 'inbox/undo.dart';
+import 'inbox/waitpoints.dart';
 import 'preferences/preferences.dart';
 import 'presence/device_status.dart';
 import 'push/adapter.dart';
@@ -35,7 +36,7 @@ class RelayClient {
     RelayKeyValueStore? store,
     RelayPushAdapter? push,
     List<RelayCategory> categories = const <RelayCategory>[],
-    RelayPushContentSource contentSource = const NoRelayPushContentSource(),
+    RelayPushContentSource? contentSource,
     hc.Client? httpClient,
     RelayWebSocketConnector? webSocketConnector,
     List<RelayRealtimeTransport>? transports,
@@ -73,6 +74,7 @@ class RelayClient {
       clock: this.clock,
     );
     preferences = RelayPreferencesApi(http);
+    waitpoints = RelayWaitpointsApi(http);
     final RelayPushAdapter? adapter = push;
     if (adapter != null) {
       devices = RelayDeviceRegistrar(
@@ -159,6 +161,9 @@ class RelayClient {
 
   /// The preferences.
   late final RelayPreferencesApi preferences;
+
+  /// Responses to waitpoints that ask the subscriber.
+  late final RelayWaitpointsApi waitpoints;
 
   /// The device registrar, when a push adapter is set.
   RelayDeviceRegistrar? devices;

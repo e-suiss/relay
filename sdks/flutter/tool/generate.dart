@@ -24,6 +24,9 @@ const List<String> subscriberRoots = <String>[
   'InboxReadAll',
   'InboxReadAllResult',
   'InboxReconciliation',
+  'PushContent',
+  'WaitpointResponseRequest',
+  'WaitpointResponseReceipt',
 ];
 
 const List<String> componentRoots = <String>[
@@ -31,11 +34,14 @@ const List<String> componentRoots = <String>[
   'Device',
   'SubscriberPreferences',
   'MyPreferencesPatch',
+  'ConsentList',
 ];
 
 const List<String> operations = <String>[
   'getMyPreferences',
   'updateMyPreferences',
+  'listMyConsents',
+  'getMyPushContent',
   'registerMyDevice',
   'deleteMyDevice',
   'getMyDeviceStatus',
@@ -46,6 +52,7 @@ const List<String> operations = <String>[
   'listMyInboxItems',
   'getMyInboxItem',
   'applyMyInboxIntent',
+  'respondToMyWaitpoint',
   'getMyInboxCounters',
   'listMyInboxChanges',
   'markAllMyInboxRead',
@@ -408,18 +415,36 @@ class Field {
   final bool required;
 }
 
-String emitClass(String name, Node node) {
+void collect(Node node, Map<String, Node> props, Set<String> req) {
   final Map<String, Object?> s = node.value;
-  final Set<String> req = <String>{
-    for (final Object? r in (s['required'] as List<Object?>? ?? <Object?>[]))
-      r! as String,
-  };
-  final Map<String, Object?> props = s['properties']! as Map<String, Object?>;
+  if (s[r'$ref'] is String) {
+    collect(deref(node.doc, s[r'$ref']! as String, (String _) {}), props, req);
+    return;
+  }
+  for (final Object? part in (s['allOf'] as List<Object?>? ?? <Object?>[])) {
+    collect(Node(node.doc, part! as Map<String, Object?>), props, req);
+  }
+  for (final Object? r in (s['required'] as List<Object?>? ?? <Object?>[])) {
+    req.add(r! as String);
+  }
+  final Object? properties = s['properties'];
+  if (properties is Map<String, Object?>) {
+    for (final MapEntry<String, Object?> p in properties.entries) {
+      props[p.key] = Node(
+        node.doc,
+        p.value as Map<String, Object?>? ?? <String, Object?>{},
+      );
+    }
+  }
+}
+
+String emitClass(String name, Node node) {
+  final Set<String> req = <String>{};
+  final Map<String, Node> props = <String, Node>{};
+  collect(node, props, req);
   final List<Field> fields = <Field>[];
-  for (final MapEntry<String, Object?> p in props.entries) {
-    final Map<String, Object?> pn =
-        p.value as Map<String, Object?>? ?? <String, Object?>{};
-    DartType t = resolve(Node(node.doc, pn), '$name${pascal(p.key)}');
+  for (final MapEntry<String, Node> p in props.entries) {
+    DartType t = resolve(p.value, '$name${pascal(p.key)}');
     final bool required = req.contains(p.key);
     if (!required) t = t.asNullable();
     fields.add(Field(p.key, camel(p.key), t, required));

@@ -1,7 +1,7 @@
 import '../generated/models.dart';
 import 'channels.dart';
 
-/// Interruption permissions the platform reports; kept on the device because the registration has no field for them.
+/// Interruption permissions as the platform reports them; a null field is not known and is not reported.
 class RelayInterruptionCapabilities {
   /// Creates the capabilities.
   const RelayInterruptionCapabilities({
@@ -10,14 +10,43 @@ class RelayInterruptionCapabilities {
     this.timeSensitive,
   });
 
-  /// Android: Do Not Disturb access granted.
-  final bool? dndAccess;
+  /// Android: Do Not Disturb access of the channel that carries critical.
+  final DeviceInterruptionPermission? dndAccess;
 
-  /// iOS: Critical Alerts authorised.
-  final bool? criticalAlerts;
+  /// iOS: the Critical Alerts entitlement and the user's grant.
+  final DeviceInterruptionPermission? criticalAlerts;
 
-  /// iOS: time-sensitive notifications allowed.
-  final bool? timeSensitive;
+  /// iOS: time-sensitive notifications.
+  final DeviceInterruptionPermission? timeSensitive;
+}
+
+DeviceInterruptionPermission? _known(DeviceInterruptionPermission? value) =>
+    value == DeviceInterruptionPermission.unrecognized ? null : value;
+
+// CH-65
+/// The interruption permissions a device reports: critical alerts and time-sensitive on iOS, Do Not Disturb access on Android; null when nothing is known, which keeps the level.
+DeviceInterruptionPermissions? relayInterruptionPermissions(
+  DevicePlatform platform,
+  RelayInterruptionCapabilities capabilities,
+) {
+  final bool apple = platform == DevicePlatform.apns;
+  final bool android =
+      platform == DevicePlatform.fcm || platform == DevicePlatform.hms;
+  final DeviceInterruptionPermission? critical = apple
+      ? _known(capabilities.criticalAlerts)
+      : null;
+  final DeviceInterruptionPermission? timeSensitive = apple
+      ? _known(capabilities.timeSensitive)
+      : null;
+  final DeviceInterruptionPermission? dnd = android
+      ? _known(capabilities.dndAccess)
+      : null;
+  if (critical == null && timeSensitive == null && dnd == null) return null;
+  return DeviceInterruptionPermissions(
+    criticalAlerts: critical,
+    timeSensitive: timeSensitive,
+    dndAccess: dnd,
+  );
 }
 
 /// A notification the SDK asks the platform to show.
@@ -76,7 +105,7 @@ abstract interface class RelayPushAdapter {
   /// The Android channels as the system reports them now.
   Future<List<AndroidChannel>> getAndroidChannels();
 
-  /// Interruption permissions.
+  /// The interruption permissions as the operating system reports them now; leave a field null when it is not known.
   Future<RelayInterruptionCapabilities> getInterruptionCapabilities();
 
   /// Shows a notification.
@@ -119,7 +148,7 @@ abstract interface class RelayPushContentSource {
   Future<RelayPushContent?> fetch(String deliveryId);
 }
 
-/// The default source: Relay has no client fetch endpoint yet, so the generic text is shown.
+/// A source that never fetches, so the generic text is always shown.
 class NoRelayPushContentSource implements RelayPushContentSource {
   /// Creates the source.
   const NoRelayPushContentSource();

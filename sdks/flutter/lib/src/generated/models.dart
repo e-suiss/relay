@@ -58,6 +58,43 @@ enum Channel {
   );
 }
 
+enum ConsentKind {
+  explicitOptIn('explicit_opt_in'),
+  softOptIn('soft_opt_in'),
+  legitimateInterest('legitimate_interest'),
+  none('none'),
+  unrecognized('');
+
+  const ConsentKind(this.wire);
+
+  final String wire;
+
+  static ConsentKind fromWire(String value) => ConsentKind.values.firstWhere(
+    (e) => e.wire == value,
+    orElse: () => ConsentKind.unrecognized,
+  );
+}
+
+enum ConsentStatus {
+  none('none'),
+  pending('pending'),
+  pendingIys('pending_iys'),
+  active('active'),
+  revoked('revoked'),
+  expired('expired'),
+  unrecognized('');
+
+  const ConsentStatus(this.wire);
+
+  final String wire;
+
+  static ConsentStatus fromWire(String value) =>
+      ConsentStatus.values.firstWhere(
+        (e) => e.wire == value,
+        orElse: () => ConsentStatus.unrecognized,
+      );
+}
+
 enum DeviceDisabledReason {
   unregistered('unregistered'),
   logout('logout'),
@@ -77,6 +114,23 @@ enum DeviceDisabledReason {
       DeviceDisabledReason.values.firstWhere(
         (e) => e.wire == value,
         orElse: () => DeviceDisabledReason.unrecognized,
+      );
+}
+
+enum DeviceInterruptionPermission {
+  granted('granted'),
+  denied('denied'),
+  notDetermined('not_determined'),
+  unrecognized('');
+
+  const DeviceInterruptionPermission(this.wire);
+
+  final String wire;
+
+  static DeviceInterruptionPermission fromWire(String value) =>
+      DeviceInterruptionPermission.values.firstWhere(
+        (e) => e.wire == value,
+        orElse: () => DeviceInterruptionPermission.unrecognized,
       );
 }
 
@@ -130,6 +184,38 @@ enum DeviceState {
   static DeviceState fromWire(String value) => DeviceState.values.firstWhere(
     (e) => e.wire == value,
     orElse: () => DeviceState.unrecognized,
+  );
+}
+
+enum EvidenceLevel {
+  channelClaim('channel_claim'),
+  relaySession('relay_session'),
+  accessAasRef('access_aas_ref'),
+  unrecognized('');
+
+  const EvidenceLevel(this.wire);
+
+  final String wire;
+
+  static EvidenceLevel fromWire(String value) =>
+      EvidenceLevel.values.firstWhere(
+        (e) => e.wire == value,
+        orElse: () => EvidenceLevel.unrecognized,
+      );
+}
+
+enum LegalType {
+  individual('individual'),
+  merchant('merchant'),
+  unrecognized('');
+
+  const LegalType(this.wire);
+
+  final String wire;
+
+  static LegalType fromWire(String value) => LegalType.values.firstWhere(
+    (e) => e.wire == value,
+    orElse: () => LegalType.unrecognized,
   );
 }
 
@@ -224,6 +310,108 @@ class ChannelPreference {
   };
 }
 
+class Consent {
+  const Consent({
+    required this.object,
+    required this.id,
+    required this.brand,
+    required this.channel,
+    required this.status,
+    required this.consentKind,
+    required this.recipientType,
+    required this.source,
+    required this.occurredAt,
+  });
+
+  factory Consent.fromJson(Map<String, Object?> json) => Consent(
+    object: json['object'] as String,
+    id: json['id'] as String,
+    brand: json['brand'] == null ? null : json['brand'] as String,
+    channel: Channel.fromWire(json['channel'] as String),
+    status: ConsentStatus.fromWire(json['status'] as String),
+    consentKind: json['consent_kind'] == null
+        ? null
+        : ConsentKind.fromWire(json['consent_kind'] as String),
+    recipientType: json['recipient_type'] == null
+        ? null
+        : LegalType.fromWire(json['recipient_type'] as String),
+    source: json['source'] as String,
+    occurredAt: json['occurred_at'] as String,
+  );
+
+  final String object;
+
+  final String id;
+
+  final String? brand;
+
+  final Channel channel;
+
+  final ConsentStatus status;
+
+  final ConsentKind? consentKind;
+
+  final LegalType? recipientType;
+
+  final String source;
+
+  final String occurredAt;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'object': object,
+    'id': id,
+    'brand': brand,
+    'channel': channel.wire,
+    'status': status.wire,
+    'consent_kind': consentKind?.wire,
+    'recipient_type': recipientType?.wire,
+    'source': source,
+    'occurred_at': occurredAt,
+  };
+}
+
+class ConsentList {
+  const ConsentList({
+    required this.object,
+    required this.data,
+    required this.hasMore,
+    required this.nextCursor,
+    this.previousCursor,
+  });
+
+  factory ConsentList.fromJson(Map<String, Object?> json) => ConsentList(
+    object: json['object'] as String,
+    data: (json['data'] as List<Object?>)
+        .map((Object? e0) => Consent.fromJson(e0 as Map<String, Object?>))
+        .toList(),
+    hasMore: json['has_more'] as bool,
+    nextCursor: json['next_cursor'] == null
+        ? null
+        : json['next_cursor'] as String,
+    previousCursor: json['previous_cursor'] == null
+        ? null
+        : json['previous_cursor'] as String,
+  );
+
+  final String object;
+
+  final List<Consent> data;
+
+  final bool hasMore;
+
+  final String? nextCursor;
+
+  final String? previousCursor;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'object': object,
+    'data': data.map((Consent e0) => e0.toJson()).toList(),
+    'has_more': hasMore,
+    'next_cursor': nextCursor,
+    if (previousCursor != null) 'previous_cursor': previousCursor,
+  };
+}
+
 class Device {
   const Device({
     required this.object,
@@ -237,6 +425,7 @@ class Device {
     required this.androidChannels,
     required this.locale,
     this.timezone,
+    this.interruptionPermissions,
     required this.state,
     required this.disabledReason,
     required this.registeredAt,
@@ -264,6 +453,11 @@ class Device {
         .toList(),
     locale: json['locale'] == null ? null : json['locale'] as String,
     timezone: json['timezone'] == null ? null : json['timezone'] as String,
+    interruptionPermissions: json['interruption_permissions'] == null
+        ? null
+        : DeviceInterruptionPermissions.fromJson(
+            json['interruption_permissions'] as Map<String, Object?>,
+          ),
     state: DeviceState.fromWire(json['state'] as String),
     disabledReason: json['disabled_reason'] == null
         ? null
@@ -297,6 +491,8 @@ class Device {
 
   final String? timezone;
 
+  final DeviceInterruptionPermissions? interruptionPermissions;
+
   final DeviceState state;
 
   final DeviceDisabledReason? disabledReason;
@@ -325,6 +521,8 @@ class Device {
         .toList(),
     'locale': locale,
     if (timezone != null) 'timezone': timezone,
+    if (interruptionPermissions != null)
+      'interruption_permissions': interruptionPermissions!.toJson(),
     'state': state.wire,
     'disabled_reason': disabledReason?.wire,
     'registered_at': registeredAt,
@@ -332,6 +530,45 @@ class Device {
     'deleted_at': deletedAt,
     'created_at': createdAt,
     'updated_at': updatedAt,
+  };
+}
+
+class DeviceInterruptionPermissions {
+  const DeviceInterruptionPermissions({
+    this.criticalAlerts,
+    this.timeSensitive,
+    this.dndAccess,
+  });
+
+  factory DeviceInterruptionPermissions.fromJson(Map<String, Object?> json) =>
+      DeviceInterruptionPermissions(
+        criticalAlerts: json['critical_alerts'] == null
+            ? null
+            : DeviceInterruptionPermission.fromWire(
+                json['critical_alerts'] as String,
+              ),
+        timeSensitive: json['time_sensitive'] == null
+            ? null
+            : DeviceInterruptionPermission.fromWire(
+                json['time_sensitive'] as String,
+              ),
+        dndAccess: json['dnd_access'] == null
+            ? null
+            : DeviceInterruptionPermission.fromWire(
+                json['dnd_access'] as String,
+              ),
+      );
+
+  final DeviceInterruptionPermission? criticalAlerts;
+
+  final DeviceInterruptionPermission? timeSensitive;
+
+  final DeviceInterruptionPermission? dndAccess;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    if (criticalAlerts != null) 'critical_alerts': criticalAlerts!.wire,
+    if (timeSensitive != null) 'time_sensitive': timeSensitive!.wire,
+    if (dndAccess != null) 'dnd_access': dndAccess!.wire,
   };
 }
 
@@ -346,6 +583,7 @@ class DeviceRegistration {
     this.androidChannels,
     this.locale,
     this.timezone,
+    this.interruptionPermissions,
     this.previousToken,
   });
 
@@ -371,6 +609,11 @@ class DeviceRegistration {
                   .toList(),
         locale: json['locale'] == null ? null : json['locale'] as String,
         timezone: json['timezone'] == null ? null : json['timezone'] as String,
+        interruptionPermissions: json['interruption_permissions'] == null
+            ? null
+            : DeviceInterruptionPermissions.fromJson(
+                json['interruption_permissions'] as Map<String, Object?>,
+              ),
         previousToken: json['previous_token'] == null
             ? null
             : json['previous_token'] as String,
@@ -394,6 +637,8 @@ class DeviceRegistration {
 
   final String? timezone;
 
+  final DeviceInterruptionPermissions? interruptionPermissions;
+
   final String? previousToken;
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -409,6 +654,8 @@ class DeviceRegistration {
           .toList(),
     if (locale != null) 'locale': locale,
     if (timezone != null) 'timezone': timezone,
+    if (interruptionPermissions != null)
+      'interruption_permissions': interruptionPermissions!.toJson(),
     if (previousToken != null) 'previous_token': previousToken,
   };
 }
@@ -819,6 +1066,9 @@ class InboxItem {
     required this.activityCount,
     required this.actorCount,
     required this.expiresAt,
+    this.senderType,
+    this.approval,
+    this.waitpoint,
   });
 
   factory InboxItem.fromJson(Map<String, Object?> json) => InboxItem(
@@ -868,6 +1118,13 @@ class InboxItem {
     activityCount: (json['activity_count'] as num).toInt(),
     actorCount: (json['actor_count'] as num).toInt(),
     expiresAt: json['expires_at'] == null ? null : json['expires_at'] as String,
+    senderType: json['sender_type'] == null
+        ? null
+        : json['sender_type'] as String,
+    approval: json['approval'] == null ? null : json['approval'] as bool,
+    waitpoint: json['waitpoint'] == null
+        ? null
+        : InboxWaitpoint.fromJson(json['waitpoint'] as Map<String, Object?>),
   );
 
   final String object;
@@ -930,6 +1187,12 @@ class InboxItem {
 
   final String? expiresAt;
 
+  final String? senderType;
+
+  final bool? approval;
+
+  final InboxWaitpoint? waitpoint;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'object': object,
     if (kind != null) 'kind': kind,
@@ -961,6 +1224,9 @@ class InboxItem {
     'activity_count': activityCount,
     'actor_count': actorCount,
     'expires_at': expiresAt,
+    if (senderType != null) 'sender_type': senderType,
+    if (approval != null) 'approval': approval,
+    if (waitpoint != null) 'waitpoint': waitpoint!.toJson(),
   };
 }
 
@@ -1211,6 +1477,115 @@ class InboxReconciliation {
   };
 }
 
+class InboxWaitpoint {
+  const InboxWaitpoint({
+    required this.id,
+    required this.kind,
+    required this.status,
+    required this.subjectDigest,
+    required this.options,
+    required this.responder,
+    required this.respondedAt,
+    required this.approvalUrl,
+  });
+
+  factory InboxWaitpoint.fromJson(Map<String, Object?> json) => InboxWaitpoint(
+    id: json['id'] as String,
+    kind: json['kind'] as String,
+    status: json['status'] as String,
+    subjectDigest: json['subject_digest'] == null
+        ? null
+        : json['subject_digest'] as String,
+    options: (json['options'] as List<Object?>)
+        .map(
+          (Object? e0) =>
+              InboxWaitpointOptionsItem.fromJson(e0 as Map<String, Object?>),
+        )
+        .toList(),
+    responder: json['responder'] == null
+        ? null
+        : InboxWaitpointResponder.fromJson(
+            json['responder'] as Map<String, Object?>,
+          ),
+    respondedAt: json['responded_at'] == null
+        ? null
+        : json['responded_at'] as String,
+    approvalUrl: json['approval_url'] == null
+        ? null
+        : json['approval_url'] as String,
+  );
+
+  final String id;
+
+  final String kind;
+
+  final String status;
+
+  final String? subjectDigest;
+
+  final List<InboxWaitpointOptionsItem> options;
+
+  final InboxWaitpointResponder? responder;
+
+  final String? respondedAt;
+
+  final String? approvalUrl;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'id': id,
+    'kind': kind,
+    'status': status,
+    'subject_digest': subjectDigest,
+    'options': options
+        .map((InboxWaitpointOptionsItem e0) => e0.toJson())
+        .toList(),
+    'responder': responder?.toJson(),
+    'responded_at': respondedAt,
+    'approval_url': approvalUrl,
+  };
+}
+
+class InboxWaitpointOptionsItem {
+  const InboxWaitpointOptionsItem({required this.label, required this.value});
+
+  factory InboxWaitpointOptionsItem.fromJson(Map<String, Object?> json) =>
+      InboxWaitpointOptionsItem(
+        label: json['label'] as String,
+        value: json['value'] as String,
+      );
+
+  final String label;
+
+  final String value;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'label': label,
+    'value': value,
+  };
+}
+
+class InboxWaitpointResponder {
+  const InboxWaitpointResponder({
+    required this.kind,
+    required this.recipientId,
+  });
+
+  factory InboxWaitpointResponder.fromJson(Map<String, Object?> json) =>
+      InboxWaitpointResponder(
+        kind: json['kind'] as String,
+        recipientId: json['recipient_id'] as String,
+      );
+
+  final String kind;
+
+  final String recipientId;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'kind': kind,
+    'recipient_id': recipientId,
+  };
+}
+
 class MyPreferencesPatch {
   const MyPreferencesPatch({this.preferences, this.profile});
 
@@ -1247,21 +1622,37 @@ class MyPreferencesPatch {
 class PreferenceCell {
   const PreferenceCell({
     required this.category,
+    required this.categoryName,
     required this.channel,
     required this.value,
     required this.effective,
     required this.source,
+    required this.locked,
+    required this.lockBeneficiary,
+    required this.digestAllowed,
+    required this.disabledByAdmin,
+    required this.disabledInDeviceSettings,
   });
 
   factory PreferenceCell.fromJson(Map<String, Object?> json) => PreferenceCell(
     category: json['category'] as String,
+    categoryName: json['category_name'] as String,
     channel: Channel.fromWire(json['channel'] as String),
     value: PreferenceValue.fromWire(json['value'] as String),
     effective: json['effective'] as bool,
     source: PreferenceSource.fromWire(json['source'] as String),
+    locked: json['locked'] as bool,
+    lockBeneficiary: json['lock_beneficiary'] == null
+        ? null
+        : json['lock_beneficiary'] as String,
+    digestAllowed: json['digest_allowed'] as bool,
+    disabledByAdmin: json['disabled_by_admin'] as bool,
+    disabledInDeviceSettings: json['disabled_in_device_settings'] as bool,
   );
 
   final String category;
+
+  final String categoryName;
 
   final Channel channel;
 
@@ -1271,12 +1662,28 @@ class PreferenceCell {
 
   final PreferenceSource source;
 
+  final bool locked;
+
+  final String? lockBeneficiary;
+
+  final bool digestAllowed;
+
+  final bool disabledByAdmin;
+
+  final bool disabledInDeviceSettings;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'category': category,
+    'category_name': categoryName,
     'channel': channel.wire,
     'value': value.wire,
     'effective': effective,
     'source': source.wire,
+    'locked': locked,
+    'lock_beneficiary': lockBeneficiary,
+    'digest_allowed': digestAllowed,
+    'disabled_by_admin': disabledByAdmin,
+    'disabled_in_device_settings': disabledInDeviceSettings,
   };
 }
 
@@ -1430,6 +1837,47 @@ class PreferenceWrite {
     if (workflow != null) 'workflow': workflow,
     if (scopeKey != null) 'scope_key': scopeKey,
     'value': value.wire,
+  };
+}
+
+class PushContent {
+  const PushContent({
+    required this.object,
+    required this.deliveryId,
+    required this.notificationId,
+    required this.channel,
+    required this.locale,
+    required this.content,
+  });
+
+  factory PushContent.fromJson(Map<String, Object?> json) => PushContent(
+    object: json['object'] as String,
+    deliveryId: json['delivery_id'] as String,
+    notificationId: json['notification_id'] as String,
+    channel: json['channel'] as String,
+    locale: json['locale'] == null ? null : json['locale'] as String,
+    content: json['content'] as Map<String, Object?>,
+  );
+
+  final String object;
+
+  final String deliveryId;
+
+  final String notificationId;
+
+  final String channel;
+
+  final String? locale;
+
+  final Map<String, Object?> content;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'object': object,
+    'delivery_id': deliveryId,
+    'notification_id': notificationId,
+    'channel': channel,
+    'locale': locale,
+    'content': content,
   };
 }
 
@@ -1695,6 +2143,126 @@ class TimeRange {
     'day': day,
     'start': start,
     'end': end,
+  };
+}
+
+class WaitpointResponder {
+  const WaitpointResponder({
+    required this.recipientId,
+    required this.kind,
+    this.externalId,
+  });
+
+  factory WaitpointResponder.fromJson(Map<String, Object?> json) =>
+      WaitpointResponder(
+        recipientId: json['recipient_id'] as String,
+        kind: json['kind'] as String,
+        externalId: json['external_id'] == null
+            ? null
+            : json['external_id'] as String,
+      );
+
+  final String recipientId;
+
+  final String kind;
+
+  final String? externalId;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'recipient_id': recipientId,
+    'kind': kind,
+    if (externalId != null) 'external_id': externalId,
+  };
+}
+
+class WaitpointResponseReceipt {
+  const WaitpointResponseReceipt({
+    required this.object,
+    required this.waitpointId,
+    required this.status,
+    this.responseId,
+    this.responder,
+    this.evidenceLevel,
+    this.respondedAt,
+    this.responseDigest,
+    this.ruleId,
+  });
+
+  factory WaitpointResponseReceipt.fromJson(Map<String, Object?> json) =>
+      WaitpointResponseReceipt(
+        object: json['object'] as String,
+        waitpointId: json['waitpoint_id'] as String,
+        status: json['status'] as String,
+        responseId: json['response_id'] == null
+            ? null
+            : json['response_id'] as String,
+        responder: json['responder'] == null
+            ? null
+            : WaitpointResponder.fromJson(
+                json['responder'] as Map<String, Object?>,
+              ),
+        evidenceLevel: json['evidence_level'] == null
+            ? null
+            : EvidenceLevel.fromWire(json['evidence_level'] as String),
+        respondedAt: json['responded_at'] == null
+            ? null
+            : json['responded_at'] as String,
+        responseDigest: json['response_digest'] == null
+            ? null
+            : json['response_digest'] as String,
+        ruleId: json['rule_id'] == null ? null : json['rule_id'] as String,
+      );
+
+  final String object;
+
+  final String waitpointId;
+
+  final String status;
+
+  final String? responseId;
+
+  final WaitpointResponder? responder;
+
+  final EvidenceLevel? evidenceLevel;
+
+  final String? respondedAt;
+
+  final String? responseDigest;
+
+  final String? ruleId;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'object': object,
+    'waitpoint_id': waitpointId,
+    'status': status,
+    if (responseId != null) 'response_id': responseId,
+    if (responder != null) 'responder': responder!.toJson(),
+    if (evidenceLevel != null) 'evidence_level': evidenceLevel!.wire,
+    if (respondedAt != null) 'responded_at': respondedAt,
+    if (responseDigest != null) 'response_digest': responseDigest,
+    if (ruleId != null) 'rule_id': ruleId,
+  };
+}
+
+class WaitpointResponseRequest {
+  const WaitpointResponseRequest({
+    required this.response,
+    required this.subjectDigest,
+  });
+
+  factory WaitpointResponseRequest.fromJson(Map<String, Object?> json) =>
+      WaitpointResponseRequest(
+        response: json['response'],
+        subjectDigest: json['subject_digest'] as String,
+      );
+
+  final Object? response;
+
+  final String subjectDigest;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'response': response,
+    'subject_digest': subjectDigest,
   };
 }
 

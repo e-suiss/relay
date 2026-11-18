@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../core/ports.dart';
 import '../generated/models.dart';
 import 'adapter.dart';
+import 'content.dart';
 import 'payload.dart';
 import 'receipts.dart';
 
@@ -24,11 +25,13 @@ class RelayPushHandler {
     required this.receipts,
     required this.store,
     required this.onSync,
-    this.contentSource = const NoRelayPushContentSource(),
+    RelayPushContentSource? contentSource,
     this.locale,
     this.fetchTimeout = const Duration(seconds: 10),
     RelayLogger? logger,
-  }) : logger = logger ?? const SilentRelayLogger();
+  }) : contentSource =
+           contentSource ?? RelayApiPushContentSource(receipts.http),
+       logger = logger ?? const SilentRelayLogger();
 
   /// The platform push bridge.
   final RelayPushAdapter adapter;
@@ -42,7 +45,7 @@ class RelayPushHandler {
   /// Refreshes the counters.
   final RelaySyncCallback onSync;
 
-  /// Fetches content-free content.
+  /// Fetches content-free content; Relay's push content API unless the app supplies another source.
   final RelayPushContentSource contentSource;
 
   /// The device locale for the generic text.

@@ -12,7 +12,8 @@ import 'channels.dart';
 // CH-28
 // CH-30
 // CH-31
-/// Registers the push token on every start, reports the permission and the Android channels, and follows token refreshes.
+// CH-65
+/// Registers the push token on every start, reports the permission, the Android channels and the interruption permissions, and follows token refreshes.
 class RelayDeviceRegistrar {
   /// Creates the registrar.
   RelayDeviceRegistrar({
@@ -93,12 +94,26 @@ class RelayDeviceRegistrar {
     final List<AndroidChannel> channels = _android
         ? await adapter.getAndroidChannels()
         : <AndroidChannel>[];
+    final DeviceInterruptionPermissions? interruption = await _interruption();
     return jsonEncode(<String, Object?>{
       'permission': permission.wire,
       'channels': <Object?>[
         for (final AndroidChannel c in channels) c.toJson(),
       ],
+      'interruption': interruption?.toJson(),
     });
+  }
+
+  // CH-65
+  Future<DeviceInterruptionPermissions?> _interruption() async {
+    try {
+      return relayInterruptionPermissions(
+        adapter.platform,
+        await adapter.getInterruptionCapabilities(),
+      );
+    } on Object {
+      return null;
+    }
   }
 
   Future<Device?> _register(String token) async {
@@ -107,6 +122,7 @@ class RelayDeviceRegistrar {
     final List<AndroidChannel>? channels = _android
         ? await adapter.getAndroidChannels()
         : null;
+    final DeviceInterruptionPermissions? interruption = await _interruption();
     final String? previous = await store.read(_tokenKey);
     final DeviceRegistration registration = DeviceRegistration(
       platform: adapter.platform,
@@ -119,6 +135,7 @@ class RelayDeviceRegistrar {
       androidChannels: channels,
       locale: locale,
       timezone: timezone,
+      interruptionPermissions: interruption,
       previousToken: previous != null && previous != token ? previous : null,
     );
     final RelayResponse response = await http.send(

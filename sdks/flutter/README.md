@@ -55,9 +55,9 @@ FirebaseMessaging.onMessage.listen((m) {
 });
 ```
 
-- The token is registered on every start, refreshed with `previous_token`, and the operating system permission and Android channel importances are reported with it.
+- The token is registered on every start, refreshed with `previous_token`, and the operating system permission, Android channel importances and interruption permissions (critical alerts and time-sensitive on iOS, Do Not Disturb access on Android, from `getInterruptionCapabilities`) are reported with it. Leave a permission null when it is not known; nothing is reported for it.
 - Android channels have stable ids, `relay.<category>.<level>`; create them once through `relayAndroidChannels`.
-- Content-free pushes carry only an opaque id. Supply a `RelayPushContentSource` to fetch the content; when it cannot be fetched, a generic text is shown instead.
+- Content-free pushes carry only an opaque id. The client fetches the content from Relay by that id with the subscriber token; when it cannot be fetched, a generic text is shown instead. Pass another `RelayPushContentSource` to change this.
 - Shown and opened notifications are reported with `displayed` and `clicked` receipts; receipts made offline are sent later.
 - A notification read on another device is removed from this one.
 - On iOS, content-free notifications are completed by a Notification Service Extension, which comes from the native iOS SDK.
@@ -72,6 +72,9 @@ FirebaseMessaging.onMessage.listen((m) {
 ## Widgets
 
 `RelayInboxBell`, `RelayInboxList` and `RelayPreferenceCenter` follow your `ThemeData`, or a `RelayThemeData` extension for brand colours, speak Turkish and English, and meet WCAG 2.2 AA contrast and touch target sizes.
+
+- The inbox list labels notifications sent by an AI agent. An item awaiting a response shows its options as buttons, then whether the response is being processed, who answered and when, or that a response is no longer expected. An approval item is never answered in the app: it only links to the approval page in your account, opened through `onOpenUrl`.
+- The preference center shows the subscriber's marketing consents read-only. Pass `accessConsentUrl` and `onOpenUrl` to add a link where they can be changed; without them no link is shown.
 
 ## Development
 

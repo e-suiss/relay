@@ -18,6 +18,8 @@ const sdkItems: DefaultTheme.SidebarItem[] = [
   { text: "Go", link: "/sdks/go" },
   { text: "Java", link: "/sdks/java" },
   { text: "Elixir", link: "/sdks/elixir" },
+  { text: "PHP", link: "/sdks/php" },
+  { text: "Ruby", link: "/sdks/ruby" },
   { text: "iOS (Swift)", link: "/sdks/swift" },
   { text: "Android (Kotlin)", link: "/sdks/kotlin" },
   { text: "React Native", link: "/sdks/react-native" },

@@ -36,6 +36,10 @@ Always verify the raw body exactly as it arrived, before parsing it. Every serve
 
 <<< @/examples/elixir/webhooks.ex#verify{elixir} [Elixir]
 
+<<< @/examples/php/Snippets.php#verify [PHP]
+
+<<< @/examples/ruby/snippets.rb#verify [Ruby]
+
 :::
 
 ## Process each event once

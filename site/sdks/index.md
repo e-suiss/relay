@@ -14,6 +14,8 @@ For your backend. They authenticate with your Access API client and DPoP-bound t
 | .NET                   | `Esuiss.Relay`           | [.NET](./dotnet)           |
 | Java                   | `app.suiss:esuiss-relay` | [Java](./java)             |
 | Elixir                 | `esuiss_relay`           | [Elixir](./elixir)         |
+| PHP                    | `esuiss/relay`           | [PHP](./php)               |
+| Ruby                   | `esuiss-relay`           | [Ruby](./ruby)             |
 
 Every server SDK:
 

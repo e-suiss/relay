@@ -1,5 +1,5 @@
 defmodule RelayTest.Keys do
-  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`; once destroyed, its label no longer signs in any process for the rest of the test run. The label `access-service` is an Ed25519 key pair as well, with a public key, and signs the statements of an Access pairing challenge after the checks of the key store port, made by `RelayTest.AccessKernel` (E-101)."
+  @moduledoc "Key store for data layer tests: AES-256-GCM wrapping and HMAC-SHA256 under keys derived from their label, so tests agree on every key without a token. ES256 signing keys are P-256 key pairs derived from their label as well, and RS256 keys are RSA-2048 keys generated once per `relay-dkim/` label (DKIM keys); there are no other signing keys; secret data objects are stored in the calling process; key generation succeeds for any label. An Ed25519 key pair is derived from its label and signs only under a label that starts with `relay-webhook-`; once destroyed, its label no longer signs in any process for the rest of the test run. A key withdrawn with `withdraw/1` no longer wraps or unwraps. The label `access-service` is an Ed25519 key pair as well, with a public key, and signs the statements of an Access pairing challenge after the checks of the key store port, made by `RelayTest.AccessKernel` (E-101)."
 
   use Boundary, top_level?: true, deps: [Relay, RelayTest.AccessKernel], exports: []
 
@@ -73,8 +73,18 @@ defmodule RelayTest.Keys do
 
   defp es256(label), do: :crypto.hash(:sha256, "relay-test-es256:" <> label)
 
+  @doc "Withdraws a key from the key store for the rest of the test run: it no longer wraps or unwraps, as a tenant's own key the tenant destroyed (OP-85)."
+  @spec withdraw(Relay.Keys.label()) :: :ok
+  def withdraw(label), do: :persistent_term.put({__MODULE__, :withdrawn, label}, true)
+
+  defp withdrawn?(label), do: :persistent_term.get({__MODULE__, :withdrawn, label}, false)
+
   @impl Relay.Keys
   def wrap(label, aad, key) do
+    if withdrawn?(label), do: not_found(), else: wrap_present(label, aad, key)
+  end
+
+  defp wrap_present(label, aad, key) do
     iv = :crypto.strong_rand_bytes(12)
 
     {ciphertext, tag} =
@@ -92,7 +102,11 @@ defmodule RelayTest.Keys do
   end
 
   @impl Relay.Keys
-  def unwrap(label, aad, <<iv::binary-12, rest::binary>>) when byte_size(rest) >= 16 do
+  def unwrap(label, aad, wrapped) do
+    if withdrawn?(label), do: not_found(), else: unwrap_present(label, aad, wrapped)
+  end
+
+  defp unwrap_present(label, aad, <<iv::binary-12, rest::binary>>) when byte_size(rest) >= 16 do
     size = byte_size(rest) - 16
     <<ciphertext::binary-size(^size), tag::binary-16>> = rest
 
@@ -110,7 +124,7 @@ defmodule RelayTest.Keys do
     end
   end
 
-  def unwrap(_label, _aad, _wrapped), do: integrity()
+  defp unwrap_present(_label, _aad, _wrapped), do: integrity()
 
   @impl Relay.Keys
   def hmac_sha256(label, message),

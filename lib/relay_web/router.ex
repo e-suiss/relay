@@ -247,6 +247,9 @@ defmodule RelayWeb.Router do
     get "/subscribers/:subscriber_id", SubscriberController, :show,
       private: %{relay_operation: "getSubscriber"}
 
+    get "/subscribers/:subscriber_id/export", SubscriberController, :export,
+      private: %{relay_operation: "exportSubscriber"}
+
     put "/subscribers/:subscriber_id", SubscriberController, :replace,
       private: %{relay_operation: "replaceSubscriber"}
 
@@ -1245,6 +1248,26 @@ defmodule RelayWeb.Router do
 
     post "/tenants/:tenant_id/resume", PlatformController, :resume,
       private: %{relay_operation: "resumeTenant"}
+
+    # OP-85
+    get "/tenants/:tenant_id/key_custody", TenantLifecycleController, :key_custody,
+      private: %{relay_operation: "getTenantKeyCustody"}
+
+    put "/tenants/:tenant_id/key_custody", TenantLifecycleController, :set_key_custody,
+      private: %{relay_operation: "setTenantKeyCustody"}
+
+    # OP-86
+    get "/tenants/:tenant_id/closure", TenantLifecycleController, :closure,
+      private: %{relay_operation: "getTenantClosure"}
+
+    post "/tenants/:tenant_id/closure", TenantLifecycleController, :request_closure,
+      private: %{relay_operation: "requestTenantClosure"}
+
+    post "/tenants/:tenant_id/closure/confirm", TenantLifecycleController, :confirm_closure,
+      private: %{relay_operation: "confirmTenantClosure"}
+
+    post "/tenants/:tenant_id/closure/shred", TenantLifecycleController, :shred,
+      private: %{relay_operation: "shredTenantClosure"}
 
     get "/tenants/:tenant_id/critical_interruption", PlatformController, :critical,
       private: %{relay_operation: "getCriticalInterruption"}

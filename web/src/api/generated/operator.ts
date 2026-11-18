@@ -364,6 +364,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/operator/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Change the tenant settings
+         * @description Changes the default time zone and locale of the selected tenant, each audited with the tenant record, and the tenant's retention period of a record class, which may only extend the legal period of the tenant's region and sector (a shorter one is 422 validation_failed with not_allowed at /retention/<class>); null clears the tenant's own period. A retention change needs step-up. version is the tenant record's version from getTenantSettings; another version is 409 resource_conflict. A failed retention change after a changed default leaves the default changed and says so in the problem. The region never changes. Answers the settings after the change.
+         */
+        put: operations["updateTenantSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/operator/support_delegations": {
         parameters: {
             query?: never;
@@ -1884,6 +1904,47 @@ export interface components {
         TemplateKey: string;
         /** @enum {string} */
         SendMode: "live" | "shadow" | "dry_run" | "off";
+        /**
+         * @description Canonical IANA time zone identifier. Etc/GMT offsets and UTC or GMT offsets are rejected.
+         * @example Europe/Istanbul
+         */
+        TimeZone: string;
+        /** @description A change of the tenant settings. A member left out keeps its value. A retention period may only extend the legal period of the tenant's region and sector, and null clears the tenant's own period. */
+        TenantSettingsUpdate: {
+            /** @description The version getTenantSettings returned. */
+            version: number;
+            default_timezone?: components["schemas"]["TimeZone"];
+            default_locale?: components["schemas"]["Locale"];
+            retention?: {
+                commercial_message?: number | null;
+                commercial_consent?: number | null;
+                delivery_record?: number | null;
+            };
+        };
+        /**
+         * @description Data region of the installation.
+         * @enum {string}
+         */
+        Region: "tr" | "eu" | "us";
+        /** @description The retention period of one record class in days: the legal period of the tenant's region and sector, the tenant's longer period when set, and the period in force. */
+        RetentionSetting: {
+            /** @enum {string} */
+            retention_class: "commercial_message" | "commercial_consent" | "delivery_record";
+            legal_days: number | null;
+            days: number | null;
+            effective_days: number | null;
+        };
+        /** @description The tenant settings of the console. */
+        TenantSettings: {
+            /** @constant */
+            object: "tenant_settings";
+            region: components["schemas"]["Region"];
+            default_timezone: components["schemas"]["TimeZone"];
+            default_locale: components["schemas"]["Locale"];
+            /** @description The tenant record's version; updateTenantSettings names it to refuse a concurrent change. */
+            version: number;
+            retention: components["schemas"]["RetentionSetting"][];
+        };
         /**
          * @description Support access delegation identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
          * @example dlg_01j9zq3k4m5n6p7q8r9s0t1v2w
@@ -3972,6 +4033,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SendModeSetting"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    updateTenantSettings: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description The settings after the change. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantSettings"];
                 };
             };
             400: components["responses"]["BadRequest"];

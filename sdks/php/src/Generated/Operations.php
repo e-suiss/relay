@@ -472,6 +472,26 @@ trait Operations
     }
 
     /**
+     * Mint a hosted preference page link.
+     *
+     * @return array<string, mixed>
+     */
+    public function createPreferencePageLink(
+        string $subscriberId,
+        ?string $idempotencyKey = null,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'POST',
+            path: '/v1/subscribers/{subscriber_id}/preference_page_links',
+            pathParams: ['subscriber_id' => $subscriberId],
+            idempotent: true,
+            idempotencyKey: $idempotencyKey,
+            options: $options,
+        ));
+    }
+
+    /**
      * List subscriber consents.
      *
      * @return Page<array<string, mixed>>
@@ -2748,6 +2768,58 @@ trait Operations
         return $this->callJson(new Call(
             method: 'GET',
             path: '/v1/test/simulated-results',
+            options: $options,
+        ));
+    }
+
+    /**
+     * List the seed recipients of the test plane.
+     *
+     * @return array<string, mixed>
+     */
+    public function listSeedRecipients(
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/test/seed-recipients',
+            options: $options,
+        ));
+    }
+
+    /**
+     * Reset the seed recipients of the test plane.
+     *
+     * @return array<string, mixed>
+     */
+    public function resetSeedRecipients(
+        ?string $idempotencyKey = null,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'POST',
+            path: '/v1/test/seed-recipients/reset',
+            idempotent: true,
+            idempotencyKey: $idempotencyKey,
+            options: $options,
+        ));
+    }
+
+    /**
+     * List the test inbox.
+     *
+     * @return Page<array<string, mixed>>
+     */
+    public function listTestInboxMessages(
+        ?int $limit = null,
+        ?string $startingAfter = null,
+        ?string $endingBefore = null,
+        ?RequestOptions $options = null,
+    ): Page {
+        return $this->callPage(new Call(
+            method: 'GET',
+            path: '/v1/test/inbox',
+            query: ['limit' => $limit, 'starting_after' => $startingAfter, 'ending_before' => $endingBefore],
             options: $options,
         ));
     }
@@ -5402,6 +5474,176 @@ trait Operations
             pathParams: ['throttle_key' => $throttleKey],
             idempotent: true,
             idempotencyKey: $idempotencyKey,
+            options: $options,
+        ));
+    }
+
+    /**
+     * Find a subscriber by phone or e-mail.
+     *
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    public function lookupSubscribers(
+        array $body,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'POST',
+            path: '/v1/subscriber_lookups',
+            body: $body,
+            contentType: 'application/json',
+            options: $options,
+        ));
+    }
+
+    /**
+     * List the rule dictionary.
+     *
+     * @return array<string, mixed>
+     */
+    public function listRules(
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/rules',
+            options: $options,
+        ));
+    }
+
+    /**
+     * Get the tenant settings.
+     *
+     * @return array<string, mixed>
+     */
+    public function getTenantSettings(
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/settings',
+            options: $options,
+        ));
+    }
+
+    /**
+     * Where a route is used.
+     *
+     * @return array<string, mixed>
+     */
+    public function getRouteUsage(
+        string $routeKey,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/routes/{route_key}/usage',
+            pathParams: ['route_key' => $routeKey],
+            options: $options,
+        ));
+    }
+
+    /**
+     * Where an escalation policy is used.
+     *
+     * @return array<string, mixed>
+     */
+    public function getEscalationPolicyUsage(
+        string $policyKey,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/escalation_policies/{policy_key}/usage',
+            pathParams: ['policy_key' => $policyKey],
+            options: $options,
+        ));
+    }
+
+    /**
+     * Run the publication gate on the draft without publishing.
+     *
+     * @return array<string, mixed>
+     */
+    public function checkWorkflowPublication(
+        string $workflowKey,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/workflows/{workflow_key}/publication_check',
+            pathParams: ['workflow_key' => $workflowKey],
+            options: $options,
+        ));
+    }
+
+    /**
+     * Run the publication gate on the draft without publishing.
+     *
+     * @return array<string, mixed>
+     */
+    public function checkTemplatePublication(
+        string $templateKey,
+        ?string $subtenant = null,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/templates/{template_key}/publication_check',
+            pathParams: ['template_key' => $templateKey],
+            query: ['subtenant' => $subtenant],
+            options: $options,
+        ));
+    }
+
+    /**
+     * Get the waitpoint figures.
+     *
+     * @return array<string, mixed>
+     */
+    public function getWaitpointStats(
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/waitpoint_stats',
+            options: $options,
+        ));
+    }
+
+    /**
+     * Get the A/B variant report.
+     *
+     * @return array<string, mixed>
+     */
+    public function getVariantReport(
+        string $from,
+        string $to,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/reports/variants',
+            query: ['from' => $from, 'to' => $to],
+            options: $options,
+        ));
+    }
+
+    /**
+     * Get the render and locale problem report.
+     *
+     * @return array<string, mixed>
+     */
+    public function getRenderProblemReport(
+        string $from,
+        string $to,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/reports/render_problems',
+            query: ['from' => $from, 'to' => $to],
             options: $options,
         ));
     }

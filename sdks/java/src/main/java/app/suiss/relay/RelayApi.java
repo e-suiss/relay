@@ -937,6 +937,16 @@ public final class RelayApi {
           Operation.Presence.NONE,
           "application/json",
           Operation.Response.JSON);
+  private static final Operation LIST_SUBTENANTS =
+      new Operation(
+          "listSubtenants",
+          "GET",
+          "/v1/subtenants",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
   private static final Operation GET_CATEGORY_SUBTENANT_SETTING =
       new Operation(
           "getCategorySubtenantSetting",
@@ -2593,6 +2603,106 @@ public final class RelayApi {
           "POST",
           "/v1/throttles/{throttle_key}/reset",
           Operation.Presence.REQUIRED,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation LOOKUP_SUBSCRIBERS =
+      new Operation(
+          "lookupSubscribers",
+          "POST",
+          "/v1/subscriber_lookups",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.REQUIRED,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation LIST_RULES =
+      new Operation(
+          "listRules",
+          "GET",
+          "/v1/rules",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_TENANT_SETTINGS =
+      new Operation(
+          "getTenantSettings",
+          "GET",
+          "/v1/settings",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_ROUTE_USAGE =
+      new Operation(
+          "getRouteUsage",
+          "GET",
+          "/v1/routes/{route_key}/usage",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_ESCALATION_POLICY_USAGE =
+      new Operation(
+          "getEscalationPolicyUsage",
+          "GET",
+          "/v1/escalation_policies/{policy_key}/usage",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation CHECK_WORKFLOW_PUBLICATION =
+      new Operation(
+          "checkWorkflowPublication",
+          "GET",
+          "/v1/workflows/{workflow_key}/publication_check",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation CHECK_TEMPLATE_PUBLICATION =
+      new Operation(
+          "checkTemplatePublication",
+          "GET",
+          "/v1/templates/{template_key}/publication_check",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_WAITPOINT_STATS =
+      new Operation(
+          "getWaitpointStats",
+          "GET",
+          "/v1/waitpoint_stats",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_VARIANT_REPORT =
+      new Operation(
+          "getVariantReport",
+          "GET",
+          "/v1/reports/variants",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_RENDER_PROBLEM_REPORT =
+      new Operation(
+          "getRenderProblemReport",
+          "GET",
+          "/v1/reports/render_problems",
+          Operation.Presence.NONE,
           Operation.Presence.NONE,
           Operation.Presence.NONE,
           "application/json",
@@ -5051,6 +5161,30 @@ public final class RelayApi {
    */
   public JsonNode archiveCategory(String categoryKey) {
     return archiveCategory(categoryKey, RequestOptions.none());
+  }
+
+  /**
+   * List sub-tenants.
+   *
+   * <p>{@code GET /v1/subtenants}
+   *
+   * @param params the query parameters
+   * @param options the request options
+   * @return the first page; further pages are fetched lazily
+   */
+  public Page listSubtenants(ListSubtenantsParams params, RequestOptions options) {
+    return requester.page(LIST_SUBTENANTS, List.of(), params, options);
+  }
+
+  /**
+   * List sub-tenants.
+   *
+   * <p>{@code GET /v1/subtenants}
+   *
+   * @return the first page; further pages are fetched lazily
+   */
+  public Page listSubtenants() {
+    return listSubtenants(null, RequestOptions.none());
   }
 
   /**
@@ -9298,5 +9432,252 @@ public final class RelayApi {
    */
   public JsonNode resetThrottle(String throttleKey) {
     return resetThrottle(throttleKey, RequestOptions.none());
+  }
+
+  /**
+   * Find a subscriber by phone or e-mail.
+   *
+   * <p>{@code POST /v1/subscriber_lookups}
+   *
+   * @param body the request body
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode lookupSubscribers(JsonNode body, RequestOptions options) {
+    return requester.json(LOOKUP_SUBSCRIBERS, List.of(), null, body, options);
+  }
+
+  /**
+   * Find a subscriber by phone or e-mail.
+   *
+   * <p>{@code POST /v1/subscriber_lookups}
+   *
+   * @param body the request body
+   * @return the response body
+   */
+  public JsonNode lookupSubscribers(JsonNode body) {
+    return lookupSubscribers(body, RequestOptions.none());
+  }
+
+  /**
+   * List the rule dictionary.
+   *
+   * <p>{@code GET /v1/rules}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode listRules(RequestOptions options) {
+    return requester.json(LIST_RULES, List.of(), null, null, options);
+  }
+
+  /**
+   * List the rule dictionary.
+   *
+   * <p>{@code GET /v1/rules}
+   *
+   * @return the response body
+   */
+  public JsonNode listRules() {
+    return listRules(RequestOptions.none());
+  }
+
+  /**
+   * Get the tenant settings.
+   *
+   * <p>{@code GET /v1/settings}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getTenantSettings(RequestOptions options) {
+    return requester.json(GET_TENANT_SETTINGS, List.of(), null, null, options);
+  }
+
+  /**
+   * Get the tenant settings.
+   *
+   * <p>{@code GET /v1/settings}
+   *
+   * @return the response body
+   */
+  public JsonNode getTenantSettings() {
+    return getTenantSettings(RequestOptions.none());
+  }
+
+  /**
+   * Where a route is used.
+   *
+   * <p>{@code GET /v1/routes/{route_key}/usage}
+   *
+   * @param routeKey the {@code route_key} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getRouteUsage(String routeKey, RequestOptions options) {
+    return requester.json(GET_ROUTE_USAGE, List.of(routeKey), null, null, options);
+  }
+
+  /**
+   * Where a route is used.
+   *
+   * <p>{@code GET /v1/routes/{route_key}/usage}
+   *
+   * @param routeKey the {@code route_key} path parameter
+   * @return the response body
+   */
+  public JsonNode getRouteUsage(String routeKey) {
+    return getRouteUsage(routeKey, RequestOptions.none());
+  }
+
+  /**
+   * Where an escalation policy is used.
+   *
+   * <p>{@code GET /v1/escalation_policies/{policy_key}/usage}
+   *
+   * @param policyKey the {@code policy_key} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getEscalationPolicyUsage(String policyKey, RequestOptions options) {
+    return requester.json(GET_ESCALATION_POLICY_USAGE, List.of(policyKey), null, null, options);
+  }
+
+  /**
+   * Where an escalation policy is used.
+   *
+   * <p>{@code GET /v1/escalation_policies/{policy_key}/usage}
+   *
+   * @param policyKey the {@code policy_key} path parameter
+   * @return the response body
+   */
+  public JsonNode getEscalationPolicyUsage(String policyKey) {
+    return getEscalationPolicyUsage(policyKey, RequestOptions.none());
+  }
+
+  /**
+   * Run the publication gate on the draft without publishing.
+   *
+   * <p>{@code GET /v1/workflows/{workflow_key}/publication_check}
+   *
+   * @param workflowKey the {@code workflow_key} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode checkWorkflowPublication(String workflowKey, RequestOptions options) {
+    return requester.json(CHECK_WORKFLOW_PUBLICATION, List.of(workflowKey), null, null, options);
+  }
+
+  /**
+   * Run the publication gate on the draft without publishing.
+   *
+   * <p>{@code GET /v1/workflows/{workflow_key}/publication_check}
+   *
+   * @param workflowKey the {@code workflow_key} path parameter
+   * @return the response body
+   */
+  public JsonNode checkWorkflowPublication(String workflowKey) {
+    return checkWorkflowPublication(workflowKey, RequestOptions.none());
+  }
+
+  /**
+   * Run the publication gate on the draft without publishing.
+   *
+   * <p>{@code GET /v1/templates/{template_key}/publication_check}
+   *
+   * @param templateKey the {@code template_key} path parameter
+   * @param params the query parameters
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode checkTemplatePublication(
+      String templateKey, CheckTemplatePublicationParams params, RequestOptions options) {
+    return requester.json(CHECK_TEMPLATE_PUBLICATION, List.of(templateKey), params, null, options);
+  }
+
+  /**
+   * Run the publication gate on the draft without publishing.
+   *
+   * <p>{@code GET /v1/templates/{template_key}/publication_check}
+   *
+   * @param templateKey the {@code template_key} path parameter
+   * @return the response body
+   */
+  public JsonNode checkTemplatePublication(String templateKey) {
+    return checkTemplatePublication(templateKey, null, RequestOptions.none());
+  }
+
+  /**
+   * Get the waitpoint figures.
+   *
+   * <p>{@code GET /v1/waitpoint_stats}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getWaitpointStats(RequestOptions options) {
+    return requester.json(GET_WAITPOINT_STATS, List.of(), null, null, options);
+  }
+
+  /**
+   * Get the waitpoint figures.
+   *
+   * <p>{@code GET /v1/waitpoint_stats}
+   *
+   * @return the response body
+   */
+  public JsonNode getWaitpointStats() {
+    return getWaitpointStats(RequestOptions.none());
+  }
+
+  /**
+   * Get the A/B variant report.
+   *
+   * <p>{@code GET /v1/reports/variants}
+   *
+   * @param params the query parameters
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getVariantReport(GetVariantReportParams params, RequestOptions options) {
+    return requester.json(GET_VARIANT_REPORT, List.of(), params, null, options);
+  }
+
+  /**
+   * Get the A/B variant report.
+   *
+   * <p>{@code GET /v1/reports/variants}
+   *
+   * @param params the query parameters
+   * @return the response body
+   */
+  public JsonNode getVariantReport(GetVariantReportParams params) {
+    return getVariantReport(params, RequestOptions.none());
+  }
+
+  /**
+   * Get the render and locale problem report.
+   *
+   * <p>{@code GET /v1/reports/render_problems}
+   *
+   * @param params the query parameters
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getRenderProblemReport(
+      GetRenderProblemReportParams params, RequestOptions options) {
+    return requester.json(GET_RENDER_PROBLEM_REPORT, List.of(), params, null, options);
+  }
+
+  /**
+   * Get the render and locale problem report.
+   *
+   * <p>{@code GET /v1/reports/render_problems}
+   *
+   * @param params the query parameters
+   * @return the response body
+   */
+  public JsonNode getRenderProblemReport(GetRenderProblemReportParams params) {
+    return getRenderProblemReport(params, RequestOptions.none());
   }
 }

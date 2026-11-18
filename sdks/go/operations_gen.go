@@ -492,6 +492,20 @@ func (c *Client) UpdateSubscriberPreferences(ctx context.Context, subscriberID E
 	return out, nil
 }
 
+// CreatePreferencePageLink calls POST /v1/subscribers/{subscriber_id}/preference_page_links: Mint a hosted preference page link
+func (c *Client) CreatePreferencePageLink(ctx context.Context, subscriberID ExternalID, opts ...RequestOption) (*PreferencePageLink, error) {
+	r := newRequest("POST", "/v1/subscribers/"+pathSegment(subscriberID)+"/preference_page_links", true)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(PreferencePageLink)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ListSubscriberConsentsParams holds the query and header parameters of ListSubscriberConsents.
 type ListSubscriberConsentsParams struct {
 	Limit         *int64
@@ -2834,6 +2848,65 @@ func (c *Client) ListSimulatedResults(ctx context.Context, opts ...RequestOption
 		return nil, err
 	}
 	return out, nil
+}
+
+// ListSeedRecipients calls GET /v1/test/seed-recipients: List the seed recipients of the test plane
+func (c *Client) ListSeedRecipients(ctx context.Context, opts ...RequestOption) (*SeedRecipientList, error) {
+	r := newRequest("GET", "/v1/test/seed-recipients", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(SeedRecipientList)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ResetSeedRecipients calls POST /v1/test/seed-recipients/reset: Reset the seed recipients of the test plane
+func (c *Client) ResetSeedRecipients(ctx context.Context, opts ...RequestOption) (*SeedReset, error) {
+	r := newRequest("POST", "/v1/test/seed-recipients/reset", true)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(SeedReset)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ListTestInboxMessagesParams holds the query and header parameters of ListTestInboxMessages.
+type ListTestInboxMessagesParams struct {
+	Limit         *int64
+	StartingAfter *Cursor
+	EndingBefore  *Cursor
+}
+
+// ListTestInboxMessages calls GET /v1/test/inbox: List the test inbox
+func (c *Client) ListTestInboxMessages(ctx context.Context, params *ListTestInboxMessagesParams, opts ...RequestOption) (*Page[TestInboxMessage], error) {
+	r := newRequest("GET", "/v1/test/inbox", false)
+	if params != nil {
+		if params.Limit != nil {
+			r.addQuery("limit", formatValue(*params.Limit))
+		}
+		if params.StartingAfter != nil {
+			r.addQuery("starting_after", formatValue(*params.StartingAfter))
+		}
+		if params.EndingBefore != nil {
+			r.addQuery("ending_before", formatValue(*params.EndingBefore))
+		}
+	}
+	return fetchPage[TestInboxMessage](ctx, c, r, opts)
+}
+
+// ListTestInboxMessagesIter lazily iterates every item of ListTestInboxMessages across pages.
+func (c *Client) ListTestInboxMessagesIter(ctx context.Context, params *ListTestInboxMessagesParams, opts ...RequestOption) iter.Seq2[TestInboxMessage, error] {
+	return pageIter(ctx, func() (*Page[TestInboxMessage], error) {
+		return c.ListTestInboxMessages(ctx, params, opts...)
+	})
 }
 
 // GetRelayConfiguration calls GET /.well-known/relay-configuration: Get the Relay discovery document
@@ -5597,6 +5670,179 @@ func (c *Client) ResetThrottle(ctx context.Context, throttleKey ThrottleKey, opt
 		return nil, err
 	}
 	out := new(ThrottleReset)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// LookupSubscribers calls POST /v1/subscriber_lookups: Find a subscriber by phone or e-mail
+func (c *Client) LookupSubscribers(ctx context.Context, body *SubscriberLookupRequest, opts ...RequestOption) (*SubscriberLookup, error) {
+	r := newRequest("POST", "/v1/subscriber_lookups", false)
+	if body != nil {
+		r.setBody(body, "application/json")
+	}
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(SubscriberLookup)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ListRules calls GET /v1/rules: List the rule dictionary
+func (c *Client) ListRules(ctx context.Context, opts ...RequestOption) (*RuleDictionary, error) {
+	r := newRequest("GET", "/v1/rules", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(RuleDictionary)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GetTenantSettings calls GET /v1/settings: Get the tenant settings
+func (c *Client) GetTenantSettings(ctx context.Context, opts ...RequestOption) (*TenantSettings, error) {
+	r := newRequest("GET", "/v1/settings", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(TenantSettings)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GetRouteUsage calls GET /v1/routes/{route_key}/usage: Where a route is used
+func (c *Client) GetRouteUsage(ctx context.Context, routeKey RouteKey, opts ...RequestOption) (*RouteUsage, error) {
+	r := newRequest("GET", "/v1/routes/"+pathSegment(routeKey)+"/usage", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(RouteUsage)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GetEscalationPolicyUsage calls GET /v1/escalation_policies/{policy_key}/usage: Where an escalation policy is used
+func (c *Client) GetEscalationPolicyUsage(ctx context.Context, policyKey EscalationPolicyKey, opts ...RequestOption) (*EscalationPolicyUsage, error) {
+	r := newRequest("GET", "/v1/escalation_policies/"+pathSegment(policyKey)+"/usage", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(EscalationPolicyUsage)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// CheckWorkflowPublication calls GET /v1/workflows/{workflow_key}/publication_check: Run the publication gate on the draft without publishing
+func (c *Client) CheckWorkflowPublication(ctx context.Context, workflowKey WorkflowKey, opts ...RequestOption) (*WorkflowPublicationCheck, error) {
+	r := newRequest("GET", "/v1/workflows/"+pathSegment(workflowKey)+"/publication_check", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(WorkflowPublicationCheck)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// CheckTemplatePublicationParams holds the query and header parameters of CheckTemplatePublication.
+type CheckTemplatePublicationParams struct {
+	Subtenant *IDStn
+}
+
+// CheckTemplatePublication calls GET /v1/templates/{template_key}/publication_check: Run the publication gate on the draft without publishing
+func (c *Client) CheckTemplatePublication(ctx context.Context, templateKey TemplateKey, params *CheckTemplatePublicationParams, opts ...RequestOption) (*TemplatePublicationCheck, error) {
+	r := newRequest("GET", "/v1/templates/"+pathSegment(templateKey)+"/publication_check", false)
+	if params != nil {
+		if params.Subtenant != nil {
+			r.addQuery("subtenant", formatValue(*params.Subtenant))
+		}
+	}
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(TemplatePublicationCheck)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GetWaitpointStats calls GET /v1/waitpoint_stats: Get the waitpoint figures
+func (c *Client) GetWaitpointStats(ctx context.Context, opts ...RequestOption) (*WaitpointStats, error) {
+	r := newRequest("GET", "/v1/waitpoint_stats", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(WaitpointStats)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GetVariantReportParams holds the query and header parameters of GetVariantReport.
+type GetVariantReportParams struct {
+	From string
+	To   string
+}
+
+// GetVariantReport calls GET /v1/reports/variants: Get the A/B variant report
+func (c *Client) GetVariantReport(ctx context.Context, params *GetVariantReportParams, opts ...RequestOption) (*VariantReport, error) {
+	r := newRequest("GET", "/v1/reports/variants", false)
+	if params != nil {
+		r.addQuery("from", formatValue(params.From))
+		r.addQuery("to", formatValue(params.To))
+	}
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(VariantReport)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// GetRenderProblemReportParams holds the query and header parameters of GetRenderProblemReport.
+type GetRenderProblemReportParams struct {
+	From string
+	To   string
+}
+
+// GetRenderProblemReport calls GET /v1/reports/render_problems: Get the render and locale problem report
+func (c *Client) GetRenderProblemReport(ctx context.Context, params *GetRenderProblemReportParams, opts ...RequestOption) (*RenderProblemReport, error) {
+	r := newRequest("GET", "/v1/reports/render_problems", false)
+	if params != nil {
+		r.addQuery("from", formatValue(params.From))
+		r.addQuery("to", formatValue(params.To))
+	}
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(RenderProblemReport)
 	if err := decodeJSON(resp, out); err != nil {
 		return nil, err
 	}

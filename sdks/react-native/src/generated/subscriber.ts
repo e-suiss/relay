@@ -33,7 +33,7 @@ export interface paths {
         };
         /**
          * Get my preferences
-         * @description Returns the token subscriber's preferences in the same shape as the server API: one cell for every active category other than system and every channel, the channel, workflow and scope key switches and the profile.
+         * @description Returns the token subscriber's preferences in the same shape as the server API: one cell for every active category other than system and every channel, the channel, workflow and scope key switches and the profile. It is the one read every preference surface renders from (X-18, PC-18): the embeddable preference component, the hosted page of createPreferencePageLink and the app's own notification settings screen. On iOS that screen is the deep link target of the notification settings: the app asks for the providesAppNotificationSettings authorization option, and when the system calls userNotificationCenter(_:openSettingsFor:) (from the Settings app or from a notification) the mobile SDK opens its preference screen, which reads this operation and writes with updateMyPreferences. Each cell carries whether it is locked and whom the lock serves, whether the tenant turned it off and whether the device settings turn it off; closing a cell whose category allows a digest offers Instant, Digest and Never with none preselected (PC-17).
          */
         get: operations["getMyPreferences"];
         put?: never;
@@ -1181,14 +1181,26 @@ export interface components {
          * @enum {string}
          */
         PreferenceSource: "user" | "tenant" | "category_default" | "class_default" | "locked";
-        /** @description One category and channel of a subscriber. web_push follows push and voice follows sms. */
+        /** @description One category and channel of a subscriber. web_push follows push and voice follows sms. The embeddable preference component, the hosted preference page and an app's own notification settings screen render the same cell (X-18, X-51). */
         PreferenceCell: {
             category: components["schemas"]["CategoryKey"];
+            /** @description The category's name as the tenant wrote it, the label of the row. */
+            category_name: string;
             channel: components["schemas"]["Channel"];
             value: components["schemas"]["PreferenceValue"];
             /** @description Whether the channel is open for this category after every level is applied. */
             effective: boolean;
             source: components["schemas"]["PreferenceSource"];
+            /** @description Whether the category is locked (PC-6): the cell is shown as a label, not a switch, and the last open channel of the category cannot be closed. */
+            locked: boolean;
+            /** @description Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked. */
+            lock_beneficiary: ("subscriber" | "tenant") | null;
+            /** @description Whether the subscriber may receive this category as a digest: always for social, for operational when the category allows it (PC-17). Closing such a cell offers the three choices Instant, Digest and Never, none preselected. */
+            digest_allowed: boolean;
+            /** @description The tenant turned this cell off: it turned the category off or wrote opt_out on the subscriber's behalf (PC-15). Shown as "your administrator turned this off"; the subscriber cannot turn it on. */
+            disabled_by_admin: boolean;
+            /** @description For push and web_push: the subscriber has devices on the channel and the operating system permission of none of them allows this category (PC-16). Shown as "turned off in device settings"; the preference itself is kept and applies again once the permission is back. */
+            disabled_in_device_settings: boolean;
         };
         /** @description Channel-level switch across all categories. */
         ChannelPreference: {

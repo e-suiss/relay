@@ -3752,6 +3752,147 @@ module Esuiss
             request_options: request_options
           )
         end
+
+        # Find a subscriber by phone or e-mail
+        def lookup_subscribers(body, request_options: {})
+          perform(
+            method: :post,
+            path: "/v1/subscriber_lookups",
+            query: {},
+            headers: {},
+            body: body,
+            content_type: "application/json",
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # List the rule dictionary
+        def list_rules(request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/rules",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Get the tenant settings
+        def get_tenant_settings(request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/settings",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Where a route is used
+        def get_route_usage(route_key, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/routes/#{segment(route_key)}/usage",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Where an escalation policy is used
+        def get_escalation_policy_usage(policy_key, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/escalation_policies/#{segment(policy_key)}/usage",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Run the publication gate on the draft without publishing
+        def check_workflow_publication(workflow_key, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/workflows/#{segment(workflow_key)}/publication_check",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Run the publication gate on the draft without publishing
+        def check_template_publication(template_key, subtenant: nil, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/templates/#{segment(template_key)}/publication_check",
+            query: { "subtenant" => subtenant },
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Get the waitpoint figures
+        def get_waitpoint_stats(request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/waitpoint_stats",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Get the A/B variant report
+        def get_variant_report(from:, to:, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/reports/variants",
+            query: { "from" => from, "to" => to },
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Get the render and locale problem report
+        def get_render_problem_report(from:, to:, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/reports/render_problems",
+            query: { "from" => from, "to" => to },
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
       end
     end
   end

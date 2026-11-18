@@ -17,6 +17,8 @@
 "prefs.on" = "On";
 "prefs.off" = "Off";
 "prefs.lockedOn" = "On (locked)";
+"prefs.lockedSubscriber" = "Locked: protects your account";
+"prefs.lockedTenant" = "Locked: needed for the service";
 "prefs.adminDisabled" = "Turned off by your administrator";
 "prefs.deviceDisabled" = "Turned off in device settings";
 "prefs.openSettings" = "Open settings";

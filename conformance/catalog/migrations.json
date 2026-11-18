@@ -309,5 +309,8 @@
   {"file": "20270109000500_seed_platform_action_required_category.exs", "sha256": "8cf8c4e48b59ae888e52f866ad2d3d7af178e8822d1e4782e5691f3711d752b1"},
   {"file": "20270111000000_wait_runs_before_payload_erase.exs", "sha256": "1a9004bc5d1a708f5620139a233bb8ea888006d7716d3a37b6e0fcb8d49713a5"},
   {"file": "20270111000100_add_device_interruption_permissions.exs", "sha256": "fc2d06f78c224065b61f1404022a5a438058f2374d938225eaf67bb34f30824c"},
-  {"file": "20270111000200_validate_device_interruption_permissions_check.exs", "sha256": "11f18b43e09dfb2d8aa1abbaaeebc65a0b3ce3a2d7df56f689b3002b49c40270"}
+  {"file": "20270111000200_validate_device_interruption_permissions_check.exs", "sha256": "11f18b43e09dfb2d8aa1abbaaeebc65a0b3ce3a2d7df56f689b3002b49c40270"},
+  {"file": "20270111000300_create_fallback_zone_counts.exs", "sha256": "913c2a826e892013702885e8cab74e1540730e397e31ea80d036a06c0cb83915"},
+  {"file": "20270111000400_create_kill_switch_effects.exs", "sha256": "63a2f9fe1285bdfc13a4451f18439c5cf2f3d180032f9e67fe4499291136cf47"},
+  {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"}
 ]

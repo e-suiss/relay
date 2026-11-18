@@ -12,7 +12,7 @@ defmodule Relay.Delivery.Reports.Store do
                skipped failed uncertain expired cancelled duplicate_delivered conflicts
                human_clicks bot_clicks opens machine_opens)
 
-  @type kind :: :deliveries | :skips | :costs | :variants | :render_problems
+  @type kind :: :deliveries | :skips | :costs | :variants | :render_problems | :fallback_zones
 
   # DS-35
   # OP-39
@@ -111,6 +111,17 @@ defmodule Relay.Delivery.Reports.Store do
     FROM relay.report_variant_rollups r
     WHERE r.report_day >= $1::date AND r.report_day < $2::date AND r.accepted > 0
     ORDER BY r.report_day, r.workflow_key, r.step_key, r.variant, r.channel, r.is_test
+    """
+  end
+
+  # X-6
+  # WF-46
+  defp sql(:fallback_zones) do
+    """
+    SELECT c.count_day AS report_day, c.source, c.deliveries
+    FROM relay.fallback_zone_counts c
+    WHERE c.count_day >= $1::date AND c.count_day < $2::date
+    ORDER BY c.count_day, c.source
     """
   end
 

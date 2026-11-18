@@ -632,6 +632,19 @@ defmodule Relay.Tenancy.KillSwitch do
     end)
   end
 
+  # TN-44
+  @doc "Records that a kill switch took effect in its own scope, `delay_ms` after its engaging transaction; see `Relay.Tenancy.KillSwitch.Store.effect_record/2`."
+  @spec record_effect(Scope.t(), Relay.Id.t(), non_neg_integer()) ::
+          {:ok, :recorded | :exists | :not_found} | {:error, term()}
+  def record_effect(%Scope{} = scope, kill_switch_id, delay_ms),
+    do: Store.in_scope(scope, fn _status -> Store.effect_record(kill_switch_id, delay_ms) end)
+
+  # TN-44
+  @doc "The recorded effects (`paused_count`, `effect_delay_ms`, `effective_at`) of the kill switches `ids` of a scope, by identifier; a record of another scope or not yet effective has none."
+  @spec effects(Scope.t(), [Relay.Id.t()]) :: {:ok, %{Relay.Id.t() => map()}} | {:error, term()}
+  def effects(%Scope{} = scope, ids),
+    do: Store.in_scope(scope, fn _status -> Store.effects(ids) end)
+
   @doc "Lists the scopes the sweep of a kill switch visits: its own, or for a platform record every scope with pending or paused deliveries."
   @spec sweep_scopes(Scope.t(), Relay.Id.t(), boolean()) :: [Scope.t()]
   def sweep_scopes(scope, _kill_switch_id, false), do: [scope]

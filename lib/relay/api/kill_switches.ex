@@ -44,10 +44,12 @@ defmodule Relay.Api.KillSwitches do
       )
 
   # TN-36
-  @doc "The API view of a kill switch record."
-  @spec view(map()) :: map()
-  def view(r) do
+  # TN-44
+  @doc "The API view of a kill switch record and, once its queue sweep ended, its effect: how long after it was engaged the queue stopped (`effect_delay_ms`) and how many deliveries it holds paused."
+  @spec view(map(), map() | nil) :: map()
+  def view(r, effect \\ nil) do
     %{
+      "effect" => effect_view(effect),
       "object" => "kill_switch",
       "id" => Views.id("ksw", r.id),
       "scope_kind" => Atom.to_string(r.scope_kind),
@@ -70,6 +72,16 @@ defmodule Relay.Api.KillSwitches do
       "released_by" => r.released_by_ref,
       "release_reason" => r.release_reason,
       "created_at" => r.created_at
+    }
+  end
+
+  defp effect_view(nil), do: nil
+
+  defp effect_view(effect) do
+    %{
+      "paused_count" => effect.paused_count,
+      "effect_delay_ms" => effect.effect_delay_ms,
+      "effective_at" => effect.effective_at
     }
   end
 
@@ -433,16 +445,24 @@ defmodule Relay.Api.KillSwitches do
     opts = [include_released: include_released, limit: page.limit + 1]
     opts = if page.cursor, do: Keyword.put(opts, :after, page.cursor.id), else: opts
 
-    case KillSwitch.list(scope, opts) do
-      {:ok, records} ->
-        page = %{page | cursor: page.cursor && %{page.cursor | direction: :after}}
+    with {:ok, records} <- KillSwitch.list(scope, opts),
+         {:ok, effects} <- KillSwitch.effects(scope, Enum.map(records, & &1.id)) do
+      page = %{page | cursor: page.cursor && %{page.cursor | direction: :after}}
+      position = &{&1.created_at, &1.id}
+      view = &view(&1, Map.get(effects, &1.id))
+      envelope = Page.envelope(records, page, scope, endpoint, view, position)
+      with {:ok, body} <- envelope, do: {:ok, {200, [], body}}
+    end
+  end
 
-        position = &{&1.created_at, &1.id}
-        envelope = Page.envelope(records, page, scope, endpoint, &view/1, position)
-        with {:ok, body} <- envelope, do: {:ok, {200, [], body}}
-
-      {:error, error} ->
-        {:error, error}
+  # TN-41
+  # TN-44
+  @doc "Answers one kill switch record of `scope` with its recorded effect."
+  @spec show(Relay.Scope.t(), map()) :: answer()
+  def show(scope, record) do
+    case KillSwitch.effects(scope, [record.id]) do
+      {:ok, effects} -> {:ok, {200, [], view(record, Map.get(effects, record.id))}}
+      {:error, _reason} -> {:error, Relay.Error.new(:service_unavailable, "try again")}
     end
   end
 

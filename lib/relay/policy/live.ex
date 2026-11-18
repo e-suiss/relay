@@ -554,8 +554,10 @@ defmodule Relay.Policy.Live do
 
   # WF-46
   # PC-48
-  defp fallback_zone(%{timezone_source: source}) when source in @inferred,
-    do: :telemetry.execute([:relay, :policy, :fallback_zone], %{count: 1}, %{source: source})
+  defp fallback_zone(%{timezone_source: source}) when source in @inferred do
+    :counted = Store.fallback_zone_count(Atom.to_string(source))
+    :telemetry.execute([:relay, :policy, :fallback_zone], %{count: 1}, %{source: source})
+  end
 
   defp fallback_zone(_info), do: :ok
 

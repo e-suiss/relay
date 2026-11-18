@@ -616,7 +616,7 @@ defmodule Relay.Channels.Live do
   # CH-65
   # CH-67
   defp policy(ctx, account, ticket, target, content) do
-    case push_policy(ctx, account, content) do
+    case push_policy(Map.put(ctx, :device, device(target)), account, content) do
       {:ok, push} -> preflight(Map.put(ctx, :push, push), account, ticket, target, content)
       {:error, reason} -> {:error, reason}
     end
@@ -632,6 +632,9 @@ defmodule Relay.Channels.Live do
   end
 
   defp push_policy(_ctx, _account, _content), do: {:ok, nil}
+
+  defp device(%{device: %{} = device}), do: device
+  defp device(_target), do: nil
 
   # OP-65 (4)
   defp priority_table do
@@ -665,7 +668,9 @@ defmodule Relay.Channels.Live do
       lock_screen_body: if(sensitive, do: content["body"]),
       expires_at: delivery["expires_at"],
       now: Relay.Clock.utc_now(),
-      critical: critical(ctx, account)
+      critical: critical(ctx, account),
+      platform: ctx[:device] && ctx.device[:platform],
+      interruption_permissions: ctx[:device] && ctx.device[:interruption_permissions]
     }
   end
 

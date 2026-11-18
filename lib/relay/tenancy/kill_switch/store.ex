@@ -259,6 +259,34 @@ defmodule Relay.Tenancy.KillSwitch.Store do
     {row["paused"], row["has_more"]}
   end
 
+  # TN-44
+  @doc "Records when a kill switch took effect in the established scope: the delay from its engaging transaction to the end of its queue sweep and the deliveries it holds paused, through `relay_fn.kill_switch_effect_record`; a record that has one already keeps it."
+  @spec effect_record(Relay.Id.t(), non_neg_integer()) :: :recorded | :exists | :not_found
+  def effect_record(kill_switch_id, delay_ms) do
+    [row] = Repo.call!("relay_fn.kill_switch_effect_record", [kill_switch_id, delay_ms])
+    Repo.code!(row["kill_switch_effect_record"], [:recorded, :exists, :not_found])
+  end
+
+  # TN-44
+  @doc "The recorded effects of kill switches of the established scope, by kill switch identifier."
+  @spec effects([Relay.Id.t()]) :: %{Relay.Id.t() => map()}
+  def effects([]), do: %{}
+
+  def effects(ids) do
+    %Postgrex.Result{rows: rows} =
+      Repo.scoped_query!(
+        """
+        SELECT e.kill_switch_id, e.paused_count, e.effect_delay_ms, e.effective_at
+        FROM relay.kill_switch_effects e WHERE e.kill_switch_id = ANY ($1)
+        """,
+        [ids]
+      )
+
+    Map.new(rows, fn [id, paused, delay, at] ->
+      {id, %{paused_count: paused, effect_delay_ms: delay, effective_at: at}}
+    end)
+  end
+
   # TN-47
   @doc "Cancels one batch of the deliveries a kill switch paused in the established scope."
   @spec cancel_paused(Relay.Id.t(), String.t(), pos_integer()) :: {non_neg_integer(), boolean()}

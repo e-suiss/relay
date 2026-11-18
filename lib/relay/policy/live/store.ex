@@ -157,6 +157,15 @@ defmodule Relay.Policy.Live.Store do
   # PC-58 (2)
   # DS-24
   # DS-27
+  # X-6
+  # WF-46
+  @doc "Counts one send in an inferred time zone of `source` (`device`, `country`, `tenant_default`) on today's UTC row of the scope, through `relay_fn.fallback_zone_count_add`, inside the caller's scoped transaction."
+  @spec fallback_zone_count(String.t()) :: :counted
+  def fallback_zone_count(source) do
+    [row] = Repo.call!("relay_fn.fallback_zone_count_add", [source])
+    Repo.code!(row["fallback_zone_count_add"], [:counted])
+  end
+
   @doc "Records a lattice decision on a delivery; see `relay_fn.delivery_decide`."
   @spec decide(
           Relay.Id.t(),

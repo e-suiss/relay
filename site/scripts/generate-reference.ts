@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse } from "yaml";
@@ -417,48 +417,12 @@ function generateErrors(): void {
   );
 }
 
-function flatten(value: unknown, prefix: string, rows: [string, string][]): void {
-  if (isObj(value)) {
-    for (const [key, inner] of Object.entries(value))
-      flatten(inner, prefix ? `${prefix}.${key}` : key, rows);
-  } else {
-    rows.push([prefix, Array.isArray(value) ? value.map(String).join(", ") : String(value)]);
-  }
-}
-
-function generateLimits(): void {
-  const spec = load(join(contracts, "openapi/server.yaml"));
-  const limits = isObj(spec) ? spec["x-relay-limits"] : undefined;
-  if (!isObj(limits)) throw new Error("server.yaml has no x-relay-limits");
-  const sections = Object.entries(limits).map(([group, value]) => {
-    const rows: [string, string][] = [];
-    flatten(value, isObj(value) ? "" : group, rows);
-    const body = rows
-      .map(
-        ([key, text]) =>
-          `<tr><td><code>${esc(key)}</code></td><td><code>${esc(text)}</code></td></tr>`,
-      )
-      .join("");
-    return `## ${heading(group)} {#${slug(group)}}\n\n${html(`<table><caption>${esc(group)}</caption><thead><tr><th scope="col">Limit</th><th scope="col">Value</th></tr></thead><tbody>${body}</tbody></table>`)}\n`;
-  });
-  writeFileSync(
-    join(out, "limits.md"),
-    `---\noutline: [2, 2]\n---\n\n# Limits, retry schedules and guarantees\n\nRelay provides at-least-once delivery with durable idempotency, giving effectively-once processing.\n\n${html(`<p>Rendered from <code>x-relay-limits</code> of <a href="${repo}/contracts/openapi/server.yaml">contracts/openapi/server.yaml</a>, the same table the server enforces. Durations are ISO 8601 durations. A problem document for an exceeded limit names it in <code>limit_name</code>, <code>limit</code> and <code>actual</code>.</p>`)}\n\n${sections.join("\n")}`,
-  );
-}
-
 rmSync(join(out, "api"), { recursive: true, force: true });
 mkdirSync(join(out, "api"), { recursive: true });
 const sidebar = families.map((family) => generateFamily(family.key, family.file));
 writeFileSync(join(out, "api", "sidebar.json"), `${JSON.stringify(sidebar, null, 2)}\n`);
 generateEvents();
 generateErrors();
-if (
-  !existsSync(join(out, "limits.md")) ||
-  readFileSync(join(out, "limits.md"), "utf8").includes("x-relay-limits</code> of")
-) {
-  generateLimits();
-}
 console.log(
   `reference: ${sidebar.reduce((sum, group) => sum + group.items.length - 1, 0)} API pages, events and errors`,
 );

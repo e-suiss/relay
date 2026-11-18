@@ -202,6 +202,21 @@ jobs:
             KEY_STORE_CURSOR_LABEL=cursor-dev KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
       - run: mix deps.get
       - run: mix compile
+      # X-37
+      # X-49
+      - name: Limits page matches the code
+        run: |
+          if ! mix relay.docs.limits --check site/reference/limits.md; then
+            mix relay.docs.limits site/reference/limits.md
+            exit 1
+          fi
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: limits-page
+          path: site/reference/limits.md
+          if-no-files-found: ignore
+          retention-days: 7
       - run: mix ecto.setup
       - run: mix relay.audit.store
       - run: mix relay.dev.seed

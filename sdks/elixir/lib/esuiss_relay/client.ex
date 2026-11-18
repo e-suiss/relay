@@ -28,7 +28,7 @@ defmodule EsuissRelay.Client do
     * `:credentials` - an `EsuissRelay.Credentials` implementation (required)
     * `:max_retries` - retries after the first attempt (default 3)
     * `:base_delay_ms` - first backoff ceiling (default 500)
-    * `:max_delay_ms` - largest backoff ceiling (default 20_000)
+    * `:max_delay_ms` - largest backoff ceiling (default 8_000)
     * `:max_retry_after_s` - the longest `Retry-After` the client waits for (default 60)
     * `:timeout` - per attempt, in milliseconds (default 30_000)
     * `:transport` - `{module, state}` of an `EsuissRelay.Transport` (default `:httpc`)
@@ -37,7 +37,9 @@ defmodule EsuissRelay.Client do
 
   Request options accepted by every `EsuissRelay.Api` function: `:idempotency_key`,
   `:if_match`, `:beta`, `:headers`, `:content_type`, `:max_retries`, `:timeout` and, for
-  operations whose body is optional, `:body`. Every other key is a query parameter.
+  operations whose body is optional, `:body`. `raw: true` returns an `EsuissRelay.Response`
+  with the status, the headers and whether the answer was replayed. Every other key is a query
+  parameter.
   """
 
   alias EsuissRelay.Credentials
@@ -46,6 +48,7 @@ defmodule EsuissRelay.Client do
   alias EsuissRelay.Generated.Version
   alias EsuissRelay.Operation
   alias EsuissRelay.Page
+  alias EsuissRelay.Response
 
   @sdk_version "0.1.0"
 
@@ -56,11 +59,11 @@ defmodule EsuissRelay.Client do
     transport: {EsuissRelay.Transport.Httpc, nil},
     max_retries: 3,
     base_delay_ms: 500,
-    max_delay_ms: 20_000,
+    max_delay_ms: 8_000,
     max_retry_after_s: 60,
     timeout: 30_000,
     sleep: &Process.sleep/1,
-    random: &EsuissRelay.Client.uniform/1,
+    random: &:rand.uniform/0,
     random_bytes: &:crypto.strong_rand_bytes/1,
     clock: &EsuissRelay.Client.unix_now/0,
     monotonic: &EsuissRelay.Client.monotonic_now/0
@@ -76,7 +79,7 @@ defmodule EsuissRelay.Client do
           max_retry_after_s: non_neg_integer(),
           timeout: pos_integer(),
           sleep: (non_neg_integer() -> any()),
-          random: (non_neg_integer() -> non_neg_integer()),
+          random: (-> float()),
           random_bytes: (pos_integer() -> binary()),
           clock: (-> integer()),
           monotonic: (-> integer())
@@ -92,7 +95,8 @@ defmodule EsuissRelay.Client do
     :content_type,
     :max_retries,
     :timeout,
-    :body
+    :body,
+    :raw
   ]
 
   @doc "A new client. See the module documentation for the options."
@@ -135,6 +139,12 @@ defmodule EsuissRelay.Client do
   @spec call(t(), Operation.t(), [term()], term(), keyword()) :: result()
   def call(%__MODULE__{} = client, %Operation{} = operation, path_values, body, opts) do
     {request_opts, query_opts} = Keyword.split(opts, @request_options)
+
+    if operation.paginated and query_opts[:starting_after] != nil and
+         query_opts[:ending_before] != nil do
+      raise ArgumentError, "starting_after and ending_before together (both_cursors)"
+    end
+
     body = if operation.body == :required, do: body, else: Keyword.get(request_opts, :body)
 
     if operation.body == :required and is_nil(body) do
@@ -256,85 +266,75 @@ defmodule EsuissRelay.Client do
           {:ok, response}
 
         {:ok, response} ->
-          failed(client, operation, request, retry, max, response)
+          error = Error.from_transport(response, client.clock.())
+          decision = decide(client, retry + 1, max, error.retryable, error.retry_after)
+          again(client, operation, request, {retry, max}, decision, {:error, error})
 
         {:error, reason} ->
-          unanswered(client, operation, request, retry, max, reason)
+          safe =
+            operation.method == :get or List.keymember?(request.headers, "idempotency-key", 0)
+
+          decision = decide(client, retry + 1, max, safe, nil)
+
+          again(
+            client,
+            operation,
+            request,
+            {retry, max},
+            decision,
+            {:error, Error.connection(reason)}
+          )
       end
     end
   end
 
-  defp failed(client, operation, request, retry, max, response) do
-    problem = problem(response.body)
-    retry_after = retry_after(response.headers, problem)
-
-    error =
-      Error.from_response(
-        response.status,
-        header(response.headers, "request-id"),
-        problem,
-        retry_after
-      )
-
-    case delay(client, retry, max, error.retryable, retry_after) do
-      nil ->
-        {:error, error}
-
-      wait ->
-        client.sleep.(wait)
-        run(client, operation, request, retry + 1, max)
-    end
+  defp again(client, operation, request, {retry, max}, {:retry, wait}, _failure) do
+    client.sleep.(wait)
+    run(client, operation, request, retry + 1, max)
   end
 
-  defp unanswered(client, operation, request, retry, max, reason) do
-    safe = operation.method == :get or List.keymember?(request.headers, "idempotency-key", 0)
-
-    case delay(client, retry, max, safe, nil) do
-      nil ->
-        {:error, Error.connection(reason)}
-
-      wait ->
-        client.sleep.(wait)
-        run(client, operation, request, retry + 1, max)
-    end
-  end
+  defp again(_client, _operation, _request, _retries, {:stop, _reason}, failure), do: failure
 
   # X-29
+  # API-38
+  # API-49
   @doc """
-  The wait before retry number `retry + 1` in milliseconds, or `nil` when the call is not
-  retried: not retryable, out of retries, or a `Retry-After` longer than the client waits.
+  Whether retry number `retry` (counted from 1) of a call with at most `max` retries happens,
+  and after how many milliseconds: `{:retry, ms}`, or `{:stop, reason}` with `:not_retryable`,
+  `:retries_exhausted` or `:retry_after_too_long`. `outcome` is `{:response, response}` or
+  `:network_error`. The wait is `Retry-After` (delta seconds or HTTP-date), else the problem's
+  `retry_after`, else full jitter under `min(max_delay_ms, base_delay_ms * 2^(retry - 1))`.
   """
-  @spec delay(t(), non_neg_integer(), non_neg_integer(), boolean(), non_neg_integer() | nil) ::
-          non_neg_integer() | nil
-  def delay(_client, _retry, _max, false, _retry_after), do: nil
-  def delay(_client, retry, max, _retryable, _retry_after) when retry >= max, do: nil
+  @spec retry_decision(
+          t(),
+          pos_integer(),
+          non_neg_integer(),
+          {:response, EsuissRelay.Transport.response()} | :network_error
+        ) ::
+          {:retry, non_neg_integer()}
+          | {:stop, :not_retryable | :retries_exhausted | :retry_after_too_long}
+  def retry_decision(client, retry, max, :network_error),
+    do: decide(client, retry, max, true, nil)
 
-  def delay(client, _retry, _max, true, retry_after) when is_integer(retry_after) do
-    if retry_after <= client.max_retry_after_s, do: retry_after * 1000
+  def retry_decision(client, retry, max, {:response, response}) do
+    error = Error.from_transport(response, client.clock.())
+    decide(client, retry, max, error.retryable, error.retry_after)
   end
 
-  def delay(client, retry, _max, true, nil),
-    do: client.random.(min(client.max_delay_ms, client.base_delay_ms * Integer.pow(2, retry)))
+  defp decide(_client, _retry, _max, false, _retry_after), do: {:stop, :not_retryable}
 
-  defp retry_after(headers, problem) do
-    case header(headers, "retry-after") do
-      nil -> if is_integer(problem["retry_after"]), do: problem["retry_after"]
-      value -> parse_seconds(value)
-    end
+  defp decide(_client, retry, max, true, _retry_after) when retry > max,
+    do: {:stop, :retries_exhausted}
+
+  defp decide(client, _retry, _max, true, seconds) when is_integer(seconds) do
+    if seconds <= client.max_retry_after_s,
+      do: {:retry, seconds * 1000},
+      else: {:stop, :retry_after_too_long}
   end
 
-  defp parse_seconds(value) do
-    case Integer.parse(String.trim(value)) do
-      {seconds, ""} when seconds >= 0 -> seconds
-      _other -> nil
-    end
-  end
-
-  defp problem(body) do
-    case JSON.decode(body) do
-      {:ok, map} when is_map(map) -> map
-      _other -> %{}
-    end
+  defp decide(client, retry, _max, true, nil) do
+    ceiling = min(client.max_delay_ms, client.base_delay_ms * Integer.pow(2, retry - 1))
+    {:retry, floor(client.random.() * ceiling)}
   end
 
   defp authorize(client, request) do
@@ -372,23 +372,33 @@ defmodule EsuissRelay.Client do
     end)
   end
 
-  defp decode(_client, %Operation{response: :none}, _path_values, _opts, _response),
-    do: {:ok, nil}
+  defp decode(client, operation, path_values, opts, response) do
+    body = decode_body(client, operation, path_values, opts, response)
 
-  defp decode(_client, %Operation{response: :text}, _path_values, _opts, response),
-    do: {:ok, response.body}
+    if Keyword.get(opts, :raw, false),
+      do: {:ok, Response.new(response, body)},
+      else: {:ok, body}
+  end
 
-  defp decode(_client, _operation, _path_values, _opts, %{body: ""}), do: {:ok, nil}
+  defp decode_body(_client, %Operation{response: :none}, _path_values, _opts, _response), do: nil
 
-  defp decode(client, %Operation{paginated: true} = operation, path_values, opts, response),
-    do: {:ok, Page.new(client, operation, path_values, opts, JSON.decode!(response.body))}
+  defp decode_body(_client, %Operation{response: :text}, _path_values, _opts, response),
+    do: response.body
 
-  defp decode(_client, _operation, _path_values, _opts, response),
-    do: {:ok, JSON.decode!(response.body)}
+  defp decode_body(_client, _operation, _path_values, _opts, %{body: ""}), do: nil
 
-  @doc false
-  @spec uniform(non_neg_integer()) :: non_neg_integer()
-  def uniform(max), do: :rand.uniform(max + 1) - 1
+  defp decode_body(client, %Operation{paginated: true} = operation, path_values, opts, response),
+    do:
+      Page.new(
+        client,
+        operation,
+        path_values,
+        Keyword.delete(opts, :raw),
+        JSON.decode!(response.body)
+      )
+
+  defp decode_body(_client, _operation, _path_values, _opts, response),
+    do: JSON.decode!(response.body)
 
   @doc false
   @spec unix_now() :: integer()

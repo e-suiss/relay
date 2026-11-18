@@ -377,7 +377,7 @@ defmodule Relay.TenantLifecycle.Closure do
 
   # OP-86
   @doc "One file of rows in an export format: JSON lines with one object per row, or CSV with a header row."
-  @spec encode(String.t(), [String.t()], [[term()]]) :: iodata()
+  @spec encode(String.t(), [String.t()], [[term()]]) :: iolist()
   def encode("jsonl", columns, rows),
     do: Enum.map(rows, &[Jason.encode_to_iodata!(columns |> Enum.zip(&1) |> Map.new()), "\n"])
 

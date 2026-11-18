@@ -174,7 +174,7 @@ test.describe("OP-94 shadow comparison", () => {
     });
     await page.goto("/console/migration/shadow");
     await page.getByLabel("Layer").selectOption("routing");
-    await page.getByLabel("Template").fill("welcome");
+    await page.getByLabel("Template", { exact: true }).fill("welcome");
     await page.getByLabel("Owner").fill("team-growth");
     await page.getByLabel("Expires in (days, 1 to 30)").fill("31");
     await page.getByLabel("Reason").fill("Fallback order changed on purpose");

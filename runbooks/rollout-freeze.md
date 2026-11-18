@@ -7,7 +7,7 @@ tenant_scope: all
 alerts: [RelayRolloutQueueFreeze, RelayRollout5xxFreeze, RelayRollout5xxRollback]
 last_tested: 2026-11-18
 tested_by: none
-automation: 0
+automation: 1
 eta_minutes: 30
 reversible: true
 ---

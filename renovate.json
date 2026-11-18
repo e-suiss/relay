@@ -7,6 +7,12 @@
   "labels": ["dependencies"],
   "vulnerabilityAlerts": {"minimumReleaseAge": null, "labels": ["security"]},
   "packageRules": [
-    {"matchManagers": ["mix"], "rangeStrategy": "update-lockfile"}
+    {"matchManagers": ["mix"], "rangeStrategy": "update-lockfile"},
+    {
+      "matchManagers": ["npm"],
+      "matchFileNames": ["site/**", "web/**", "sdks/*/**"],
+      "minimumReleaseAge": "7 days",
+      "rangeStrategy": "pin"
+    }
   ]
 }

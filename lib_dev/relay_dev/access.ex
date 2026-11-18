@@ -86,9 +86,9 @@ defmodule RelayDev.Access do
   # API-41
   # API-71
   # E-93
-  @doc "A client credentials token of an Access client for the server API, valid for one hour: `aud` Relay's Access `client_id`, bound by `cnf.jkt` to the stand-in's DPoP key (`proof/3`)."
-  @spec server_token(String.t(), String.t(), [String.t()]) :: String.t()
-  def server_token(access_tenant_id, client_id, scopes) do
+  @doc "A client credentials token of an Access client for the server API, valid for one hour: `aud` Relay's Access `client_id`, bound by `cnf.jkt` to the stand-in's DPoP key (`proof/3`), or to the key of the JWK thumbprint `jkt` when one is given."
+  @spec server_token(String.t(), String.t(), [String.t()], String.t() | nil) :: String.t()
+  def server_token(access_tenant_id, client_id, scopes, jkt \\ nil) do
     now = DateTime.to_unix(Relay.Clock.utc_now())
 
     sign(
@@ -103,7 +103,7 @@ defmodule RelayDev.Access do
         "nbf" => now,
         "exp" => now + @ttl_s,
         "jti" => b64(:crypto.strong_rand_bytes(16)),
-        "cnf" => %{"jkt" => jkt()}
+        "cnf" => %{"jkt" => jkt || jkt()}
       },
       "at+jwt",
       @kid,

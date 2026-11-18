@@ -43,6 +43,25 @@ for attempt in $(seq 1 30); do
 done
 expect '.data[0].object == "notification_decision" and (.data[0].deliveries[0].gates | type) == "string"'
 
+poll() {
+  local name=$1 condition=$2
+  for attempt in $(seq 1 30); do
+    run "$name"
+    if jq -e "$condition" "$out" > /dev/null; then return 0; fi
+    echo "waiting for $name ($attempt)"
+    sleep 2
+  done
+  echo "::error::$name never answered as the docs describe: $condition"
+  exit 1
+}
+
+poll test-inbox '(.data | length) > 0 and (.data[0].deliveries | length) > 0'
+expect '.data[0].object == "test_inbox_message"'
+
+run seed-quiet-hours
+expect '.status == "accepted"'
+poll test-inbox '[.data[0].deliveries[] | select(.rule_id != null)] | length > 0'
+
 run idempotency
 test "$(grep -ci '^idempotency-replayed: true' "$out")" -eq 1
 
@@ -86,5 +105,18 @@ for example in examples/typescript/*.ts; do
   fi
   echo "::group::$example"
   node "$example"
+  echo "::endgroup::"
+done
+
+for example in examples/python/*.py; do
+  case "$example" in
+    examples/python/credentials.py | *_run.py) continue ;;
+  esac
+  runner="${example%.py}_run.py"
+  if [ -f "$runner" ]; then
+    example="$runner"
+  fi
+  echo "::group::$example"
+  (cd "$root" && PYTHONPATH="$root/sdks/python/src:$root/site/examples/python" SSL_CERT_FILE="$CA" python3 "site/$example")
   echo "::endgroup::"
 done

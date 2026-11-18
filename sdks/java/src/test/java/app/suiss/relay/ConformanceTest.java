@@ -338,7 +338,7 @@ class ConformanceTest {
       headers.put("webhook-timestamp", List.of(Long.toString(timestamp)));
       headers.put("webhook-signature", List.of(base.path("v1a").asText()));
       for (Map.Entry<String, JsonNode> h : c.path("headers").properties()) {
-        headers.remove(h.getKey());
+        headers.keySet().removeIf(name -> name.equalsIgnoreCase(h.getKey()));
         if (!h.getValue().isNull()) {
           String value =
               h.getValue()

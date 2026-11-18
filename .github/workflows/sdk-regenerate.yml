@@ -48,14 +48,6 @@ jobs:
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           global-json-file: sdks/dotnet/global.json
-      - name: toolchain php
-        if: hashFiles('sdks/php/regenerate.sh') != ''
-        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
-        with:
-          php-version: "8.2"
-          extensions: curl, sodium
-          coverage: none
-          tools: composer:2.11.1
       - name: toolchain beam
         uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:

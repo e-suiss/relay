@@ -55,18 +55,7 @@ defmodule Relay.FaultInjection do
          {:ok, attrs} <- attrs(spec),
          :ok <- permitted(attrs.target_environment, chaos?) do
       digest = digest("fault_injection.engaged", actor, attrs.id, attrs.reason)
-
-      case Store.engage(attrs, digest, actor) do
-        {:ok, {result, id}} when result in [:engaged, :exists] ->
-          if result == :engaged, do: announce()
-          {:ok, %{result: result, id: Record.external_id(id)}}
-
-        {:ok, {code, _id}} ->
-          {:error, code}
-
-        {:error, error} ->
-          {:error, error_code(error)}
-      end
+      engaged(Store.engage(attrs, digest, actor))
     end
   end
 
@@ -80,20 +69,25 @@ defmodule Relay.FaultInjection do
          {:ok, reason} <- reason(reason),
          {:ok, fault_injection_id} <- decode_id(id) do
       digest = digest("fault_injection.cleared", actor, fault_injection_id, reason)
-
-      case Store.clear(fault_injection_id, reason, digest, actor) do
-        {:ok, result} when result in [:cleared, :already_cleared] ->
-          if result == :cleared, do: announce()
-          {:ok, %{result: result, id: Record.external_id(fault_injection_id)}}
-
-        {:ok, code} ->
-          {:error, code}
-
-        {:error, error} ->
-          {:error, error_code(error)}
-      end
+      cleared(fault_injection_id, Store.clear(fault_injection_id, reason, digest, actor))
     end
   end
+
+  defp engaged({:ok, {result, id}}) when result in [:engaged, :exists] do
+    if result == :engaged, do: announce()
+    {:ok, %{result: result, id: Record.external_id(id)}}
+  end
+
+  defp engaged({:ok, {code, _id}}), do: {:error, code}
+  defp engaged({:error, error}), do: {:error, error_code(error)}
+
+  defp cleared(id, {:ok, result}) when result in [:cleared, :already_cleared] do
+    if result == :cleared, do: announce()
+    {:ok, %{result: result, id: Record.external_id(id)}}
+  end
+
+  defp cleared(_id, {:ok, code}), do: {:error, code}
+  defp cleared(_id, {:error, error}), do: {:error, error_code(error)}
 
   # OP-92
   @doc "Lists the records, newest first. `opts`: `:include_inactive` (cleared and expired records too) and `:limit` (at most 1000)."
@@ -362,9 +356,9 @@ defmodule Relay.FaultInjection do
   @spec announce() :: :ok
   def announce do
     topic = Cache.topic()
+    seq = DateTime.to_unix(Relay.Clock.utc_now(), :millisecond)
 
-    with {:error, error} <-
-           Relay.Platform.publish_signal(topic, System.os_time(:millisecond)),
+    with {:error, error} <- Relay.Platform.publish_signal(topic, seq),
          do: Logger.warning("fault injection signal not sent; nodes poll", code: error.code)
 
     case GenServer.whereis(Cache) do

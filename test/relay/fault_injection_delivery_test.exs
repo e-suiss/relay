@@ -1,9 +1,12 @@
 defmodule Relay.FaultInjectionDeliveryTest do
   use Relay.DataCase, async: false
 
+  alias Relay.Channels.Live
+  alias Relay.Channels.Live.ReceiptWorker
   alias Relay.Datasets
   alias Relay.FaultInjection.Cache
   alias Relay.FaultInjection.Record
+  alias Relay.Iys.SyncWorker
   alias Relay.Repo
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
@@ -84,15 +87,15 @@ defmodule Relay.FaultInjectionDeliveryTest do
       id = sms_delivery!(ctx)
       Cache.put([record(ctx.scope, :concurrency_exhausted)])
 
-      _ = Relay.Channels.Live.deliver(ctx.scope, id, %{})
+      _ = Live.deliver(ctx.scope, id, %{})
 
       assert [[1, "failed", "transient", "chaos:concurrency_exhausted"]] =
                attempts(ctx.scope, id)
 
       Cache.put([])
       args = retry_args(id)
-      _ = Relay.Channels.Live.deliver(ctx.scope, id, args)
-      _ = Relay.Channels.Live.deliver(ctx.scope, id, args)
+      _ = Live.deliver(ctx.scope, id, args)
+      _ = Live.deliver(ctx.scope, id, args)
 
       rows = attempts(ctx.scope, id)
       succeeded = Enum.count(rows, fn [_n, state, _class, _code] -> state == "succeeded" end)
@@ -107,7 +110,7 @@ defmodule Relay.FaultInjectionDeliveryTest do
       live = record(ctx.scope, :provider_auth_error, target_environment: :live)
       Cache.put([other, email, live])
 
-      _ = Relay.Channels.Live.deliver(ctx.scope, id, %{})
+      _ = Live.deliver(ctx.scope, id, %{})
 
       refute Enum.any?(attempts(ctx.scope, id), fn [_n, _state, _class, code] ->
                is_binary(code) and code =~ "chaos:"
@@ -123,17 +126,17 @@ defmodule Relay.FaultInjectionDeliveryTest do
         |> Map.put("receipt_ids", [Relay.Id.to_string(Relay.Id.generate())])
 
       job = %Oban.Job{id: 7, args: args, inserted_at: DateTime.utc_now()}
-      assert {:snooze, seconds} = Relay.Channels.Live.ReceiptWorker.perform(job)
+      assert {:snooze, seconds} = ReceiptWorker.perform(job)
       assert seconds in 59..60
 
       old = %{job | inserted_at: DateTime.add(DateTime.utc_now(), -61, :second)}
-      refute match?({:snooze, _}, Relay.Channels.Live.ReceiptWorker.perform(old))
+      refute match?({:snooze, _}, ReceiptWorker.perform(old))
     end
 
     test "OP-92: a stalled İYS pull ends its job without pulling", ctx do
       Cache.put([record(ctx.scope, :iys_pull_stalled)])
       job = %Oban.Job{args: Relay.Scope.to_job_args(ctx.scope)}
-      assert Relay.Iys.SyncWorker.perform(job) == :ok
+      assert SyncWorker.perform(job) == :ok
     end
   end
 end

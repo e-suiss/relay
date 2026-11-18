@@ -84,7 +84,8 @@
                  "lib/relay/datasets.ex",
                  "lib/relay/platform/backend.ex",
                  "lib/relay/platform/load_shed.ex",
-                 "lib/relay/tenancy/kill_switch/cache.ex"
+                 "lib/relay/tenancy/kill_switch/cache.ex",
+                 "lib/relay/fault_injection/cache.ex"
                ]
              }
            ]},

@@ -63,13 +63,17 @@ defmodule RelayWeb.Operator.FaultInjectionController do
   @spec clear(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def clear(conn, %{"fault_injection_id" => id}) do
     idempotent(conn, fn ->
-      with {:ok, id} <- path_id(id, "fij", :fault_injection_not_found) do
-        case FaultInjection.clear(id, conn.assigns.body["reason"], operator(conn)) do
-          {:ok, %{id: external}} -> shown(external, 200)
-          {:error, code} -> {:error, error(code)}
-        end
-      end
+      with {:ok, id} <- path_id(id, "fij", :fault_injection_not_found),
+           {:ok, %{id: external}} <- cleared(conn, id),
+           do: shown(external, 200)
     end)
+  end
+
+  defp cleared(conn, id) do
+    case FaultInjection.clear(id, conn.assigns.body["reason"], operator(conn)) do
+      {:ok, result} -> {:ok, result}
+      {:error, code} -> {:error, error(code)}
+    end
   end
 
   defp answer({:ok, %{result: :engaged, id: id}}), do: shown(id, 201)

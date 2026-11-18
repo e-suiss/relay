@@ -10540,8 +10540,28 @@ DeviceRegistration:
       "$ref": "#/Locale"
     timezone:
       "$ref": "#/TimeZone"
+    interruption_permissions:
+      "$ref": "#/DeviceInterruptionPermissions"
     previous_token:
       "$ref": "#/DeviceToken"
+  additionalProperties: false
+DeviceInterruptionPermission:
+  type: string
+  description: "One interruption permission as the app reads it from the operating system."
+  enum:
+    - granted
+    - denied
+    - not_determined
+DeviceInterruptionPermissions:
+  type: object
+  description: "The interruption permissions the device reports on every app start (CH-65): on iOS critical_alerts (the Critical Alerts entitlement and the user's grant) and time_sensitive; on Android dnd_access (Do Not Disturb access of the channel that carries critical). A level the device cannot take is delivered one level lower and never dropped: critical without critical_alerts or dnd_access goes as time-sensitive, time-sensitive with time_sensitive denied as active. A device that reports nothing keeps the level."
+  properties:
+    critical_alerts:
+      "$ref": "#/DeviceInterruptionPermission"
+    time_sensitive:
+      "$ref": "#/DeviceInterruptionPermission"
+    dnd_access:
+      "$ref": "#/DeviceInterruptionPermission"
   additionalProperties: false
 DeviceTokenRemoval:
   type: object
@@ -10606,6 +10626,11 @@ Device:
       description: "The IANA time zone the device reported with its registration; null when it reported none or one Relay does not know."
       oneOf:
         - "$ref": "#/TimeZone"
+        - type: "null"
+    interruption_permissions:
+      description: "The interruption permissions the device reported with its last registration; null when it reported none."
+      oneOf:
+        - "$ref": "#/DeviceInterruptionPermissions"
         - type: "null"
     state:
       "$ref": "#/DeviceState"

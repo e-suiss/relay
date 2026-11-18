@@ -52,11 +52,32 @@ jobs:
             export LOCK_DATE="$(git log -1 --format=%cI -- pubspec.lock)"
           fi
           dart run tool/check_lock_age.dart
+      # X-53
+      - id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          own=true
+          range=""
+          if [ "$EVENT" = "pull_request" ]; then
+            range="origin/$BASE_REF...HEAD"
+          elif [ "$EVENT" = "push" ] && [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ]; then
+            range="$BEFORE..HEAD"
+          fi
+          if [ -n "$range" ] && [ -z "$(git diff --name-only "$range" -- . ../../.github/workflows/sdk-flutter.yml)" ]; then
+            own=false
+          fi
+          echo "own=$own" >> "$GITHUB_OUTPUT"
       # X-48
       - name: Regenerate models from the contract
+        if: steps.scope.outputs.own == 'true'
         run: dart run tool/generate.dart
-      - run: dart format .
+      - if: steps.scope.outputs.own == 'true'
+        run: dart format .
       - name: Collect generated, locked and formatted differences
+        if: steps.scope.outputs.own == 'true'
         run: |
           git add -N .
           git diff --binary -- . > "$RUNNER_TEMP/sdk-flutter.patch"
@@ -69,6 +90,7 @@ jobs:
       - run: dart analyze --fatal-infos
       - run: flutter test
       - name: Committed code equals generated, locked and formatted code
+        if: steps.scope.outputs.own == 'true'
         run: |
           if [ -s "$RUNNER_TEMP/sdk-flutter.patch" ]; then
             git diff --stat -- .

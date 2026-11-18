@@ -83,7 +83,7 @@ dart analyze --fatal-infos
 flutter test
 ```
 
-Models under `lib/src/generated` are generated from the OpenAPI contract in `contracts/`; do not edit them by hand.
+Models under `lib/src/generated` are generated from the OpenAPI contract in `contracts/`; do not edit them by hand. `./regenerate.sh` regenerates them in place with the pinned generator. When this package or its workflow changes, CI regenerates them and fails on any difference; a contract change alone is picked up by a regeneration pull request.
 
 ## License
 

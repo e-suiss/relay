@@ -1,4 +1,10 @@
-import { createFakeRelay, fakeItem, type FakeRelay } from "./fake-relay.js";
+import {
+  createFakeRelay,
+  fakeConsent,
+  fakeItem,
+  fakeWaitpoint,
+  type FakeRelay,
+} from "./fake-relay.js";
 
 /** A fake Relay filled with sample notifications, preferences and webhook endpoints, for demos and accessibility tests. */
 export function demoRelay(): FakeRelay {
@@ -22,34 +28,57 @@ export function demoRelay(): FakeRelay {
       fakeItem("inb_03", {
         title: "Choose a delivery slot",
         category: "orders",
-        waitpoint: {
-          id: "wp_01",
-          kind: "response",
-          status: "awaiting",
+        sender_type: "agent",
+        waitpoint: fakeWaitpoint("wp_01", {
           subject_digest: "sha256:4f1b2c",
           options: [
             { label: "Morning", value: "morning" },
             { label: "Evening", value: "evening" },
           ],
-        },
+        }),
       }),
       fakeItem("inb_04", {
         title: "Approve the refund",
         category: "orders",
         approval: true,
         severity: "high",
-        actions: [
-          { label: "Approve", url: "https://shop.example.com/approve-here" },
-          { label: "Review", url: "https://access.example.com/approvals/77" },
-        ],
+        sender_type: "agent",
+        waitpoint: fakeWaitpoint("wp_02", {
+          kind: "approval",
+          approval_url: "https://access.example.com/approvals/77",
+        }),
+        actions: [{ label: "Approve", url: "https://shop.example.com/approve-here" }],
       }),
       fakeItem("inb_05", {
         title: "Sign-in from a new device",
         category: "security",
+        sender_type: "system",
         read: true,
         seen: true,
       }),
+      fakeItem("inb_06", {
+        title: "Pickup point chosen",
+        category: "orders",
+        sender_type: "agent",
+        read: true,
+        seen: true,
+        waitpoint: fakeWaitpoint("wp_03", {
+          status: "responded",
+          options: [{ label: "Locker", value: "locker" }],
+          responder: { kind: "subscriber", recipient_id: "sub_demo" },
+          responded_at: "2026-11-01T10:00:00Z",
+        }),
+      }),
+      fakeItem("inb_07", {
+        title: "Confirm the delivery window",
+        category: "orders",
+        sender_type: "agent",
+        read: true,
+        seen: true,
+        waitpoint: fakeWaitpoint("wp_04", { status: "not_awaited" }),
+      }),
     ],
+    consents: [fakeConsent("email", "none"), fakeConsent("sms", "active")],
     preferences: {
       object: "subscriber_preferences",
       subscriber_id: "sub_demo",

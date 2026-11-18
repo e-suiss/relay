@@ -15,7 +15,7 @@ import {
   visibleItems,
 } from "../src/inbox/view.js";
 import { isApprovalItem, senderTypeOf, waitpointOf } from "../src/seams.js";
-import { createFakeRelay, fakeItem } from "../src/testing/index.js";
+import { createFakeRelay, fakeItem, fakeWaitpoint } from "../src/testing/index.js";
 
 const now = Date.parse("2026-11-18T12:00:00Z");
 
@@ -88,29 +88,31 @@ describe("C-24 and IN-6 item seams", () => {
   it("C-24 reads the sender type when the item carries it", () => {
     expect(senderTypeOf(fakeItem("a", { sender_type: "agent" }))).toBe("agent");
     expect(senderTypeOf(fakeItem("a"))).toBeNull();
+    expect(senderTypeOf({ ...fakeItem("a"), sender_type: undefined })).toBeNull();
   });
 
-  it("AG-35 reads a waitpoint and gives null without one", () => {
+  it("AG-35 reads the typed waitpoint and gives null without one", () => {
     expect(waitpointOf(fakeItem("a"))).toBeNull();
+    expect(waitpointOf({ ...fakeItem("a"), waitpoint: undefined })).toBeNull();
     const waitpoint = waitpointOf(
       fakeItem("a", {
-        waitpoint: {
-          id: "wp_1",
+        waitpoint: fakeWaitpoint("wp_1", {
           status: "processing",
           subject_digest: "d",
-          options: [{ label: "Yes", value: true }],
-        },
+          options: [{ label: "Yes", value: "yes" }],
+        }),
       }),
     );
     expect(waitpoint?.status).toBe("processing");
-    expect(waitpoint?.options).toEqual([{ label: "Yes", value: true }]);
+    expect(waitpoint?.options).toEqual([{ label: "Yes", value: "yes" }]);
   });
 
-  it("IN-6 knows an approval item", () => {
+  it("IN-6 knows an approval item by its flag or its approval waitpoint", () => {
     expect(isApprovalItem(fakeItem("a", { approval: true }))).toBe(true);
-    expect(isApprovalItem(fakeItem("a", { waitpoint: { id: "wp_1", kind: "approval" } }))).toBe(
-      true,
-    );
+    expect(
+      isApprovalItem(fakeItem("a", { waitpoint: fakeWaitpoint("wp_1", { kind: "approval" }) })),
+    ).toBe(true);
+    expect(isApprovalItem(fakeItem("a", { waitpoint: fakeWaitpoint("wp_1") }))).toBe(false);
     expect(isApprovalItem(fakeItem("a"))).toBe(false);
   });
 });

@@ -1,9 +1,18 @@
 import { RelayApiError } from "@esuiss/relay/browser";
-import { Fragment, useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { RelayRoot, useRelay } from "../context.js";
 import type { MessageKey } from "../i18n/index.js";
 import { glyphs, StatusGlyph } from "../icons.js";
-import { noConsents, type ConsentSource, type ConsentView } from "../seams.js";
+import { apiConsents, type ConsentSource, type ConsentView } from "../seams.js";
 import { safeUrl } from "../url.js";
 import {
   applyPatch,
@@ -31,7 +40,7 @@ import { TimeRangesEditor } from "./TimeRangesEditor.js";
 export interface PreferenceCenterProps {
   /** A category to bring into view, as the inbox shortcut asks (X-16). */
   readonly focusCategory?: string | null;
-  /** Reads the subscriber's consents for the read-only consent section (X-44). */
+  /** Reads the subscriber's consents for the read-only consent section (X-44); `listMyConsents` by default. */
   readonly consents?: ConsentSource;
   /** Categories of the marketing class, until the cell carries its class. */
   readonly marketingCategories?: readonly string[];
@@ -151,8 +160,10 @@ function ConsentSection({
         {t("prefs.consents")}
       </h3>
       <p className="relay-muted">{t("prefs.consentsHint")}</p>
-      {consents === null || consents.length === 0 ? (
+      {consents === null ? (
         <p>{t("prefs.consentsUnavailable")}</p>
+      ) : consents.length === 0 ? (
+        <p>{t("prefs.consentsEmpty")}</p>
       ) : (
         <ul className="relay-list">
           {consents.map((consent, index) => (
@@ -177,13 +188,17 @@ function ConsentSection({
 /** The preference center without its themed root; {@link PreferenceCenter} wraps it. */
 export function PreferenceCenterPanel({
   focusCategory = null,
-  consents: consentSource = noConsents,
+  consents: givenConsents,
   marketingCategories,
   channelLabel,
   headingLevel = 2,
 }: PreferenceCenterProps): ReactNode {
   const { runtime, t, links } = useRelay();
   const client = runtime.subscriber;
+  const consentSource = useMemo(
+    () => givenConsents ?? apiConsents(client),
+    [givenConsents, client],
+  );
   const [view, setView] = useState<PreferencesView | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [message, setMessage] = useState<{ readonly error: boolean; readonly text: string } | null>(

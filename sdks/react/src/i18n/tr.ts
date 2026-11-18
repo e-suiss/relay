@@ -106,6 +106,7 @@ export const tr: Messages = {
   "prefs.consents": "Pazarlama izinleri",
   "prefs.consentsHint": "Pazarlama izinleriniz hesabınızda tutulur ve orada değiştirilir.",
   "prefs.consentsUnavailable": "İzin ayrıntıları burada gösterilmiyor.",
+  "prefs.consentsEmpty": "Kayıtlı pazarlama izni yok.",
   "prefs.manageConsents": "İzinleri hesabınızda yönetin",
   "prefs.consentStatus": "{channel}: {status}",
   "prefs.saveFailed": "Tercih kaydedilemedi. Lütfen tekrar deneyin.",

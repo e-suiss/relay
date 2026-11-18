@@ -104,6 +104,7 @@ export const en = {
   "prefs.consents": "Marketing permissions",
   "prefs.consentsHint": "Your marketing permissions are kept in your account and changed there.",
   "prefs.consentsUnavailable": "Permission details are not shown here.",
+  "prefs.consentsEmpty": "No marketing permissions are recorded.",
   "prefs.manageConsents": "Manage permissions in your account",
   "prefs.consentStatus": "{channel}: {status}",
   "prefs.saveFailed": "The preference could not be saved. Please try again.",

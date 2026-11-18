@@ -48,6 +48,46 @@ export interface paths {
     patch: operations["updateMyPreferences"];
     trace?: never;
   };
+  "/v1/subscriber/consents": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List my consents
+     * @description Read-only copy of the commercial consents Access holds for the token subscriber: the current record of each brand and channel, from Relay's consent copy, newest first (X-44, PC-59). The preference component and the hosted preference page show it next to the notification preferences and link to Access to change it; Relay never writes consent through this API and never touches Access's session or token.
+     */
+    get: operations["listMyConsents"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/v1/subscriber/push_content/{delivery_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get the content of a content-free push
+     * @description A content-free push carries only that there is a new notification and an opaque identifier, relay_id, the delivery identifier (CH-33). The app's notification service extension (iOS) or data message handler (Android) fetches the content here over TLS with the subscriber's own token and shows it once the device is unlocked. The content is the delivery's render as sent, never rendered again. A delivery of another subscriber, a channel other than push and web_push, a message kept as its digest only (security_subtype, retention none) or an erased one answers delivery_not_found, and the device shows its neutral text; content never falls back into the push payload.
+     */
+    get: operations["getMyPushContent"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/v1/subscriber/devices": {
     parameters: {
       query?: never;
@@ -913,6 +953,43 @@ export interface components {
       activity_count: number;
       actor_count: number;
       expires_at: components["schemas"]["Timestamp"] | null;
+      /** @description Who produced the notification, shown on every surface (C-24, AG-34); absent on an announcement. */
+      sender_type?: ("human" | "system" | "agent") | null;
+      /** @description true for an approval item: its only action is the deep link to the Access approval surface and it is never answered here (IN-6, AG-32). */
+      approval?: boolean;
+      /** @description The decision request the item is about, or null (AG-35). */
+      waitpoint?: components["schemas"]["InboxWaitpoint"] | null;
+    };
+    /** @description The rendered content of one of the subscriber's push deliveries, for a content-free push (CH-33). content holds the channel's rendered fields, such as title, subtitle, body and url. */
+    PushContent: {
+      /** @enum {string} */
+      object: "push_content";
+      delivery_id: components["schemas"]["Id_dlv"];
+      notification_id: components["schemas"]["Id_ntf"];
+      /** @enum {string} */
+      channel: "push" | "web_push";
+      locale: components["schemas"]["Locale"] | null;
+      content: Record<string, unknown>;
+    };
+    /** @description The waitpoint of an item awaiting a response (AG-35, §8.6): awaiting while it is open, responded once a response resolved it (who and when), not_awaited once it expired or was cancelled. options are the structured actions a response names by value. An approval waitpoint has no options to answer here; approval_url is the deep link to the Access approval surface. */
+    InboxWaitpoint: {
+      id: components["schemas"]["Id_wp"];
+      /** @enum {string} */
+      kind: "response" | "approval";
+      /** @enum {string} */
+      status: "awaiting" | "processing" | "responded" | "not_awaited";
+      subject_digest: string | null;
+      options: {
+        label: string;
+        value: string;
+      }[];
+      responder: {
+        /** @enum {string} */
+        kind: "subscriber" | "agent";
+        recipient_id: string;
+      } | null;
+      responded_at: components["schemas"]["Timestamp"] | null;
+      approval_url: string | null;
     };
     /** @description Absolute counters computed on the server and written in the same transaction as the items (IN-18, IN-19): unseen (the default badge source), unread and total over the inbox tab. version grows with every change; a client ignores counters whose version is not newer than its own. A badge is never sent as an increment. */
     InboxCounters: {
@@ -1331,6 +1408,65 @@ export interface components {
       preferences?: components["schemas"]["PreferenceWrite"][];
       profile?: components["schemas"]["PreferenceProfileWrite"];
     };
+    /** @description Opaque, signed pagination cursor bound to the tenant and environment. */
+    Cursor: string;
+    /** @description Cursor-paginated list. limit is 1 to 100 (default 50); related objects are never expanded in lists. */
+    ListEnvelope: {
+      /** @constant */
+      object: "list";
+      /** @description Items of the list; the concrete list schema narrows this. */
+      data: unknown[];
+      has_more: boolean;
+      next_cursor: components["schemas"]["Cursor"] | null;
+      previous_cursor?: components["schemas"]["Cursor"] | null;
+    };
+    /**
+     * @description Consent copy record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+     * @example cns_01j9zq3k4m5n6p7q8r9s0t1v2w
+     */
+    Id_cns: string;
+    /**
+     * @description Subtenant identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+     * @example stn_01j9zq3k4m5n6p7q8r9s0t1v2w
+     */
+    Id_stn: string;
+    /**
+     * @description Status of a commercial consent as Access records it. none means never asked and is not revoked; a revoked record of any source wins. pending_iys is an approval that belongs in İYS and is not valid until İYS holds it (PC-30): it becomes active once Relay has written it and read it back, and expired when that did not happen within three business days.
+     * @enum {string}
+     */
+    ConsentStatus: "none" | "pending" | "pending_iys" | "active" | "revoked" | "expired";
+    /** @enum {string} */
+    ConsentKind: "explicit_opt_in" | "soft_opt_in" | "legitimate_interest" | "none";
+    /** @enum {string} */
+    LegalType: "individual" | "merchant";
+    /** @description Read-only copy of a commercial consent recorded by Access for one brand and channel. */
+    Consent: {
+      /** @constant */
+      object: "consent";
+      id: components["schemas"]["Id_cns"];
+      /** @description Subtenant that is the brand of the consent; null is the tenant itself. */
+      brand: components["schemas"]["Id_stn"] | null;
+      channel: components["schemas"]["Channel"];
+      status: components["schemas"]["ConsentStatus"];
+      consent_kind: components["schemas"]["ConsentKind"] | null;
+      recipient_type: components["schemas"]["LegalType"] | null;
+      /** @description Where the consent was given, as Access names it. */
+      source: string;
+      occurred_at: components["schemas"]["Timestamp"];
+    };
+    ConsentList: components["schemas"]["ListEnvelope"] & {
+      data?: components["schemas"]["Consent"][];
+    };
+    /**
+     * @description Delivery identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+     * @example dlv_01j9zq3k4m5n6p7q8r9s0t1v2w
+     */
+    Id_dlv: string;
+    /**
+     * @description Notification identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+     * @example ntf_01j9zq3k4m5n6p7q8r9s0t1v2w
+     */
+    Id_ntf: string;
     /**
      * @description Push platform of a device: Apple Push Notification service, Firebase Cloud Messaging, Huawei Push Kit, a Web Push subscription or a UnifiedPush distributor.
      * @enum {string}
@@ -1370,6 +1506,17 @@ export interface components {
      * @example Europe/Istanbul
      */
     TimeZone: string;
+    /**
+     * @description One interruption permission as the app reads it from the operating system.
+     * @enum {string}
+     */
+    DeviceInterruptionPermission: "granted" | "denied" | "not_determined";
+    /** @description The interruption permissions the device reports on every app start (CH-65): on iOS critical_alerts (the Critical Alerts entitlement and the user's grant) and time_sensitive; on Android dnd_access (Do Not Disturb access of the channel that carries critical). A level the device cannot take is delivered one level lower and never dropped: critical without critical_alerts or dnd_access goes as time-sensitive, time-sensitive with time_sensitive denied as active. A device that reports nothing keeps the level. */
+    DeviceInterruptionPermissions: {
+      critical_alerts?: components["schemas"]["DeviceInterruptionPermission"];
+      time_sensitive?: components["schemas"]["DeviceInterruptionPermission"];
+      dnd_access?: components["schemas"]["DeviceInterruptionPermission"];
+    };
     /** @description Registers a push token for the subscriber, or refreshes it: the mobile SDK sends it on every app start. Registering a token the subscriber already has is idempotent and updates last_seen_at, the permission and the channels. A token registered by another subscriber is moved to this one and device.reassigned is emitted. previous_token names the token this one replaces (onNewToken, pushsubscriptionchange); that device is disabled. When the subscriber has more active devices than the limit, the least recently seen one is disabled with device_limit; a registration is never refused for the limit. */
     DeviceRegistration: {
       platform: components["schemas"]["DevicePlatform"];
@@ -1383,6 +1530,7 @@ export interface components {
       android_channels?: components["schemas"]["AndroidChannel"][];
       locale?: components["schemas"]["Locale"];
       timezone?: components["schemas"]["TimeZone"];
+      interruption_permissions?: components["schemas"]["DeviceInterruptionPermissions"];
       previous_token?: components["schemas"]["DeviceToken"];
     };
     /**
@@ -1423,6 +1571,8 @@ export interface components {
       locale: components["schemas"]["Locale"] | null;
       /** @description The IANA time zone the device reported with its registration; null when it reported none or one Relay does not know. */
       timezone?: components["schemas"]["TimeZone"] | null;
+      /** @description The interruption permissions the device reported with its last registration; null when it reported none. */
+      interruption_permissions?: components["schemas"]["DeviceInterruptionPermissions"] | null;
       state: components["schemas"]["DeviceState"];
       disabled_reason: components["schemas"]["DeviceDisabledReason"] | null;
       registered_at: components["schemas"]["Timestamp"];
@@ -1437,23 +1587,6 @@ export interface components {
      * @example P1D
      */
     Duration: string;
-    /**
-     * @description Delivery identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
-     * @example dlv_01j9zq3k4m5n6p7q8r9s0t1v2w
-     */
-    Id_dlv: string;
-    /** @description Opaque, signed pagination cursor bound to the tenant and environment. */
-    Cursor: string;
-    /** @description Cursor-paginated list. limit is 1 to 100 (default 50); related objects are never expanded in lists. */
-    ListEnvelope: {
-      /** @constant */
-      object: "list";
-      /** @description Items of the list; the concrete list schema narrows this. */
-      data: unknown[];
-      has_more: boolean;
-      next_cursor: components["schemas"]["Cursor"] | null;
-      previous_cursor?: components["schemas"]["Cursor"] | null;
-    };
     /**
      * @description Test recipient identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
      * @example trc_01j9zq3k4m5n6p7q8r9s0t1v2w
@@ -2234,22 +2367,22 @@ export interface components {
      * @example 01j9zq3k-order-4821-shipped
      */
     IdempotencyKey: string;
-    /** @description Device identifier. */
-    DeviceId: components["schemas"]["Id_dev"];
-    /** @description Test recipient identifier. */
-    TestRecipientId: components["schemas"]["Id_trc"];
     /** @description Page size, 1 to 100. */
     Limit: number;
     /** @description Cursor from next_cursor. */
     StartingAfter: components["schemas"]["Cursor"];
+    /** @description Cursor from previous_cursor. */
+    EndingBefore: components["schemas"]["Cursor"];
+    /** @description Device identifier. */
+    DeviceId: components["schemas"]["Id_dev"];
+    /** @description Test recipient identifier. */
+    TestRecipientId: components["schemas"]["Id_trc"];
     /** @description Inbox item identifier, or the identifier of an announcement merged into the inbox. */
     InboxItemId: components["schemas"]["Id_inb"] | components["schemas"]["Id_ann"];
     /** @description Waitpoint identifier. */
     WaitpointId: components["schemas"]["Id_wp"];
     /** @description Inbox bulk operation identifier. */
     InboxBulkId: components["schemas"]["Id_ibk"];
-    /** @description Cursor from previous_cursor. */
-    EndingBefore: components["schemas"]["Cursor"];
     /** @description Webhook endpoint identifier. */
     WebhookEndpointId: components["schemas"]["Id_whe"];
     /** @description ETag of the version being replaced; when present and stale the request fails with 412. */
@@ -2475,6 +2608,105 @@ export interface operations {
       413: components["responses"]["PayloadTooLarge"];
       415: components["responses"]["UnsupportedMediaType"];
       422: components["responses"]["UnprocessableContent"];
+      429: components["responses"]["TooManyRequests"];
+      500: components["responses"]["InternalError"];
+      503: components["responses"]["ServiceUnavailable"];
+    };
+  };
+  listMyConsents: {
+    parameters: {
+      query?: {
+        /** @description Page size, 1 to 100. */
+        limit?: components["parameters"]["Limit"];
+        /** @description Cursor from next_cursor. */
+        starting_after?: components["parameters"]["StartingAfter"];
+        /** @description Cursor from previous_cursor. */
+        ending_before?: components["parameters"]["EndingBefore"];
+      };
+      header?: {
+        /**
+         * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+         * @example 2026-11-01
+         */
+        "Relay-Version"?: components["parameters"]["RelayVersion"];
+        /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+        "Relay-Beta"?: components["parameters"]["RelayBeta"];
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description A page of consents. */
+      200: {
+        headers: {
+          "Request-Id": components["headers"]["Request-Id"];
+          "Relay-Version": components["headers"]["Relay-Version"];
+          RateLimit: components["headers"]["RateLimit"];
+          "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+          "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+          "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+          "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+          Deprecation: components["headers"]["Deprecation"];
+          Sunset: components["headers"]["Sunset"];
+          Link: components["headers"]["Link"];
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ConsentList"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      422: components["responses"]["UnprocessableContent"];
+      429: components["responses"]["TooManyRequests"];
+      500: components["responses"]["InternalError"];
+      503: components["responses"]["ServiceUnavailable"];
+    };
+  };
+  getMyPushContent: {
+    parameters: {
+      query?: never;
+      header?: {
+        /**
+         * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+         * @example 2026-11-01
+         */
+        "Relay-Version"?: components["parameters"]["RelayVersion"];
+        /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+        "Relay-Beta"?: components["parameters"]["RelayBeta"];
+      };
+      path: {
+        delivery_id: components["schemas"]["Id_dlv"];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The push content. */
+      200: {
+        headers: {
+          "Request-Id": components["headers"]["Request-Id"];
+          "Relay-Version": components["headers"]["Relay-Version"];
+          RateLimit: components["headers"]["RateLimit"];
+          "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+          "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+          "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+          "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+          Deprecation: components["headers"]["Deprecation"];
+          Sunset: components["headers"]["Sunset"];
+          Link: components["headers"]["Link"];
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PushContent"];
+        };
+      };
+      400: components["responses"]["BadRequest"];
+      401: components["responses"]["Unauthorized"];
+      403: components["responses"]["Forbidden"];
+      404: components["responses"]["NotFound"];
       429: components["responses"]["TooManyRequests"];
       500: components["responses"]["InternalError"];
       503: components["responses"]["ServiceUnavailable"];

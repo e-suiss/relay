@@ -53,6 +53,27 @@ test("PC-17 the three choices work inside the shadow root", async ({ page }) => 
   await audit(page);
 });
 
+test("X-44 C-24 AG-35 consents, agent label and waitpoint states inside the shadow root", async ({
+  page,
+}) => {
+  await page.goto("/demo/");
+  const consents = page.locator("relay-preference-center").getByTestId("relay-consents");
+  await expect(consents).toContainText("E-mail: Not given");
+  await expect(consents.getByRole("link")).toHaveAttribute(
+    "href",
+    "https://access.example.com/consents",
+  );
+  const inbox = page.locator("relay-inbox");
+  const item = (id: string) => inbox.locator(`[data-item-id="${id}"]`);
+  await expect(item("inb_03").getByTestId("relay-agent-mark")).toBeVisible();
+  await expect(item("inb_06").getByTestId("relay-waitpoint")).toContainText("Answered by you");
+  await expect(item("inb_04").getByTestId("relay-approval-link")).toHaveAttribute(
+    "href",
+    "https://access.example.com/approvals/77",
+  );
+  await audit(page);
+});
+
 test("X-16 the inbox shortcut focuses the category in the preference center", async ({ page }) => {
   await page.goto("/demo/");
   const inbox = page.locator("relay-inbox");

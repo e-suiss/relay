@@ -204,8 +204,8 @@ function ApprovalLink({
     ? (item.actions as { label?: unknown; url?: unknown }[])
     : [];
   const candidates = [
-    ...actions.map((action) => safeUrl(action.url)),
     waitpoint?.approval_url ?? null,
+    ...actions.map((action) => safeUrl(action.url)),
     links.accessApprovalUrl?.(item) ?? null,
   ].filter((url): url is string => url !== null && safeUrl(url) !== null);
   const href =
@@ -308,9 +308,7 @@ export function InboxItemView(props: InboxItemViewProps): ReactNode {
           )}
         </Heading>
         {body === null ? null : <p className="relay-item-body">{body}</p>}
-        {waitpoint === null || waitpoint.kind === "approval" ? null : (
-          <WaitpointPanel waitpoint={waitpoint} />
-        )}
+        {waitpoint === null || approval ? null : <WaitpointPanel waitpoint={waitpoint} />}
         {approval ? (
           <ApprovalLink item={item} waitpoint={waitpoint} />
         ) : actions.length === 0 ? null : (

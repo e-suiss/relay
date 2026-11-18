@@ -6,6 +6,7 @@ defmodule Relay.Keys.Erasure.Store do
   @erase [:erased, :already_erased, :held, :not_found]
   @destroy [:destroyed, :already_destroyed, :held, :not_allowed, :not_found]
   @retire [:retired, :already_destroyed, :held, :not_found]
+  @shred [:shredded, :held, :not_allowed]
 
   @spec subject_erase(
           Relay.Scope.t(),
@@ -34,6 +35,32 @@ defmodule Relay.Keys.Erasure.Store do
       Repo.scoped_query!("SELECT region, sector FROM relay.tenants", [])
 
     %{"region" => region, "sector" => sector}
+  end
+
+  @spec tenant_shred(
+          Relay.Scope.t(),
+          (map() -> {:ok, map()} | {:error, Relay.Error.t()}),
+          binary(),
+          Relay.Actor.t()
+        ) :: {:ok, atom(), map()} | {:error, Relay.Error.t()}
+  def tenant_shred(scope, plan_for, digest, actor) do
+    scoped(scope, fn ->
+      with {:ok, plan} <- plan_for.(tenant()) do
+        [row] =
+          Repo.call!(
+            "relay_fn.tenant_shred",
+            [plan.destroy, plan.restrict, digest | actor_params(actor)]
+          )
+
+        counts = %{
+          keys: row["destroyed_keys"],
+          deks: row["destroyed_deks"],
+          restricted: row["restricted_deks"]
+        }
+
+        {:ok, Repo.code!(row["result"], @shred), counts}
+      end
+    end)
   end
 
   @spec tenant_key_destroy(Relay.Scope.t(), binary(), String.t(), binary(), Relay.Actor.t()) ::

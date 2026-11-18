@@ -10,6 +10,7 @@
 # E-101
 # E-102
 # IN-51
+# OP-85
 set -eu
 
 usage() {
@@ -45,6 +46,9 @@ exist under their label are left untouched, so the script can be rerun.
                      when KEY_STORE_BLIND_INDEX_LABEL is set; production
                      blind index keys are per tenant and generated in the token
                      when the tenant is created
+  tenant keys        AES-256 keys a tenant brings as its own key, one per label in
+                     KEY_STORE_TENANT_KEY_LABELS; the installation operator then
+                     sets pkcs11:token=<token>;object=<label> as the tenant's key
 
 Environment:
   PKCS11_MODULE                 path of the PKCS#11 provider library
@@ -61,6 +65,7 @@ Environment:
   KEY_STORE_FINGERPRINT_LABEL   label of the secret fingerprint key (required)
   KEY_STORE_CURSOR_LABEL        label of the pagination cursor key (required)
   KEY_STORE_BLIND_INDEX_LABEL   label of a blind index key (optional, local development)
+  KEY_STORE_TENANT_KEY_LABELS   space-separated labels of tenant keys (optional)
 USAGE
   exit 2
 }
@@ -121,3 +126,6 @@ create secrkey "$KEY_STORE_CURSOR_LABEL" --keygen --key-type GENERIC:32 --sensit
 if [ -n "${KEY_STORE_BLIND_INDEX_LABEL:-}" ]; then
   create secrkey "$KEY_STORE_BLIND_INDEX_LABEL" --keygen --key-type GENERIC:32 --sensitive --usage-sign
 fi
+for tenant_key in ${KEY_STORE_TENANT_KEY_LABELS:-}; do
+  create secrkey "$tenant_key" --keygen --key-type AES:32 --sensitive
+done

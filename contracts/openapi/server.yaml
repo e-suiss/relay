@@ -2043,6 +2043,94 @@ paths:
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
+  "/v1/subscribers/{subscriber_id}/export":
+    get:
+      operationId: exportSubscriber
+      tags:
+        - subscribers
+      summary: Export one subscriber's data
+      description: "The data of one person as JSON (OP-26, OP-86): the subscriber as getSubscriber shows it and its deliveries, newest first, with their channel, decision and outcome; identifiers, codes and times only, no address or content. At most x-relay-limits subject_export.max_deliveries deliveries are returned and truncated is true when older ones exist; the full history is in the raw data exports. A tenant administrator's request; every export is audited as subject.exported before any delivery is read."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/SubscriberId"
+      security:
+        - access_bearer:
+            - subscribers
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The subscriber's data.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "./components/schemas.yaml#/SubscriberExport"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_revoked_client
+        - auth_client_pending
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_invalid_session
+        - auth_insufficient_role
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - subscriber_not_found
+      x-relay-scopes:
+        - subscribers
+      x-relay-role: tenant_admin
+      x-relay-weight: 10
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-86 names the per-person export as a separate API operation answering JSON per subject without a path; the path, the tenant administrator role and the shape are chosen by the contract."
   "/v1/subscribers/bulk":
     post:
       operationId: bulkUpsertSubscribers
@@ -30842,4 +30930,8 @@ x-relay-limits:
     max_matches: 5
     x-relay-choice: true
     x-relay-choice-note: "X-5 forbids pulling a customer list from the panel; a phone or e-mail lookup answers at most five subscribers that share the address, a contract choice."
+  subject_export:
+    max_deliveries: 10000
+    x-relay-choice: true
+    x-relay-choice-note: "OP-26 and OP-86 give a per-person export as JSON without a size; one answer carries at most the newest 10,000 deliveries, the full history is in the raw data exports, a contract choice."
 x-relay-error-catalog: "../errors.yaml"

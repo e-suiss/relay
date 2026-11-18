@@ -2535,6 +2535,30 @@
         "max_seconds": null
       },
       "class": "validation"
+    },
+    {
+      "code": "key_unavailable",
+      "family": "platform",
+      "status": 503,
+      "retryable": true,
+      "retry_after": {
+        "kind": "range",
+        "seconds": 5,
+        "max_seconds": 30
+      },
+      "class": "server"
+    },
+    {
+      "code": "tenant_closure_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
     }
   ]
 }

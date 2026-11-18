@@ -40,6 +40,22 @@ if config_env() == :prod do
        ]}
     ]
 
+  export_bucket = System.get_env("EXPORT_S3_BUCKET")
+
+  if export_bucket do
+    config :relay, Relay.TenantLifecycle,
+      export_store:
+        {Relay.TenantLifecycle.ExportStore.S3,
+         [
+           endpoint: Relay.Config.Env.fetch!("AUDIT_S3_ENDPOINT"),
+           bucket: export_bucket,
+           region: Relay.Config.Env.fetch!("AUDIT_S3_REGION"),
+           access_key_id: Relay.Config.Env.fetch!("AUDIT_S3_ACCESS_KEY_ID"),
+           secret_access_key: {Relay.Config.SecretFiles, :fetch!, [:audit_s3]},
+           prefix: ""
+         ]}
+  end
+
   config :relay, Relay.Access,
     issuer: Relay.Config.Env.fetch!("RELAY_ACCESS_ISSUER"),
     client_id: Relay.Config.Env.fetch!("RELAY_ACCESS_CLIENT_ID"),

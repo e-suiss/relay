@@ -105,6 +105,25 @@ defmodule Relay.Keys.Erasure do
     result
   end
 
+  # OP-26
+  # OP-86
+  # IN-45
+  @doc """
+  Crypto-shreds one environment of a closed tenant in one transaction with its `tenant.shredded` audit record: the subject data keys of every class without a legal retention obligation are destroyed and those with one restricted (the obligation comes from the active `retention_periods` data set for the tenant's region and sector, as for a subject erasure), the tenant's `data` keys are destroyed, and a `dek_wrap` key is destroyed once no subject data key it wraps is left, so the evidence under legal retention stays readable for its period. Subject keys of a recipient under an active legal hold are kept. Returns `{:ok, :shredded | :held | :not_allowed, counts}`; a tenant that is not closed is `:not_allowed` and an active tenant legal hold `:held`, and nothing changes. Repeating it changes nothing more.
+  """
+  @spec shred_tenant(scope(), actor()) ::
+          {:ok, :shredded | :held | :not_allowed,
+           %{keys: non_neg_integer(), deks: non_neg_integer(), restricted: non_neg_integer()}}
+          | {:error, Relay.Error.t()}
+  def shred_tenant(scope, actor) do
+    digest =
+      record_digest(scope, "tenant.shredded", actor, "tenant", scope.tenant_id, "tenant_closed")
+
+    result = Store.tenant_shred(scope, &tenant_plan/1, digest, actor)
+    evict(result, :shredded)
+    result
+  end
+
   # OP-16
   @doc "Destroys a subject data key whose retention period ended. Returns `{:ok, :retired | :already_destroyed | :held | :not_found}`."
   @spec retire_subject_key(scope(), Relay.Id.t(), actor()) ::

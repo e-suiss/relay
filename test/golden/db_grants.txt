@@ -607,6 +607,11 @@ table relay.templates relay_archive SELECT
 table relay.templates relay_maint SELECT
 table relay.templates relay_owner INSERT,SELECT,UPDATE
 table relay.templates relay_report SELECT
+table relay.tenant_closures relay_app SELECT
+table relay.tenant_closures relay_archive SELECT
+table relay.tenant_closures relay_maint SELECT
+table relay.tenant_closures relay_owner INSERT,SELECT,UPDATE
+table relay.tenant_closures relay_report SELECT
 table relay.tenant_keys relay_app SELECT
 table relay.tenant_keys relay_maint SELECT
 table relay.tenant_keys relay_owner INSERT,SELECT,UPDATE

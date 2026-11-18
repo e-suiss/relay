@@ -450,6 +450,12 @@
     "reason": "OP-9: the trigger rejects TRUNCATE on the kill switch effects"
   },
   {
+    "path": "priv/repo/migrations/20270113000200_create_tenant_closures.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-9: the trigger rejects TRUNCATE on the tenant closures"
+  },
+  {
     "path": "lib/relay/templates/convert/liquid.ex",
     "rule": "physical_delete",
     "match": "rstrip truncate replace",

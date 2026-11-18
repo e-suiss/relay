@@ -216,6 +216,12 @@ Durations are ISO 8601 durations.
 | `sms_keyword.reply_rate.limit` | 3 |
 | `sms_keyword.reply_rate.window` | PT24H |
 
+### subscriber_lookup
+
+| Limit | Value |
+|---|---|
+| `subscriber_lookup.max_matches` | 5 |
+
 ### support_delegation
 
 | Limit | Value |

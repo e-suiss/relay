@@ -215,9 +215,7 @@ describe('X-32 X-51 PC-17 preference center', () => {
     renderWith(relay, <PreferenceCenter />);
     expect(await screen.findByLabelText('Service notices, Push: On (locked)')).toBeTruthy();
     expect(
-      screen.getByText(
-        'These notifications are needed for the service and cannot be turned off.',
-      ),
+      screen.getByText('These notifications are needed for the service and cannot be turned off.'),
     ).toBeTruthy();
     expect(
       screen.getByLabelText('Order updates, Email: Turned off by your administrator'),

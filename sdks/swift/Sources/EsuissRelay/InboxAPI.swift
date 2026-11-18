@@ -142,11 +142,18 @@ public final class RelayInboxAPI: Sendable {
         responder: receipt.responder.map {
           RelayWaitpoint.Responder(
             kind: $0.kind == .agent ? .agent : .subscriber,
-            recipientId: $0.recipientId
+            recipientId: RelayInboxAPI.identifier($0.recipientId)
           )
         },
         respondedAt: receipt.respondedAt
       )
+    }
+  }
+
+  static func identifier(_ recipient: Components.Schemas.RecipientId) -> String {
+    switch recipient {
+    case .IdSub(let id): return id
+    case .IdAgt(let id): return id
     }
   }
 

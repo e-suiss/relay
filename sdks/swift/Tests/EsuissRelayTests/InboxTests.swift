@@ -259,7 +259,8 @@ final class InboxTests: XCTestCase {
       .json(
         200,
         Fixtures.list(
-          Fixtures.item(extra: "\"sender_type\":\"agent\",\"approval\":false,\(Fixtures.waitpoint())")
+          Fixtures.item(
+            extra: "\"sender_type\":\"agent\",\"approval\":false,\(Fixtures.waitpoint())")
         )
       )
     )
@@ -283,7 +284,9 @@ final class InboxTests: XCTestCase {
     let client = harness.client()
     harness.transport.enqueue(
       "listMyInboxItems",
-      .json(200, Fixtures.list(Fixtures.item(extra: "\"sender_type\":\"agent\",\(Fixtures.waitpoint())")))
+      .json(
+        200,
+        Fixtures.list(Fixtures.item(extra: "\"sender_type\":\"agent\",\(Fixtures.waitpoint())")))
     )
     await client.store.coldSync()
     let item = try XCTUnwrap(client.store.items.first)
@@ -301,7 +304,8 @@ final class InboxTests: XCTestCase {
     )
     await client.store.respond(to: item, with: RelayWaitpoint.Option(label: "Yes", value: "yes"))
     let request = try XCTUnwrap(harness.transport.requests("respondToMyWaitpoint").first)
-    XCTAssertEqual(request.request.path, "/v1/subscriber/waitpoints/\(Fixtures.waitpointId)/response")
+    XCTAssertEqual(
+      request.request.path, "/v1/subscriber/waitpoints/\(Fixtures.waitpointId)/response")
     XCTAssertEqual(request.json["response"] as? String, "yes")
     XCTAssertEqual(request.json["subject_digest"] as? String, Fixtures.digest)
     XCTAssertNil(request.json["approval"])
@@ -337,7 +341,8 @@ final class InboxTests: XCTestCase {
       "listMyInboxItems",
       .json(
         200,
-        Fixtures.list(Fixtures.item(extra: "\"sender_type\":\"agent\",\"approval\":true,\(approval)"))
+        Fixtures.list(
+          Fixtures.item(extra: "\"sender_type\":\"agent\",\"approval\":true,\(approval)"))
       )
     )
     await client.store.coldSync()

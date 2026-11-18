@@ -138,6 +138,191 @@ extension Components {
                 ])
             }
         }
+        /// Read-only copy of a commercial consent recorded by Access for one brand and channel.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Consent`.
+        public struct Consent: Codable, Hashable, Sendable {
+            /// Subtenant that is the brand of the consent; null is the tenant itself.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Consent/brand`.
+            public var brand: Components.Schemas.IdStn?
+            /// - Remark: Generated from `#/components/schemas/Consent/channel`.
+            public var channel: Components.Schemas.Channel
+            /// - Remark: Generated from `#/components/schemas/Consent/consent_kind`.
+            public var consentKind: Components.Schemas.ConsentKind?
+            /// - Remark: Generated from `#/components/schemas/Consent/id`.
+            public var id: Components.Schemas.IdCns
+            /// - Remark: Generated from `#/components/schemas/Consent/object`.
+            @frozen public enum ObjectPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case consent = "consent"
+            }
+            /// - Remark: Generated from `#/components/schemas/Consent/object`.
+            public var object: Components.Schemas.Consent.ObjectPayload
+            /// - Remark: Generated from `#/components/schemas/Consent/occurred_at`.
+            public var occurredAt: Components.Schemas.Timestamp
+            /// - Remark: Generated from `#/components/schemas/Consent/recipient_type`.
+            public var recipientType: Components.Schemas.LegalType?
+            /// Where the consent was given, as Access names it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Consent/source`.
+            public var source: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Consent/status`.
+            public var status: Components.Schemas.ConsentStatus
+            /// Creates a new `Consent`.
+            ///
+            /// - Parameters:
+            ///   - brand: Subtenant that is the brand of the consent; null is the tenant itself.
+            ///   - channel:
+            ///   - consentKind:
+            ///   - id:
+            ///   - object:
+            ///   - occurredAt:
+            ///   - recipientType:
+            ///   - source: Where the consent was given, as Access names it.
+            ///   - status:
+            public init(
+                brand: Components.Schemas.IdStn? = nil,
+                channel: Components.Schemas.Channel,
+                consentKind: Components.Schemas.ConsentKind? = nil,
+                id: Components.Schemas.IdCns,
+                object: Components.Schemas.Consent.ObjectPayload,
+                occurredAt: Components.Schemas.Timestamp,
+                recipientType: Components.Schemas.LegalType? = nil,
+                source: Swift.String,
+                status: Components.Schemas.ConsentStatus
+            ) {
+                self.brand = brand
+                self.channel = channel
+                self.consentKind = consentKind
+                self.id = id
+                self.object = object
+                self.occurredAt = occurredAt
+                self.recipientType = recipientType
+                self.source = source
+                self.status = status
+            }
+            public enum CodingKeys: String, CodingKey {
+                case brand
+                case channel
+                case consentKind = "consent_kind"
+                case id
+                case object
+                case occurredAt = "occurred_at"
+                case recipientType = "recipient_type"
+                case source
+                case status
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.brand = try container.decodeIfPresent(
+                    Components.Schemas.IdStn.self,
+                    forKey: .brand
+                )
+                self.channel = try container.decode(
+                    Components.Schemas.Channel.self,
+                    forKey: .channel
+                )
+                self.consentKind = try container.decodeIfPresent(
+                    Components.Schemas.ConsentKind.self,
+                    forKey: .consentKind
+                )
+                self.id = try container.decode(
+                    Components.Schemas.IdCns.self,
+                    forKey: .id
+                )
+                self.object = try container.decode(
+                    Components.Schemas.Consent.ObjectPayload.self,
+                    forKey: .object
+                )
+                self.occurredAt = try container.decode(
+                    Components.Schemas.Timestamp.self,
+                    forKey: .occurredAt
+                )
+                self.recipientType = try container.decodeIfPresent(
+                    Components.Schemas.LegalType.self,
+                    forKey: .recipientType
+                )
+                self.source = try container.decode(
+                    Swift.String.self,
+                    forKey: .source
+                )
+                self.status = try container.decode(
+                    Components.Schemas.ConsentStatus.self,
+                    forKey: .status
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "brand",
+                    "channel",
+                    "consent_kind",
+                    "id",
+                    "object",
+                    "occurred_at",
+                    "recipient_type",
+                    "source",
+                    "status"
+                ])
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/ConsentKind`.
+        @frozen public enum ConsentKind: String, Codable, Hashable, Sendable, CaseIterable {
+            case explicitOptIn = "explicit_opt_in"
+            case softOptIn = "soft_opt_in"
+            case legitimateInterest = "legitimate_interest"
+            case none = "none"
+        }
+        /// - Remark: Generated from `#/components/schemas/ConsentList`.
+        public struct ConsentList: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ConsentList/value1`.
+            public var value1: Components.Schemas.ListEnvelope
+            /// - Remark: Generated from `#/components/schemas/ConsentList/value2`.
+            public struct Value2Payload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/ConsentList/value2/data`.
+                public var data: [Components.Schemas.Consent]?
+                /// Creates a new `Value2Payload`.
+                ///
+                /// - Parameters:
+                ///   - data:
+                public init(data: [Components.Schemas.Consent]? = nil) {
+                    self.data = data
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case data
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/ConsentList/value2`.
+            public var value2: Components.Schemas.ConsentList.Value2Payload
+            /// Creates a new `ConsentList`.
+            ///
+            /// - Parameters:
+            ///   - value1:
+            ///   - value2:
+            public init(
+                value1: Components.Schemas.ListEnvelope,
+                value2: Components.Schemas.ConsentList.Value2Payload
+            ) {
+                self.value1 = value1
+                self.value2 = value2
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                self.value1 = try .init(from: decoder)
+                self.value2 = try .init(from: decoder)
+            }
+            public func encode(to encoder: any Swift.Encoder) throws {
+                try self.value1.encode(to: encoder)
+                try self.value2.encode(to: encoder)
+            }
+        }
+        /// Status of a commercial consent as Access records it. none means never asked and is not revoked; a revoked record of any source wins. pending_iys is an approval that belongs in İYS and is not valid until İYS holds it (PC-30): it becomes active once Relay has written it and read it back, and expired when that did not happen within three business days.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ConsentStatus`.
+        @frozen public enum ConsentStatus: String, Codable, Hashable, Sendable, CaseIterable {
+            case none = "none"
+            case pending = "pending"
+            case pendingIys = "pending_iys"
+            case active = "active"
+            case revoked = "revoked"
+            case expired = "expired"
+        }
         /// Opaque, signed pagination cursor bound to the tenant and environment.
         ///
         /// - Remark: Generated from `#/components/schemas/Cursor`.
@@ -984,6 +1169,16 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/schemas/Duration`.
         public typealias Duration = Swift.String
+        /// - Remark: Generated from `#/components/schemas/EvidenceLevel`.
+        @frozen public enum EvidenceLevel: String, Codable, Hashable, Sendable, CaseIterable {
+            case channelClaim = "channel_claim"
+            case relaySession = "relay_session"
+            case accessAasRef = "access_aas_ref"
+        }
+        /// The tenant's own identifier for a subscriber: printable ASCII without spaces, 1 to 256 characters. Must not be personal data such as an email address.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ExternalId`.
+        public typealias ExternalId = Swift.String
         /// One field error. Validation reports every error; it does not stop at the first.
         ///
         /// - Remark: Generated from `#/components/schemas/FieldError`.
@@ -1159,6 +1354,14 @@ extension Components {
                 ])
             }
         }
+        /// Agent recipient (recipient of kind agent) identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Id_agt`.
+        public typealias IdAgt = Swift.String
+        /// Consent copy record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Id_cns`.
+        public typealias IdCns = Swift.String
         /// Device identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
         ///
         /// - Remark: Generated from `#/components/schemas/Id_dev`.
@@ -1167,6 +1370,14 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/schemas/Id_dlv`.
         public typealias IdDlv = Swift.String
+        /// Notification identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Id_ntf`.
+        public typealias IdNtf = Swift.String
+        /// Subtenant identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Id_stn`.
+        public typealias IdStn = Swift.String
         /// Subscriber (recipient of kind subscriber) identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
         ///
         /// - Remark: Generated from `#/components/schemas/Id_sub`.
@@ -1175,6 +1386,10 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/schemas/Id_wp`.
         public typealias IdWp = Swift.String
+        /// Waitpoint response identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Id_wpr`.
+        public typealias IdWpr = Swift.String
         /// One item change after the cursor: created and updated changes carry the full item, removed ones (hidden, retracted, expired) the item's state only.
         ///
         /// - Remark: Generated from `#/components/schemas/InboxChange`.
@@ -2738,6 +2953,90 @@ extension Components {
                 ])
             }
         }
+        /// - Remark: Generated from `#/components/schemas/LegalType`.
+        @frozen public enum LegalType: String, Codable, Hashable, Sendable, CaseIterable {
+            case individual = "individual"
+            case merchant = "merchant"
+        }
+        /// Cursor-paginated list. limit is 1 to 100 (default 50); related objects are never expanded in lists.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ListEnvelope`.
+        public struct ListEnvelope: Codable, Hashable, Sendable {
+            /// Items of the list; the concrete list schema narrows this.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ListEnvelope/data`.
+            public var data: [OpenAPIRuntime.OpenAPIValueContainer]
+            /// - Remark: Generated from `#/components/schemas/ListEnvelope/has_more`.
+            public var hasMore: Swift.Bool
+            /// - Remark: Generated from `#/components/schemas/ListEnvelope/next_cursor`.
+            public var nextCursor: Components.Schemas.Cursor?
+            /// - Remark: Generated from `#/components/schemas/ListEnvelope/object`.
+            @frozen public enum ObjectPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case list = "list"
+            }
+            /// - Remark: Generated from `#/components/schemas/ListEnvelope/object`.
+            public var object: Components.Schemas.ListEnvelope.ObjectPayload
+            /// - Remark: Generated from `#/components/schemas/ListEnvelope/previous_cursor`.
+            public var previousCursor: Components.Schemas.Cursor?
+            /// Creates a new `ListEnvelope`.
+            ///
+            /// - Parameters:
+            ///   - data: Items of the list; the concrete list schema narrows this.
+            ///   - hasMore:
+            ///   - nextCursor:
+            ///   - object:
+            ///   - previousCursor:
+            public init(
+                data: [OpenAPIRuntime.OpenAPIValueContainer],
+                hasMore: Swift.Bool,
+                nextCursor: Components.Schemas.Cursor? = nil,
+                object: Components.Schemas.ListEnvelope.ObjectPayload,
+                previousCursor: Components.Schemas.Cursor? = nil
+            ) {
+                self.data = data
+                self.hasMore = hasMore
+                self.nextCursor = nextCursor
+                self.object = object
+                self.previousCursor = previousCursor
+            }
+            public enum CodingKeys: String, CodingKey {
+                case data
+                case hasMore = "has_more"
+                case nextCursor = "next_cursor"
+                case object
+                case previousCursor = "previous_cursor"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.data = try container.decode(
+                    [OpenAPIRuntime.OpenAPIValueContainer].self,
+                    forKey: .data
+                )
+                self.hasMore = try container.decode(
+                    Swift.Bool.self,
+                    forKey: .hasMore
+                )
+                self.nextCursor = try container.decodeIfPresent(
+                    Components.Schemas.Cursor.self,
+                    forKey: .nextCursor
+                )
+                self.object = try container.decode(
+                    Components.Schemas.ListEnvelope.ObjectPayload.self,
+                    forKey: .object
+                )
+                self.previousCursor = try container.decodeIfPresent(
+                    Components.Schemas.Cursor.self,
+                    forKey: .previousCursor
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "data",
+                    "has_more",
+                    "next_cursor",
+                    "object",
+                    "previous_cursor"
+                ])
+            }
+        }
         /// BCP 47 language tag.
         ///
         /// - Remark: Generated from `#/components/schemas/Locale`.
@@ -3670,6 +3969,99 @@ extension Components {
                 ])
             }
         }
+        /// The rendered content of one of the subscriber's push deliveries, for a content-free push (CH-33). content holds the channel's rendered fields, such as title, subtitle, body and url.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PushContent`.
+        public struct PushContent: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/PushContent/channel`.
+            @frozen public enum ChannelPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case push = "push"
+                case webPush = "web_push"
+            }
+            /// - Remark: Generated from `#/components/schemas/PushContent/channel`.
+            public var channel: Components.Schemas.PushContent.ChannelPayload
+            /// - Remark: Generated from `#/components/schemas/PushContent/content`.
+            public var content: OpenAPIRuntime.OpenAPIObjectContainer
+            /// - Remark: Generated from `#/components/schemas/PushContent/delivery_id`.
+            public var deliveryId: Components.Schemas.IdDlv
+            /// - Remark: Generated from `#/components/schemas/PushContent/locale`.
+            public var locale: Components.Schemas.Locale?
+            /// - Remark: Generated from `#/components/schemas/PushContent/notification_id`.
+            public var notificationId: Components.Schemas.IdNtf
+            /// - Remark: Generated from `#/components/schemas/PushContent/object`.
+            @frozen public enum ObjectPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case pushContent = "push_content"
+            }
+            /// - Remark: Generated from `#/components/schemas/PushContent/object`.
+            public var object: Components.Schemas.PushContent.ObjectPayload
+            /// Creates a new `PushContent`.
+            ///
+            /// - Parameters:
+            ///   - channel:
+            ///   - content:
+            ///   - deliveryId:
+            ///   - locale:
+            ///   - notificationId:
+            ///   - object:
+            public init(
+                channel: Components.Schemas.PushContent.ChannelPayload,
+                content: OpenAPIRuntime.OpenAPIObjectContainer,
+                deliveryId: Components.Schemas.IdDlv,
+                locale: Components.Schemas.Locale? = nil,
+                notificationId: Components.Schemas.IdNtf,
+                object: Components.Schemas.PushContent.ObjectPayload
+            ) {
+                self.channel = channel
+                self.content = content
+                self.deliveryId = deliveryId
+                self.locale = locale
+                self.notificationId = notificationId
+                self.object = object
+            }
+            public enum CodingKeys: String, CodingKey {
+                case channel
+                case content
+                case deliveryId = "delivery_id"
+                case locale
+                case notificationId = "notification_id"
+                case object
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.channel = try container.decode(
+                    Components.Schemas.PushContent.ChannelPayload.self,
+                    forKey: .channel
+                )
+                self.content = try container.decode(
+                    OpenAPIRuntime.OpenAPIObjectContainer.self,
+                    forKey: .content
+                )
+                self.deliveryId = try container.decode(
+                    Components.Schemas.IdDlv.self,
+                    forKey: .deliveryId
+                )
+                self.locale = try container.decodeIfPresent(
+                    Components.Schemas.Locale.self,
+                    forKey: .locale
+                )
+                self.notificationId = try container.decode(
+                    Components.Schemas.IdNtf.self,
+                    forKey: .notificationId
+                )
+                self.object = try container.decode(
+                    Components.Schemas.PushContent.ObjectPayload.self,
+                    forKey: .object
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "channel",
+                    "content",
+                    "delivery_id",
+                    "locale",
+                    "notification_id",
+                    "object"
+                ])
+            }
+        }
         /// A push receipt of the SDK (DS-13).
         ///
         /// - Remark: Generated from `#/components/schemas/PushReceipt`.
@@ -3977,6 +4369,47 @@ extension Components {
                 ])
             }
         }
+        /// Relay identifier of a recipient: sub_ for a subscriber, agt_ for an agent.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RecipientId`.
+        @frozen public enum RecipientId: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/RecipientId/case1`.
+            case IdSub(Components.Schemas.IdSub)
+            /// - Remark: Generated from `#/components/schemas/RecipientId/case2`.
+            case IdAgt(Components.Schemas.IdAgt)
+            public init(from decoder: any Swift.Decoder) throws {
+                var errors: [any Swift.Error] = []
+                do {
+                    self = .IdSub(try decoder.decodeFromSingleValueContainer())
+                    return
+                } catch {
+                    errors.append(error)
+                }
+                do {
+                    self = .IdAgt(try decoder.decodeFromSingleValueContainer())
+                    return
+                } catch {
+                    errors.append(error)
+                }
+                throw Swift.DecodingError.failedToDecodeOneOfSchema(
+                    type: Self.self,
+                    codingPath: decoder.codingPath,
+                    errors: errors
+                )
+            }
+            public func encode(to encoder: any Swift.Encoder) throws {
+                switch self {
+                case let .IdSub(value):
+                    try encoder.encodeToSingleValueContainer(value)
+                case let .IdAgt(value):
+                    try encoder.encodeToSingleValueContainer(value)
+                }
+            }
+        }
+        /// Identifier from the single rule dictionary.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RuleId`.
+        public typealias RuleId = Swift.String
         /// - Remark: Generated from `#/components/schemas/ScopeKeyPreference`.
         public struct ScopeKeyPreference: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/ScopeKeyPreference/scope_key`.
@@ -4023,6 +4456,10 @@ extension Components {
             case config = "config"
             case killSwitch = "kill_switch"
         }
+        /// SHA-256 digest: sha256: and 64 lowercase hexadecimal characters.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Sha256Digest`.
+        public typealias Sha256Digest = Swift.String
         /// A subscriber's preferences: one cell for every active category other than system and every channel, so no cell is undefined, beside the channel, workflow and scope key switches and the profile.
         ///
         /// - Remark: Generated from `#/components/schemas/SubscriberPreferences`.
@@ -4191,6 +4628,231 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/schemas/Timestamp`.
         public typealias Timestamp = Foundation.Date
+        /// Who responded; a human subscriber's external_id is its pairwise Access sub.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WaitpointResponder`.
+        public struct WaitpointResponder: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponder/external_id`.
+            public var externalId: Components.Schemas.ExternalId?
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponder/kind`.
+            @frozen public enum KindPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case subscriber = "subscriber"
+                case agent = "agent"
+            }
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponder/kind`.
+            public var kind: Components.Schemas.WaitpointResponder.KindPayload
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponder/recipient_id`.
+            public var recipientId: Components.Schemas.RecipientId
+            /// Creates a new `WaitpointResponder`.
+            ///
+            /// - Parameters:
+            ///   - externalId:
+            ///   - kind:
+            ///   - recipientId:
+            public init(
+                externalId: Components.Schemas.ExternalId? = nil,
+                kind: Components.Schemas.WaitpointResponder.KindPayload,
+                recipientId: Components.Schemas.RecipientId
+            ) {
+                self.externalId = externalId
+                self.kind = kind
+                self.recipientId = recipientId
+            }
+            public enum CodingKeys: String, CodingKey {
+                case externalId = "external_id"
+                case kind
+                case recipientId = "recipient_id"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.externalId = try container.decodeIfPresent(
+                    Components.Schemas.ExternalId.self,
+                    forKey: .externalId
+                )
+                self.kind = try container.decode(
+                    Components.Schemas.WaitpointResponder.KindPayload.self,
+                    forKey: .kind
+                )
+                self.recipientId = try container.decode(
+                    Components.Schemas.RecipientId.self,
+                    forKey: .recipientId
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "external_id",
+                    "kind",
+                    "recipient_id"
+                ])
+            }
+        }
+        /// What became of a response: processing, responded (who and when) or not awaited any more.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt`.
+        public struct WaitpointResponseReceipt: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/evidence_level`.
+            public var evidenceLevel: Components.Schemas.EvidenceLevel?
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/object`.
+            @frozen public enum ObjectPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case waitpointResponseReceipt = "waitpoint_response_receipt"
+            }
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/object`.
+            public var object: Components.Schemas.WaitpointResponseReceipt.ObjectPayload
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/responded_at`.
+            public var respondedAt: Components.Schemas.Timestamp?
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/responder`.
+            public var responder: Components.Schemas.WaitpointResponder?
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/response_digest`.
+            public var responseDigest: Components.Schemas.Sha256Digest?
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/response_id`.
+            public var responseId: Components.Schemas.IdWpr?
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/rule_id`.
+            public var ruleId: Components.Schemas.RuleId?
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case processing = "processing"
+                case responded = "responded"
+                case notAwaited = "not_awaited"
+            }
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/status`.
+            public var status: Components.Schemas.WaitpointResponseReceipt.StatusPayload
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseReceipt/waitpoint_id`.
+            public var waitpointId: Components.Schemas.IdWp
+            /// Creates a new `WaitpointResponseReceipt`.
+            ///
+            /// - Parameters:
+            ///   - evidenceLevel:
+            ///   - object:
+            ///   - respondedAt:
+            ///   - responder:
+            ///   - responseDigest:
+            ///   - responseId:
+            ///   - ruleId:
+            ///   - status:
+            ///   - waitpointId:
+            public init(
+                evidenceLevel: Components.Schemas.EvidenceLevel? = nil,
+                object: Components.Schemas.WaitpointResponseReceipt.ObjectPayload,
+                respondedAt: Components.Schemas.Timestamp? = nil,
+                responder: Components.Schemas.WaitpointResponder? = nil,
+                responseDigest: Components.Schemas.Sha256Digest? = nil,
+                responseId: Components.Schemas.IdWpr? = nil,
+                ruleId: Components.Schemas.RuleId? = nil,
+                status: Components.Schemas.WaitpointResponseReceipt.StatusPayload,
+                waitpointId: Components.Schemas.IdWp
+            ) {
+                self.evidenceLevel = evidenceLevel
+                self.object = object
+                self.respondedAt = respondedAt
+                self.responder = responder
+                self.responseDigest = responseDigest
+                self.responseId = responseId
+                self.ruleId = ruleId
+                self.status = status
+                self.waitpointId = waitpointId
+            }
+            public enum CodingKeys: String, CodingKey {
+                case evidenceLevel = "evidence_level"
+                case object
+                case respondedAt = "responded_at"
+                case responder
+                case responseDigest = "response_digest"
+                case responseId = "response_id"
+                case ruleId = "rule_id"
+                case status
+                case waitpointId = "waitpoint_id"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.evidenceLevel = try container.decodeIfPresent(
+                    Components.Schemas.EvidenceLevel.self,
+                    forKey: .evidenceLevel
+                )
+                self.object = try container.decode(
+                    Components.Schemas.WaitpointResponseReceipt.ObjectPayload.self,
+                    forKey: .object
+                )
+                self.respondedAt = try container.decodeIfPresent(
+                    Components.Schemas.Timestamp.self,
+                    forKey: .respondedAt
+                )
+                self.responder = try container.decodeIfPresent(
+                    Components.Schemas.WaitpointResponder.self,
+                    forKey: .responder
+                )
+                self.responseDigest = try container.decodeIfPresent(
+                    Components.Schemas.Sha256Digest.self,
+                    forKey: .responseDigest
+                )
+                self.responseId = try container.decodeIfPresent(
+                    Components.Schemas.IdWpr.self,
+                    forKey: .responseId
+                )
+                self.ruleId = try container.decodeIfPresent(
+                    Components.Schemas.RuleId.self,
+                    forKey: .ruleId
+                )
+                self.status = try container.decode(
+                    Components.Schemas.WaitpointResponseReceipt.StatusPayload.self,
+                    forKey: .status
+                )
+                self.waitpointId = try container.decode(
+                    Components.Schemas.IdWp.self,
+                    forKey: .waitpointId
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "evidence_level",
+                    "object",
+                    "responded_at",
+                    "responder",
+                    "response_digest",
+                    "response_id",
+                    "rule_id",
+                    "status",
+                    "waitpoint_id"
+                ])
+            }
+        }
+        /// A response to a waitpoint (C-74). The field is response, never approval (AG-26).
+        ///
+        /// - Remark: Generated from `#/components/schemas/WaitpointResponseRequest`.
+        public struct WaitpointResponseRequest: Codable, Hashable, Sendable {
+            /// The response value; it follows the waitpoint's response_schema and is at most x-relay-limits waitpoint.max_response_bytes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseRequest/response`.
+            public var response: OpenAPIRuntime.OpenAPIValueContainer
+            /// - Remark: Generated from `#/components/schemas/WaitpointResponseRequest/subject_digest`.
+            public var subjectDigest: Components.Schemas.Sha256Digest
+            /// Creates a new `WaitpointResponseRequest`.
+            ///
+            /// - Parameters:
+            ///   - response: The response value; it follows the waitpoint's response_schema and is at most x-relay-limits waitpoint.max_response_bytes.
+            ///   - subjectDigest:
+            public init(
+                response: OpenAPIRuntime.OpenAPIValueContainer,
+                subjectDigest: Components.Schemas.Sha256Digest
+            ) {
+                self.response = response
+                self.subjectDigest = subjectDigest
+            }
+            public enum CodingKeys: String, CodingKey {
+                case response
+                case subjectDigest = "subject_digest"
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.response = try container.decode(
+                    OpenAPIRuntime.OpenAPIValueContainer.self,
+                    forKey: .response
+                )
+                self.subjectDigest = try container.decode(
+                    Components.Schemas.Sha256Digest.self,
+                    forKey: .subjectDigest
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "response",
+                    "subject_digest"
+                ])
+            }
+        }
         /// The keys of a Web Push or UnifiedPush subscription (RFC 8291), as the browser's PushSubscription returns them in base64url. Stored encrypted with the token and never returned.
         ///
         /// - Remark: Generated from `#/components/schemas/WebPushKeys`.

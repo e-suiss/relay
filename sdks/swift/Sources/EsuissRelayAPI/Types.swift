@@ -24,6 +24,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/realtime/poll`.
     /// - Remark: Generated from `#/paths//v1/realtime/poll/get(pollRealtimeEvents)`.
     func pollRealtimeEvents(_ input: Operations.PollRealtimeEvents.Input) async throws -> Operations.PollRealtimeEvents.Output
+    /// List my consents
+    ///
+    /// Read-only copy of the commercial consents Access holds for the token subscriber: the current record of each brand and channel, from Relay's consent copy, newest first (X-44, PC-59). The preference component and the hosted preference page show it next to the notification preferences and link to Access to change it; Relay never writes consent through this API and never touches Access's session or token.
+    ///
+    /// - Remark: HTTP `GET /v1/subscriber/consents`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)`.
+    func listMyConsents(_ input: Operations.ListMyConsents.Input) async throws -> Operations.ListMyConsents.Output
     /// Register my device
     ///
     /// Registers or refreshes a push token for the token's subscriber. 201 for a new device, including a token moved from another subscriber (device.reassigned); 200 when the subscriber already had the token. The token is never returned. A Web Push or UnifiedPush token is the subscription endpoint and needs its keys; an APNs token needs apns_environment. The subscriber comes from the token; a token can never register a device for another subscriber.
@@ -101,6 +108,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/subscriber/preferences`.
     /// - Remark: Generated from `#/paths//v1/subscriber/preferences/patch(updateMyPreferences)`.
     func updateMyPreferences(_ input: Operations.UpdateMyPreferences.Input) async throws -> Operations.UpdateMyPreferences.Output
+    /// Get the content of a content-free push
+    ///
+    /// A content-free push carries only that there is a new notification and an opaque identifier, relay_id, the delivery identifier (CH-33). The app's notification service extension (iOS) or data message handler (Android) fetches the content here over TLS with the subscriber's own token and shows it once the device is unlocked. The content is the delivery's render as sent, never rendered again. A delivery of another subscriber, a channel other than push and web_push, a message kept as its digest only (security_subtype, retention none) or an erased one answers delivery_not_found, and the device shows its neutral text; content never falls back into the push payload.
+    ///
+    /// - Remark: HTTP `GET /v1/subscriber/push_content/{delivery_id}`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)`.
+    func getMyPushContent(_ input: Operations.GetMyPushContent.Input) async throws -> Operations.GetMyPushContent.Output
     /// Record a push receipt
     ///
     /// The mobile or web SDK reports that a push of the token's subscriber was displayed or clicked (actor client_sdk). A displayed receipt is the only delivery evidence of a push and raises the delivery to delivered; a clicked receipt is engagement and leaves delivery as it is. Both are recorded in the delivery's ledger and are decision input (DS-13, DS-12). A delivery of another subscriber or of another channel is 404. occurred_at is the device's time, never later than the server's.
@@ -108,6 +122,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/subscriber/push_receipts`.
     /// - Remark: Generated from `#/paths//v1/subscriber/push_receipts/post(recordMyPushReceipt)`.
     func recordMyPushReceipt(_ input: Operations.RecordMyPushReceipt.Input) async throws -> Operations.RecordMyPushReceipt.Output
+    /// Respond to a waitpoint that asks me
+    ///
+    /// The token subscriber answers a question or a review it is a responder of, in the session of its subscriber token: the evidence level of the response is relay_session (AG-26). The value is checked against the waitpoint's response schema and the response size limit before anything is recorded; a value that does not fit is not written and is answered 422 with the failing fields (INV-31). The response carries the subject_digest the request showed and is refused when it is not the waitpoint's (AG-11). The first valid response resolves the waitpoint; the same response sent again is answered as the first was, so a repeated click changes nothing, and any other later response is rejected and the rejection recorded (AG-28). A subscriber that is not a responder is answered 404: knowing the identifier does not let it respond. A response is collected and passed to the waiter; it is never an approval and gives no authority (AG-25, E-49). A waitpoint of the profile guardian_approval takes no response here: it closes only with the decision given on the Access approval surface (AG-62, AG-32). The operation takes no Idempotency-Key: a waitpoint is resolved once.
+    ///
+    /// - Remark: HTTP `POST /v1/subscriber/waitpoints/{waitpoint_id}/response`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)`.
+    func respondToMyWaitpoint(_ input: Operations.RespondToMyWaitpoint.Input) async throws -> Operations.RespondToMyWaitpoint.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -123,6 +144,21 @@ extension APIProtocol {
         headers: Operations.PollRealtimeEvents.Input.Headers = .init()
     ) async throws -> Operations.PollRealtimeEvents.Output {
         try await pollRealtimeEvents(Operations.PollRealtimeEvents.Input(
+            query: query,
+            headers: headers
+        ))
+    }
+    /// List my consents
+    ///
+    /// Read-only copy of the commercial consents Access holds for the token subscriber: the current record of each brand and channel, from Relay's consent copy, newest first (X-44, PC-59). The preference component and the hosted preference page show it next to the notification preferences and link to Access to change it; Relay never writes consent through this API and never touches Access's session or token.
+    ///
+    /// - Remark: HTTP `GET /v1/subscriber/consents`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/consents/get(listMyConsents)`.
+    public func listMyConsents(
+        query: Operations.ListMyConsents.Input.Query = .init(),
+        headers: Operations.ListMyConsents.Input.Headers = .init()
+    ) async throws -> Operations.ListMyConsents.Output {
+        try await listMyConsents(Operations.ListMyConsents.Input(
             query: query,
             headers: headers
         ))
@@ -284,6 +320,21 @@ extension APIProtocol {
             body: body
         ))
     }
+    /// Get the content of a content-free push
+    ///
+    /// A content-free push carries only that there is a new notification and an opaque identifier, relay_id, the delivery identifier (CH-33). The app's notification service extension (iOS) or data message handler (Android) fetches the content here over TLS with the subscriber's own token and shows it once the device is unlocked. The content is the delivery's render as sent, never rendered again. A delivery of another subscriber, a channel other than push and web_push, a message kept as its digest only (security_subtype, retention none) or an erased one answers delivery_not_found, and the device shows its neutral text; content never falls back into the push payload.
+    ///
+    /// - Remark: HTTP `GET /v1/subscriber/push_content/{delivery_id}`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/push_content/{delivery_id}/get(getMyPushContent)`.
+    public func getMyPushContent(
+        path: Operations.GetMyPushContent.Input.Path,
+        headers: Operations.GetMyPushContent.Input.Headers = .init()
+    ) async throws -> Operations.GetMyPushContent.Output {
+        try await getMyPushContent(Operations.GetMyPushContent.Input(
+            path: path,
+            headers: headers
+        ))
+    }
     /// Record a push receipt
     ///
     /// The mobile or web SDK reports that a push of the token's subscriber was displayed or clicked (actor client_sdk). A displayed receipt is the only delivery evidence of a push and raises the delivery to delivered; a clicked receipt is engagement and leaves delivery as it is. Both are recorded in the delivery's ledger and are decision input (DS-13, DS-12). A delivery of another subscriber or of another channel is 404. occurred_at is the device's time, never later than the server's.
@@ -295,6 +346,23 @@ extension APIProtocol {
         body: Operations.RecordMyPushReceipt.Input.Body
     ) async throws -> Operations.RecordMyPushReceipt.Output {
         try await recordMyPushReceipt(Operations.RecordMyPushReceipt.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Respond to a waitpoint that asks me
+    ///
+    /// The token subscriber answers a question or a review it is a responder of, in the session of its subscriber token: the evidence level of the response is relay_session (AG-26). The value is checked against the waitpoint's response schema and the response size limit before anything is recorded; a value that does not fit is not written and is answered 422 with the failing fields (INV-31). The response carries the subject_digest the request showed and is refused when it is not the waitpoint's (AG-11). The first valid response resolves the waitpoint; the same response sent again is answered as the first was, so a repeated click changes nothing, and any other later response is rejected and the rejection recorded (AG-28). A subscriber that is not a responder is answered 404: knowing the identifier does not let it respond. A response is collected and passed to the waiter; it is never an approval and gives no authority (AG-25, E-49). A waitpoint of the profile guardian_approval takes no response here: it closes only with the decision given on the Access approval surface (AG-62, AG-32). The operation takes no Idempotency-Key: a waitpoint is resolved once.
+    ///
+    /// - Remark: HTTP `POST /v1/subscriber/waitpoints/{waitpoint_id}/response`.
+    /// - Remark: Generated from `#/paths//v1/subscriber/waitpoints/{waitpoint_id}/response/post(respondToMyWaitpoint)`.
+    public func respondToMyWaitpoint(
+        path: Operations.RespondToMyWaitpoint.Input.Path,
+        headers: Operations.RespondToMyWaitpoint.Input.Headers = .init(),
+        body: Operations.RespondToMyWaitpoint.Input.Body
+    ) async throws -> Operations.RespondToMyWaitpoint.Output {
+        try await respondToMyWaitpoint(Operations.RespondToMyWaitpoint.Input(
+            path: path,
             headers: headers,
             body: body
         ))

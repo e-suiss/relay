@@ -41,7 +41,8 @@ final class UITests: XCTestCase {
   func testAG35WaitpointStatesAreShownInWords() {
     let en = RelayStrings(locale: Locale(identifier: "en_US"))
     let tr = RelayStrings(locale: Locale(identifier: "tr_TR"))
-    var waitpoint = RelayWaitpoint(id: "wp_1", subjectDigest: "d", options: [.init(label: "Yes", value: "yes")])
+    var waitpoint = RelayWaitpoint(
+      id: "wp_1", subjectDigest: "d", options: [.init(label: "Yes", value: "yes")])
     XCTAssertEqual(en.waitpointStatus(waitpoint), "Waiting for your response")
     waitpoint.status = .processing
     XCTAssertEqual(tr.waitpointStatus(waitpoint), "Yanıt işleniyor")

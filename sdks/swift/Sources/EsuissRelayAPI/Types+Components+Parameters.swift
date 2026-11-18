@@ -22,6 +22,10 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/parameters/DeviceId`.
         public typealias DeviceId = Components.Schemas.IdDev
+        /// Cursor from previous_cursor.
+        ///
+        /// - Remark: Generated from `#/components/parameters/EndingBefore`.
+        public typealias EndingBefore = Components.Schemas.Cursor
         /// Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
         ///
         /// - Remark: Generated from `#/components/parameters/IdempotencyKey`.
@@ -46,5 +50,9 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/parameters/StartingAfter`.
         public typealias StartingAfter = Components.Schemas.Cursor
+        /// Waitpoint identifier.
+        ///
+        /// - Remark: Generated from `#/components/parameters/WaitpointId`.
+        public typealias WaitpointId = Components.Schemas.IdWp
     }
 }

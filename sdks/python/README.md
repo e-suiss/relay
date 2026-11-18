@@ -81,6 +81,10 @@ lease = relay.mailbox_lease(10)
 relay.mailbox_ack(lease["lease_id"], [record["id"] for record in lease["records"]])
 ```
 
+## Development
+
+`./regenerate.sh` regenerates `src/esuiss_relay/_generated` from `contracts/openapi/server.yaml` with the pinned generator and the locked toolchain.
+
 ## License
 
 Apache-2.0

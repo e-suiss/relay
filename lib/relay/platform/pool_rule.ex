@@ -35,8 +35,7 @@ defmodule Relay.Platform.PoolRule do
       {Relay.BulkRepo, worker?, pool_size(Relay.Repo, 10)}
     ]
     |> Enum.filter(fn {_repo, open?, _default} -> open? end)
-    |> Enum.map(fn {repo, _open?, default} -> pool_size(repo, default) end)
-    |> Enum.sum()
+    |> Enum.reduce(0, fn {repo, _open?, default}, sum -> sum + pool_size(repo, default) end)
   end
 
   # OP-30

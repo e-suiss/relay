@@ -1,0 +1,20 @@
+generate:
+  - types
+  - client
+accessModifier: public
+namingStrategy: idiomatic
+filter:
+  operations:
+    - getMyPreferences
+    - updateMyPreferences
+    - registerMyDevice
+    - deleteMyDevice
+    - updateMyDeviceStatus
+    - recordMyPushReceipt
+    - listMyInboxItems
+    - getMyInboxItem
+    - applyMyInboxIntent
+    - getMyInboxCounters
+    - listMyInboxChanges
+    - markAllMyInboxRead
+    - pollRealtimeEvents

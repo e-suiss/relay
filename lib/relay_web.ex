@@ -8,6 +8,7 @@ defmodule RelayWeb do
       Relay,
       Relay.Platform,
       Relay.Tenancy.KillSwitch,
+      Relay.FaultInjection,
       Relay.Datasets,
       Relay.Channels,
       Relay.Compliance.Refusals,

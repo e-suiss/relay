@@ -1,0 +1,66 @@
+name: dev-plane
+description: Starts the local test plane of Relay (mix phx.server on port 4000 with the sample tenant of mix relay.dev.seed), optionally with its main database pool and Valkey behind Toxiproxy.
+inputs:
+  chaos:
+    description: Route the main database pool and Valkey through the Toxiproxy proxies postgres (25432) and valkey (26379).
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+      with:
+        version-file: .tool-versions
+        version-type: strict
+    - shell: bash
+      run: |
+        if [ "${{ inputs.chaos }}" = "true" ]; then
+          docker compose -f deploy/compose.yaml --profile chaos up -d --wait postgres valkey minio toxiproxy
+          curl -fsS -X POST http://localhost:8474/proxies -H 'content-type: application/json' \
+            -d '{"name":"postgres","listen":"0.0.0.0:25432","upstream":"postgres:5432","enabled":true}'
+          curl -fsS -X POST http://localhost:8474/proxies -H 'content-type: application/json' \
+            -d '{"name":"valkey","listen":"0.0.0.0:26379","upstream":"valkey:6379","enabled":true}'
+          {
+            echo 'config :relay, Relay.Repo, port: 25432'
+            echo 'config :relay, Relay.Platform.Valkey, url: "redis://localhost:26379"'
+          } >> config/dev.exs
+        else
+          docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
+        fi
+        echo 'config :relay, RelayWeb.Api, trusted_proxies: ["127.0.0.1/32"]' >> config/dev.exs
+    - shell: bash
+      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends softhsm2 opensc
+    - shell: bash
+      working-directory: native/pkcs11_port
+      run: rustup toolchain install
+    - shell: bash
+      working-directory: native/mjml_port
+      run: rustup toolchain install
+    - shell: bash
+      run: |
+        native/build.sh
+        mkdir -p priv/native
+        cp native/pkcs11_port/target/release/pkcs11_port priv/native/pkcs11_port
+        cp native/pkcs11_port/target/release/pkcs11_port.sha256 priv/native/pkcs11_port.sha256
+        cp native/mjml_port/target/release/mjml_port priv/native/mjml_port
+        (cd priv/native && sha256sum mjml_port > mjml_port.sha256)
+    - shell: bash
+      run: |
+        mkdir -p deploy/softhsm/tokens
+        softhsm2-util --init-token --free --label relay-dev --pin 1234 --so-pin 12345678
+        printf 1234 > deploy/softhsm/pin
+        PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so PKCS11_TOKEN=relay-dev PKCS11_PIN_FILE=deploy/softhsm/pin \
+          KEY_STORE_KEK_LABEL=kek-dev KEY_STORE_FINGERPRINT_LABEL=fingerprint-dev KEY_STORE_CURSOR_LABEL=cursor-dev \
+          KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
+    - shell: bash
+      run: |
+        mix deps.get --check-locked
+        mix ecto.setup
+        mix relay.audit.store
+        mix relay.dev.seed || mix relay.dev.seed
+        nohup mix phx.server > "$RUNNER_TEMP/relay.log" 2>&1 &
+        for i in $(seq 1 120); do
+          curl -fsS http://localhost:4000/livez > /dev/null 2>&1 && break
+          [ "$i" -lt 120 ] || { cat "$RUNNER_TEMP/relay.log"; exit 1; }
+          sleep 2
+        done

@@ -47,6 +47,8 @@ config :relay, Relay.Platform.Capacity, sampler: false
 
 config :relay, Relay.Tenancy.KillSwitch.Cache, enabled: false
 
+config :relay, Relay.FaultInjection, cache: false
+
 config :logger, level: :warning
 
 config :relay, Relay.NetworkGuard, enabled: true
@@ -87,3 +89,7 @@ config :relay, Relay.Operators, bootstrap_subject: "bootstrap-operator", authzen
 config :relay, Relay.Templates.Sandbox, timeout_ms: 1_000, email_timeout_ms: 1_000
 
 config :relay, Relay.Channels.Email.Esp, req_options: [plug: {Req.Test, Relay.Channels.Email.Esp}]
+
+if valkey_url = System.get_env("CHAOS_VALKEY_URL") do
+  config :relay, Relay.Platform.Valkey, url: valkey_url
+end

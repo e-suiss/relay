@@ -312,5 +312,6 @@
   {"file": "20270111000200_validate_device_interruption_permissions_check.exs", "sha256": "11f18b43e09dfb2d8aa1abbaaeebc65a0b3ce3a2d7df56f689b3002b49c40270"},
   {"file": "20270111000300_create_fallback_zone_counts.exs", "sha256": "913c2a826e892013702885e8cab74e1540730e397e31ea80d036a06c0cb83915"},
   {"file": "20270111000400_create_kill_switch_effects.exs", "sha256": "63a2f9fe1285bdfc13a4451f18439c5cf2f3d180032f9e67fe4499291136cf47"},
-  {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"}
+  {"file": "20270111000500_rebuild_reference_check_for_kill_switch_effects.exs", "sha256": "0677e448cb0720bbe649349d9fddc6f33f7be282da2c8311e5ef514791fb40e6"},
+  {"file": "20270115000000_create_fault_injections.exs", "sha256": "fb956e7f8fb96d7027f239cc2032dcda7792e66f01173cf18a189a5b1d549c69"}
 ]

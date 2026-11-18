@@ -1101,4 +1101,72 @@ defmodule RelayWeb.Operator.OperatorApiTest do
       assert length(operator_audit(ctx.tenant.live, "quota_policy.changed")) == 12
     end
   end
+
+  describe "OP-92 fault injection" do
+    test "OP-92: the installation operator engages, lists and clears a test fault injection",
+         _ctx do
+      tenant = TenantFixture.tenant!()
+
+      admin =
+        sign_in("admin-" <> TenantFixture.random())
+        |> then(&grant!(tenant.live, &1, :tenant_admin))
+
+      body = %{
+        "environment" => "test",
+        "kind" => "rate_limited_429",
+        "rate_percent" => 25,
+        "channel" => "sms",
+        "ttl" => "PT30M",
+        "reason" => "game day"
+      }
+
+      assert json(request(:post, "/v1/operator/fault_injections", body: body, as: admin), 403)[
+               "code"
+             ] == "auth_insufficient_role"
+
+      operator = installation_operator("chaos-" <> TenantFixture.random())
+      engaged = replayed(operator, :post, "/v1/operator/fault_injections", body)
+      assert engaged["object"] == "fault_injection"
+      assert {engaged["status"], engaged["kind"]} == {"active", "rate_limited_429"}
+
+      again = json(request(:post, "/v1/operator/fault_injections", body: body, as: operator), 200)
+      assert again["id"] == engaged["id"]
+
+      list = json(request(:get, "/v1/operator/fault_injections", as: operator), 200)
+      assert Enum.any?(list["data"], &(&1["id"] == engaged["id"]))
+
+      clear = "/v1/operator/fault_injections/#{engaged["id"]}/clear"
+      cleared = json(request(:post, clear, body: %{"reason" => "done"}, as: operator), 200)
+      assert cleared["status"] == "cleared"
+      assert json(request(:post, clear, body: %{"reason" => "done"}, as: operator), 200)["id"] ==
+               engaged["id"]
+
+      assert [_ | _] = installation_rows("fault_injection.engaged", operator)
+      assert [_ | _] = installation_rows("fault_injection.cleared", operator)
+    end
+
+    test "OP-92: a live fault injection is refused outside chaos mode", _ctx do
+      operator = installation_operator("chaos-" <> TenantFixture.random())
+
+      body = %{
+        "environment" => "live",
+        "kind" => "provider_auth_error",
+        "rate_percent" => 100,
+        "ttl" => "PT10M",
+        "reason" => "game day"
+      }
+
+      path = "/v1/operator/fault_injections"
+      problem = json(request(:post, path, body: body, as: operator), 422)
+      assert problem["code"] == "validation_failed"
+
+      long = Map.merge(body, %{"environment" => "test", "ttl" => "PT2H"})
+      assert json(request(:post, "/v1/operator/fault_injections", body: long, as: operator), 422)
+
+      missing = "/v1/operator/fault_injections/fij_01j9zq3k4m5n6p7q8r9s0t1v2w/clear"
+
+      assert json(request(:post, missing, body: %{"reason" => "x"}, as: operator), 404)["code"] ==
+               "fault_injection_not_found"
+    end
+  end
 end

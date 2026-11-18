@@ -577,3 +577,22 @@ tests:
       - eval_time: 75m
         alertname: RelayAccessAccountUnresolved
         exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_fault_injection_active{target_environment="live",chaos_mode="false"}'
+        values: "0 0 1 1 1"
+      - series: 'relay_fault_injection_active{target_environment="test",chaos_mode="false"}'
+        values: "2 2 2 2 2"
+      - series: 'relay_fault_injection_active{target_environment="live",chaos_mode="true"}'
+        values: "3 3 3 3 3"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: RelayFaultInjectionOutsideChaos
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: RelayFaultInjectionOutsideChaos
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-92, target_environment: live}
+            exp_annotations:
+              summary: "A fault injection for the live environment is in force on a node that is not in chaos mode"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayfaultinjectionoutsidechaos

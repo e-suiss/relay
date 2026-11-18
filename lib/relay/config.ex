@@ -37,6 +37,7 @@ defmodule Relay.Config do
     Relay.NetworkGuard,
     Relay.Config.SecretFiles,
     Relay.Tenancy.KillSwitch.Cache,
+    Relay.FaultInjection,
     Relay.Policy.Lattice,
     Relay.Policy.Live,
     RelayWeb.Metrics,
@@ -80,7 +81,8 @@ defmodule Relay.Config do
     "RELAY_TRUSTED_PROXIES",
     "RELAY_PREVIEW_HOST",
     "RELAY_CONNECTORS_FILE",
-    "RELAY_EMAIL_RETURN_PATH_TARGET"
+    "RELAY_EMAIL_RETURN_PATH_TARGET",
+    "RELAY_CHAOS_MODE"
   ]
   @audit_keys [:log_host, :checkpoint_key, :publishers]
   @production Mix.env() == :prod

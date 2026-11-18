@@ -1,0 +1,92 @@
+name: region-acceptance
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Base URL of the region, such as https://tr.relay.suiss.app
+        required: true
+        type: string
+      workflow:
+        description: Workflow key the drills send and stop (test environment)
+        required: false
+        default: welcome
+        type: string
+      recipient:
+        description: Recipient external id the drills send to
+        required: false
+        default: dev-sample-recipient
+        type: string
+  workflow_call:
+  pull_request:
+    paths:
+      - ".github/workflows/region-acceptance.yml"
+      - ".github/actions/dev-plane/**"
+      - "lib_dev/relay_dev/acceptance.ex"
+      - "lib_dev/mix/tasks/relay.acceptance.ex"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: region-acceptance-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  region:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      MIX_ENV: dev
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - run: mix deps.get --check-locked
+      - name: acceptance
+        env:
+          ACCEPTANCE_BASE_URL: ${{ inputs.base_url }}
+          ACCEPTANCE_WORKFLOW: ${{ inputs.workflow }}
+          ACCEPTANCE_RECIPIENT: ${{ inputs.recipient }}
+          ACCEPTANCE_TOKEN: ${{ secrets.ACCEPTANCE_TOKEN }}
+          ACCEPTANCE_DPOP_SEED: ${{ secrets.ACCEPTANCE_DPOP_SEED }}
+          ACCEPTANCE_OTHER_TOKEN: ${{ secrets.ACCEPTANCE_OTHER_TOKEN }}
+          ACCEPTANCE_OTHER_DPOP_SEED: ${{ secrets.ACCEPTANCE_OTHER_DPOP_SEED }}
+          ACCEPTANCE_FAILOVER_COMMAND: ${{ secrets.ACCEPTANCE_FAILOVER_COMMAND }}
+          ACCEPTANCE_RESTORE_COMMAND: ${{ secrets.ACCEPTANCE_RESTORE_COMMAND }}
+        run: mix relay.acceptance --report acceptance-report.json
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: region-acceptance-${{ github.run_id }}
+          path: acceptance-report.json
+          if-no-files-found: ignore
+
+  compose:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      MIX_ENV: dev
+      SOFTHSM2_CONF: ${{ github.workspace }}/deploy/softhsm/softhsm2.conf
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/dev-plane
+        with:
+          chaos: "true"
+      - name: acceptance
+        env:
+          TOXIPROXY_URL: http://localhost:8474
+          ACCEPTANCE_FAILOVER_COMMAND: docker compose -f deploy/compose.yaml restart postgres
+        run: mix relay.acceptance --dev --report acceptance-report.json
+      - if: failure()
+        run: tail -n 300 "$RUNNER_TEMP/relay.log"
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: compose-acceptance-${{ github.run_id }}
+          path: acceptance-report.json
+          if-no-files-found: ignore

@@ -1235,6 +1235,15 @@ defmodule RelayWeb.Router do
     post "/kill_switches/:kill_switch_id/release", PlatformController, :release,
       private: %{relay_operation: "releasePlatformKillSwitch"}
 
+    get "/fault_injections", FaultInjectionController, :index,
+      private: %{relay_operation: "listFaultInjections"}
+
+    post "/fault_injections", FaultInjectionController, :create,
+      private: %{relay_operation: "engageFaultInjection"}
+
+    post "/fault_injections/:fault_injection_id/clear", FaultInjectionController, :clear,
+      private: %{relay_operation: "clearFaultInjection"}
+
     get "/tenants", PlatformController, :tenants, private: %{relay_operation: "listTenants"}
 
     get "/tenants/:tenant_id", PlatformController, :tenant,

@@ -74,6 +74,8 @@ if config_env() == :prod do
   config :relay, Relay.Channels.Email,
     return_path_target: System.get_env("RELAY_EMAIL_RETURN_PATH_TARGET")
 
+  config :relay, Relay.FaultInjection, chaos_mode: Relay.Config.Env.flag!("RELAY_CHAOS_MODE")
+
   config :relay, Relay.Config.SecretFiles,
     repo: Relay.Config.Env.fetch!("DATABASE_PASSWORD_FILE"),
     maint_repo: Relay.Config.Env.fetch!("MAINT_DATABASE_PASSWORD_FILE"),

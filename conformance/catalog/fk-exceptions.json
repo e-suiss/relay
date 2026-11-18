@@ -147,5 +147,15 @@
     "reason": "the suspension is recorded in the live environment and applies to the subtenant in both environments",
     "instead": "relay_fn.tenant_suspension_record checks the live subtenant; nightly reference check",
     "nightly_check": "suspension_subtenant_missing"
+  },
+  {
+    "table": "fault_injections",
+    "columns": [
+      "scope_tenant_id"
+    ],
+    "target": "tenants",
+    "basis": "structural",
+    "reason": "the record lives in the installation scope and names a tenant of another scope, which a composite foreign key cannot reach",
+    "instead": "the record only narrows which tenant a fault applies to; a tenant that does not exist is never matched and the record expires within one hour"
   }
 ]

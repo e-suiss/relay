@@ -317,7 +317,16 @@ function generateFamily(key: string, relative: string): SidebarGroup {
   };
 }
 
-function messageSection(name: string, raw: unknown, file: string): string {
+const eventIds = new Set<string>();
+
+function uniqueId(base: string): string {
+  let id = base;
+  for (let n = 2; eventIds.has(id); n++) id = `${base}-${n}`;
+  eventIds.add(id);
+  return id;
+}
+
+function messageSection(channel: string, name: string, raw: unknown, file: string): string {
   const { value: message, file: where } = deref(raw, file);
   const eventName = str(message["name"]) || name;
   const version = message["x-relay-schema-version"];
@@ -331,7 +340,7 @@ function messageSection(name: string, raw: unknown, file: string): string {
   }
   const table = isObj(data) ? fieldTable("Data fields", data["node"], str(data["file"])) : "";
   const meta = typeof version === "number" ? `<p>Data schema version ${version}.</p>` : "";
-  return `### ${heading(eventName)} {#${slug(`event-${name}`)}}\n\n${html(`<p>${prose(message["summary"] ?? message["description"])}</p>${meta}${table}`)}\n`;
+  return `### ${heading(eventName)} {#${uniqueId(slug(`${channel}-${name}`))}}\n\n${html(`<p>${prose(message["summary"] ?? message["description"])}</p>${meta}${table}`)}\n`;
 }
 
 function profile(channel: Obj): string {
@@ -365,7 +374,7 @@ function generateEvents(): void {
       const channel = raw as Obj;
       const messages = isObj(channel["messages"]) ? channel["messages"] : {};
       const list = Object.entries(messages).map(([name, message]) =>
-        messageSection(name, message, file),
+        messageSection(key, name, message, file),
       );
       return `## ${heading(str(channel["title"]) || key)} {#${slug(key)}}\n\n${html(`<p>${prose(channel["description"])}</p>${profile(channel)}`)}\n\n${list.join("\n")}`;
     });

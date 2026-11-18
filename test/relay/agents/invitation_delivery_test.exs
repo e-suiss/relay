@@ -244,6 +244,8 @@ defmodule Relay.Agents.InvitationDeliveryTest do
       assert :ok = deliver!(ctx, copy(ctx, waitpoint, "in_app"))
       assert [item] = items(ctx)
       assert item["title"] == "Decision request"
+      assert %{"kind" => "response", "status" => "awaiting"} = item["waitpoint"]
+      assert item["waitpoint"]["subject_digest"] =~ ~r/\Asha256:[0-9a-f]{64}\z/
       assert {:ok, :settled} = Live.settle(ctx.scope, invitation)
       assert [%{"state" => "delivered"}] = invitations(ctx, waitpoint)
       assert {:ok, :done} = Live.settle(ctx.scope, invitation)

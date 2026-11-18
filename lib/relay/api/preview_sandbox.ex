@@ -67,6 +67,7 @@ defmodule Relay.Api.PreviewSandbox do
   defp parse(token) do
     with {:ok, <<tenant::binary-size(16), env, secret::binary-size(@secret_bytes)>>} <-
            Base.url_decode64(token, padding: false),
+         true <- Relay.Id.valid?(tenant),
          {:ok, environment} <- environment(env),
          {:ok, scope} <- Relay.Scope.new(tenant, environment) do
       {:ok, scope, secret}

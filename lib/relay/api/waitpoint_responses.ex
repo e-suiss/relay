@@ -24,7 +24,7 @@ defmodule Relay.Api.WaitpointResponses do
   @doc "Collects the response of the token subscriber to a waitpoint in its session; called outside any transaction."
   @spec respond(Scope.t(), Relay.Id.t(), Relay.Id.t(), map()) :: answer()
   def respond(%Scope{} = scope, subscriber_id, waitpoint_id, body) do
-    "sha256:" <> hex = body["subject_digest"]
+    hex = String.replace_prefix(body["subject_digest"], "sha256:", "")
 
     attrs = %{
       responder_recipient_id: subscriber_id,

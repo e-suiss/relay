@@ -229,6 +229,9 @@ defmodule RelayWeb.Api.PreviewsTest do
 
       unknown = get(build_conn(), "https://preview.relay.test/sandbox/" <> String.reverse(token))
       assert unknown.status == 404
+
+      forged = Base.url_encode64(<<0::128, 0>> <> :crypto.strong_rand_bytes(32), padding: false)
+      assert get(build_conn(), "https://preview.relay.test/sandbox/" <> forged).status == 404
     end
 
     test "TP-24: a template that allows the raw filter keeps its HTML out of the JSON answer",

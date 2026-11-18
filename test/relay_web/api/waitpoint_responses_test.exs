@@ -140,6 +140,22 @@ defmodule RelayWeb.Api.WaitpointResponsesTest do
     )
   end
 
+  describe "AG-25 AG-35 the subject digest of an inbox waitpoint" do
+    test "AG-25: the digest is accepted with or without its sha256: prefix", ctx do
+      assert {:ok, {200, [], prefixed}} = session(ctx, question(ctx), @accept, nil, @digest)
+      assert prefixed["status"] == "responded"
+
+      assert {:ok, {200, [], bare}} = session(ctx, question(ctx), @accept, nil, @hex)
+      assert bare["status"] == "responded"
+
+      assert :ok =
+               Relay.Api.Schema.validate_request("respondToMyWaitpoint", "application/json", %{
+                 "response" => @accept,
+                 "subject_digest" => @hex
+               })
+    end
+  end
+
   describe "AG-25 AG-26 E-49 a response in a subscriber session" do
     test "AG-25: the response is collected with its record and the waiter reads the value", ctx do
       id = question(ctx)

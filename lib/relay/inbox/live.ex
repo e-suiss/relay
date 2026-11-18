@@ -315,7 +315,7 @@ defmodule Relay.Inbox.Live do
   defp waitpoint_status("resolved"), do: "responded"
   defp waitpoint_status(_closed), do: "not_awaited"
 
-  defp digest(<<_::256>> = digest), do: Base.encode16(digest, case: :lower)
+  defp digest(<<_::256>> = digest), do: "sha256:" <> Base.encode16(digest, case: :lower)
   defp digest(_none), do: nil
 
   defp options(actions) when is_list(actions) do

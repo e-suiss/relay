@@ -72,14 +72,8 @@ defmodule Relay.Migration do
   def create_difference(%Scope{} = scope, attrs, %Actor{} = actor) do
     digest = digest(scope, "shadow_difference.created", attrs.id)
 
-    with :ok <- expiry(attrs.expires_at) do
-      written(scope, attrs.id, fn ->
-        case Store.difference_create(attrs, digest, actor) do
-          :invalid_expiry -> {:error, :invalid_expiry}
-          _created_or_exists -> :ok
-        end
-      end)
-    end
+    write = fn -> created(Store.difference_create(attrs, digest, actor)) end
+    with :ok <- expiry(attrs.expires_at), do: written(scope, attrs.id, write)
   end
 
   # OP-79
@@ -89,14 +83,8 @@ defmodule Relay.Migration do
   def renew_difference(%Scope{} = scope, id, expires_at, reason, %Actor{} = actor) do
     digest = digest(scope, "shadow_difference.renewed", id)
 
-    with :ok <- expiry(expires_at) do
-      written(scope, id, fn ->
-        case Store.difference_renew(id, expires_at, reason, digest, actor) do
-          :renewed -> :ok
-          refused -> {:error, refused}
-        end
-      end)
-    end
+    write = fn -> renewed(Store.difference_renew(id, expires_at, reason, digest, actor)) end
+    with :ok <- expiry(expires_at), do: written(scope, id, write)
   end
 
   # OP-95
@@ -159,6 +147,12 @@ defmodule Relay.Migration do
     digest = digest(scope, "webhook_endpoint.updated", endpoint_id)
     Store.webhook_shadow_set(endpoint_id, shadow, digest, actor)
   end
+
+  defp created(:invalid_expiry), do: {:error, :invalid_expiry}
+  defp created(_created_or_exists), do: :ok
+
+  defp renewed(:renewed), do: :ok
+  defp renewed(refused), do: {:error, refused}
 
   defp written(scope, id, write) do
     work = fn _status ->

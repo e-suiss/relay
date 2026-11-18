@@ -72,10 +72,7 @@ defmodule Relay.Migration.Rollout do
           steps: steps
         }
 
-        case Store.rollout_put(config, expected, digest, actor) do
-          {:updated, _generation} -> {:ok, Store.rollout()}
-          {:version_conflict, _generation} -> {:error, :version_conflict}
-        end
+        put(config, expected, digest, actor)
       end
     end
 
@@ -135,6 +132,13 @@ defmodule Relay.Migration.Rollout do
       enabled_categories: MapSet.new(row["enabled_categories"] || []),
       basis_points: row["basis_points"] || %{}
     }
+  end
+
+  defp put(config, expected, digest, actor) do
+    case Store.rollout_put(config, expected, digest, actor) do
+      {:updated, _generation} -> {:ok, Store.rollout()}
+      {:version_conflict, _generation} -> {:error, :version_conflict}
+    end
   end
 
   defp ramp(steps, shares) do

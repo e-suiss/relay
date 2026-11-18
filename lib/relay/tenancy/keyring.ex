@@ -103,12 +103,15 @@ defmodule Relay.Tenancy.Keyring do
     with {:ok, class} <- Relay.RetentionClass.cast(class) do
       class = Relay.RetentionClass.dump(class)
 
-      cached(scope, {:wrapped, subject, class}, fn generation ->
-        with {:ok, record} <- read(scope, fn -> Store.tenant_key(wrapping_key_id) end),
-             {:ok, wrapping_key} <- tenant_key(scope, record, "dek_wrap", generation),
-             do: unwrap_dek(scope, wrapped, subject, class, wrapping_key_id, wrapping_key)
-      end)
+      open = &open_wrapped(scope, {subject, class}, wrapped, wrapping_key_id, &1)
+      cached(scope, {:wrapped, subject, class}, open)
     end
+  end
+
+  defp open_wrapped(scope, {subject, class}, wrapped, wrapping_key_id, generation) do
+    with {:ok, record} <- read(scope, fn -> Store.tenant_key(wrapping_key_id) end),
+         {:ok, wrapping_key} <- tenant_key(scope, record, "dek_wrap", generation),
+         do: unwrap_dek(scope, wrapped, subject, class, wrapping_key_id, wrapping_key)
   end
 
   defp macs([], _message, acc), do: {:ok, Enum.reverse(acc)}

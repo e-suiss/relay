@@ -71,7 +71,7 @@ defmodule Relay.Migration.Ramp do
   defp entry(bp, now) do
     %{
       "basis_points" => bp,
-      "changed_at" => DateTime.to_iso8601(DateTime.truncate(now, :second))
+      "changed_at" => DateTime.to_iso8601(%{now | microsecond: {0, 0}})
     }
   end
 

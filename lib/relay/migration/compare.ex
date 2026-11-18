@@ -177,7 +177,7 @@ defmodule Relay.Migration.Compare do
   defp timing("throttle." <> _rest), do: "throttle"
   defp timing(_rule), do: "none"
 
-  defp schedule(%DateTime{} = at), do: at |> DateTime.truncate(:second) |> DateTime.to_iso8601()
+  defp schedule(%DateTime{} = at), do: DateTime.to_iso8601(%{at | microsecond: {0, 0}})
 
   defp schedule(text) when is_binary(text) do
     case DateTime.from_iso8601(text) do

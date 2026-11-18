@@ -25,6 +25,8 @@ config :relay, Relay.QueueRepo,
 
 config :relay, RelayWeb.Metrics, server: false
 
+config :relay, Relay.Api.PreviewSandbox, host: "preview.relay.test"
+
 config :relay, Relay.ReportRepo, enabled: false
 
 config :relay, Oban, testing: :manual

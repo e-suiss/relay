@@ -4,6 +4,8 @@ image:
 
 host: relay.example.com
 
+previewHost: ""
+
 trustedProxies: []
 
 database:

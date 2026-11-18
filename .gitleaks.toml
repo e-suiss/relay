@@ -30,6 +30,16 @@ description = "Published Suiss webhook profile and Standard Webhooks signature t
 paths = ['''^conformance/webhooks/vectors/''']
 
 [[allowlists]]
+description = "Synthetic device token fingerprint of the mobile SDK test fixtures"
+condition = "AND"
+paths = ['''^sdks/(swift/Tests|kotlin/relay/src/test)/''']
+regexes = ['''^0123456789abcdef$''']
+
+[[allowlists]]
+description = "Published dependency checksums of the Android SDK's Gradle verification metadata"
+paths = ['''^sdks/kotlin/gradle/verification-metadata\.xml$''']
+
+[[allowlists]]
 description = "Synthetic caller Idempotency-Key of the SDK conformance vectors in the Python SDK tests"
 condition = "AND"
 paths = ['''^sdks/python/tests/''']

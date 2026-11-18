@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
 here="$(cd "$(dirname "$0")" && pwd)"
 venv="$(mktemp -d)"

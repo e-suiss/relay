@@ -17,7 +17,7 @@ defmodule Relay.Tenancy.KeyCustody do
   @probe_aad "relay-key-custody-probe-v1"
   @version 1
 
-  @type reference :: %{token: String.t(), label: Relay.Keys.label()}
+  @type key_reference :: %{token: String.t(), label: Relay.Keys.label()}
   @type outcome :: %{
           key_ref: String.t(),
           result: :changed | :unchanged,
@@ -27,7 +27,7 @@ defmodule Relay.Tenancy.KeyCustody do
   # OP-85
   # TN-63
   @doc "Checks a tenant key reference against the token the key store opens (`token`, `nil` when none is configured on this node): both the token and the object are named, the token is the region's own and the object is none of the installation's configured keys."
-  @spec check(String.t(), String.t() | nil) :: {:ok, reference()} | {:error, Error.t()}
+  @spec check(String.t(), String.t() | nil) :: {:ok, key_reference()} | {:error, Error.t()}
   def check(key_ref, token) when is_binary(key_ref) do
     with {:ok, ref} <- Relay.Keys.reference(key_ref),
          :ok <- same_token(ref.token, token),

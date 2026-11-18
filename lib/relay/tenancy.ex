@@ -158,7 +158,7 @@ defmodule Relay.Tenancy do
   # TN-63
   @doc "Checks a tenant key reference; see `Relay.Tenancy.KeyCustody.check/2`."
   @spec check_key_ref(String.t(), String.t() | nil) ::
-          {:ok, KeyCustody.reference()} | {:error, Relay.Error.t()}
+          {:ok, KeyCustody.key_reference()} | {:error, Relay.Error.t()}
   defdelegate check_key_ref(key_ref, token), to: KeyCustody, as: :check
 
   @doc "Reads the tenant of a scope."

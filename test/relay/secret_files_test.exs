@@ -15,6 +15,8 @@ defmodule Relay.SecretFilesTest do
     "QUEUE_DATABASE_PASSWORD_FILE" => "plain-queue-marker",
     "REPORT_DATABASE_PASSWORD_FILE" => "plain-report-marker",
     "AUDIT_S3_SECRET_ACCESS_KEY_FILE" => "plain-store-marker",
+    "ARCHIVE_DATABASE_PASSWORD_FILE" => "plain-archive-marker",
+    "ARCHIVE_S3_SECRET_ACCESS_KEY_FILE" => "plain-archive-store-marker",
     "SECRET_KEY_BASE_FILE" => "plain-key-base-marker-" <> String.duplicate("k", 64)
   }
 
@@ -39,6 +41,11 @@ defmodule Relay.SecretFilesTest do
     "AUDIT_S3_BUCKET" => "relay-audit",
     "AUDIT_S3_REGION" => "eu-central-1",
     "AUDIT_S3_ACCESS_KEY_ID" => "relay",
+    "ARCHIVE_DATABASE_URL" => "ecto://relay_archive@db.internal:5432/relay",
+    "ARCHIVE_S3_ENDPOINT" => "https://s3.example.com",
+    "ARCHIVE_S3_BUCKET" => "relay-archive",
+    "ARCHIVE_S3_REGION" => "eu-central-1",
+    "ARCHIVE_S3_ACCESS_KEY_ID" => "relay",
     "VALKEY_URL" => "redis://valkey.internal:6379",
     "PORT" => "4000",
     "METRICS_PORT" => "9568",
@@ -97,13 +104,23 @@ defmodule Relay.SecretFilesTest do
 
       refute shows_secret?(env)
 
-      for repo <- [Relay.Repo, Relay.QueueRepo, Relay.ReportRepo, Relay.Platform.MaintRepo] do
+      for repo <- [
+            Relay.Repo,
+            Relay.QueueRepo,
+            Relay.ReportRepo,
+            Relay.Platform.MaintRepo,
+            Relay.Platform.ArchiveRepo
+          ] do
         refute Keyword.has_key?(env[repo], :password), inspect(repo)
         assert {SecretFiles, :configure, [_name]} = env[repo][:configure]
       end
 
       assert [{"worm_store", _, opts}] = env[Relay.Audit][:publishers]
       assert opts[:secret_access_key] == {SecretFiles, :fetch!, [:audit_s3]}
+
+      assert env[Relay.Platform.Maintenance.ArchiveTask][:store][:secret_access_key] ==
+               {SecretFiles, :fetch!, [:archive_s3]}
+
       refute Keyword.has_key?(env[RelayWeb.Endpoint], :secret_key_base)
 
       assert Enum.sort(Keyword.keys(env[SecretFiles])) == Enum.sort(SecretFiles.names())

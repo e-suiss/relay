@@ -6796,7 +6796,7 @@
     "section": "§14",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 15
   },
   {
     "acceptance": "pending",
@@ -9820,7 +9820,7 @@
     "section": "§19",
     "status": "frozen_technical",
     "title": "",
-    "verify_stage": null
+    "verify_stage": 15
   },
   {
     "acceptance": "pending",
@@ -10507,6 +10507,14 @@
     "id": "OP-80",
     "section": "§20",
     "status": "policy_default",
+    "title": "",
+    "verify_stage": 15
+  },
+  {
+    "acceptance": "pending",
+    "id": "OP-84",
+    "section": "§20",
+    "status": "frozen_technical",
     "title": "",
     "verify_stage": 15
   },

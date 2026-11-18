@@ -5,7 +5,10 @@ defmodule Relay.Platform.Leadership do
   A task implements this behaviour: `run/1` receives the task name, the fencing token and the saved state, does one step and returns the state to save and the delay before its next step.
   """
 
-  use Boundary, top_level?: true, deps: [Relay, Relay.Platform.MaintRepo], exports: []
+  use Boundary,
+    top_level?: true,
+    deps: [Relay, Relay.Platform.MaintRepo, Relay.Platform.ArchiveRepo],
+    exports: []
 
   alias Relay.Platform.Leadership.Runner
 
@@ -60,7 +63,7 @@ defmodule Relay.Platform.Leadership do
   # T-12
   # T-3
   @doc """
-  Supervised children for the roles of this node: the maintenance repository and one runner per configured task, only on `worker` nodes and only when `config :relay, Relay.Platform.Leadership, enabled: true`.
+  Supervised children for the roles of this node: the maintenance and archive repositories and one runner per configured task, only on `worker` nodes and only when `config :relay, Relay.Platform.Leadership, enabled: true`.
   """
   @spec children([Relay.Role.t()]) :: [Supervisor.child_spec()]
   def children(roles) when is_list(roles) do
@@ -77,7 +80,11 @@ defmodule Relay.Platform.Leadership do
           )
         end
 
-      [Supervisor.child_spec(Relay.Platform.MaintRepo, []) | runners]
+      [
+        Supervisor.child_spec(Relay.Platform.MaintRepo, []),
+        Supervisor.child_spec(Relay.Platform.ArchiveRepo, [])
+        | runners
+      ]
     else
       []
     end

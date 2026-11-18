@@ -5,11 +5,13 @@ import type { MessageKey } from '../i18n';
 import type { CategoryDefinition } from '../push/channels';
 import type {
   Channel,
+  Consent,
   DevicePermission,
   MyPreferencesPatch,
   PreferenceCell,
   SubscriberPreferences,
 } from '../types';
+import { ConsentSummary } from './ConsentSummary';
 import { useRelay, type RelayUi } from './context';
 
 export type CellDisplay = 'on' | 'off' | 'locked' | 'admin_disabled' | 'os_disabled';
@@ -80,6 +82,14 @@ export interface PreferenceCenterProps {
   readonly categories?: readonly CategoryDefinition[];
   readonly channels?: readonly Channel[];
   readonly permission?: DevicePermission | null;
+  /** Shows the read-only consents next to the preferences; on by default. */
+  readonly showConsents?: boolean;
+  /** Where the subscriber changes consents in Access; no link is shown without it. */
+  readonly consentManageUrl?: string | null;
+  /** The display name of a consent's brand (a subtenant id, `null` for the tenant itself). */
+  readonly brandName?: (brand: string | null) => string | null;
+  /** Opens the Access link; the system opens it by default. */
+  readonly onOpenUrl?: (url: string) => void;
   readonly testID?: string;
 }
 
@@ -119,13 +129,18 @@ function Choice(props: {
 // X-32
 // X-20
 // X-51
+// X-44
 // PC-17
 // PC-18
-/** The preference center: category by channel switches, locked categories with their reason, push cells off in device settings, and the three-option step when a switch is turned off. It writes preferences only; consents and the profile of the subscriber are never written. */
+/** The preference center: category by channel switches, locked categories with their reason, push cells off in device settings, the three-option step when a switch is turned off, and the subscriber's consents read-only with a link to Access. It writes preferences only; consents and the profile of the subscriber are never written. */
 export function PreferenceCenter({
   categories,
   channels,
   permission = null,
+  showConsents = true,
+  consentManageUrl = null,
+  brandName,
+  onOpenUrl,
   testID,
 }: PreferenceCenterProps) {
   const ui = useRelay();
@@ -133,6 +148,23 @@ export function PreferenceCenter({
   const [preferences, setPreferences] = useState<SubscriberPreferences | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<PreferenceCell | null>(null);
+  const [consents, setConsents] = useState<readonly Consent[] | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!showConsents) return undefined;
+    let live = true;
+    client.consents
+      .all()
+      .then((loaded) => {
+        if (live) setConsents(loaded);
+      })
+      .catch(() => {
+        if (live) setConsents(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, [client, showConsents]);
 
   useEffect(() => {
     let live = true;
@@ -295,6 +327,16 @@ export function PreferenceCenter({
           </View>
         );
       })}
+      {showConsents &&
+      consents !== undefined &&
+      (consentManageUrl !== null || (consents?.length ?? 0) > 0) ? (
+        <ConsentSummary
+          consents={consents}
+          manageUrl={consentManageUrl}
+          brandName={brandName}
+          onOpenUrl={onOpenUrl}
+        />
+      ) : null}
       <Modal
         visible={step !== null}
         transparent

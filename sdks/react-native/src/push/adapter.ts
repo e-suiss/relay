@@ -2,11 +2,13 @@ import type { AndroidChannel, DevicePermission } from '../types';
 import type { AndroidChannelSpec } from './channels';
 import type { PushPlatform } from './payload';
 
-/** Interruption permissions the platform grants beyond the notification permission. */
+export type InterruptionCapability = 'granted' | 'denied' | 'not_determined' | 'unsupported';
+
+/** Interruption permissions the platform grants beyond the notification permission; `unsupported` is never reported. */
 export interface InterruptionCapabilities {
-  readonly dndAccess: 'granted' | 'denied' | 'unsupported';
-  readonly criticalAlerts: 'granted' | 'denied' | 'unsupported';
-  readonly timeSensitive: 'granted' | 'denied' | 'unsupported';
+  readonly dndAccess: InterruptionCapability;
+  readonly criticalAlerts: InterruptionCapability;
+  readonly timeSensitive: InterruptionCapability;
 }
 
 /** A notification the SDK asks the platform to show. */
@@ -42,14 +44,14 @@ export interface PushAdapter {
   removeDisplayedNotifications?(platformIds: readonly string[]): Promise<void>;
 }
 
-/** Fetches the content of a content-free push from the app's own backend or a future Relay endpoint; `null` means it could not be fetched. */
+/** Fetches the content of a content-free push by its delivery id; `null` means it could not be fetched. The default fetches it from Relay. */
 export interface PushContentSource {
   fetch(deliveryId: string): Promise<PushContent | null>;
 }
 
 export interface PushContent {
-  readonly title: string;
-  readonly body: string;
+  readonly title?: string | null;
+  readonly body?: string | null;
   readonly url?: string | null;
   readonly notificationId?: string | null;
 }

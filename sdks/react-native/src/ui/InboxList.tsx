@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { inTab, type InboxTab } from '../inbox/store';
+import { isAgentItem } from '../inbox/view';
 import type { InboxIntentOp, InboxItem } from '../types';
 import { useInbox, useRelay, type RelayUi } from './context';
+import { WaitpointPanel } from './WaitpointPanel';
 
 export const UNDO_WINDOW_MS = 5_000;
 
@@ -10,6 +12,10 @@ export interface InboxListProps {
   readonly tab?: InboxTab;
   readonly onOpenItem?: (item: InboxItem) => void;
   readonly undoWindowMs?: number;
+  /** The recipient id of the signed-in subscriber, to tell its own waitpoint response from another recipient's. */
+  readonly subscriberRecipientId?: string;
+  /** Opens an approval link; the system opens it by default. */
+  readonly onOpenUrl?: (url: string) => void;
   readonly testID?: string;
 }
 
@@ -52,8 +58,17 @@ function Action(props: {
 // X-32
 // IN-12
 // IN-15
-/** The inbox list: read, unread, archive and hide, with a short undo buffer before archive and hide reach Relay. Unread is shown by a dot and a text label, never by colour alone. */
-export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: InboxListProps) {
+// C-24
+// AG-35
+/** The inbox list: read, unread, archive and hide, with a short undo buffer before archive and hide reach Relay. Unread is shown by a dot and a text label, never by colour alone. An item an AI agent sent carries the agent label, and an item with a decision request shows its waitpoint or approval state. */
+export function InboxList({
+  tab = 'inbox',
+  onOpenItem,
+  undoWindowMs,
+  subscriberRecipientId,
+  onOpenUrl,
+  testID,
+}: InboxListProps) {
   const ui = useRelay();
   const { client, theme, t } = ui;
   const snapshot = useInbox();
@@ -176,6 +191,7 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
         renderItem={({ item }) => {
           const state = item.read ? t('inbox.read') : t('inbox.unread');
           const title = item.title ?? '';
+          const agent = isAgentItem(item);
           return (
             <View
               testID={`relay-inbox-item-${item.id}`}
@@ -192,7 +208,7 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
                   onOpenItem?.(item);
                 }}
                 accessibilityRole="button"
-                accessibilityLabel={t('inbox.item', { title, state })}
+                accessibilityLabel={t(agent ? 'inbox.itemAgent' : 'inbox.item', { title, state })}
                 style={{ minHeight: theme.minTouchTarget }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -221,6 +237,18 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
                     {state}
                   </Text>
                 </View>
+                {agent ? (
+                  <Text
+                    testID={`relay-inbox-agent-${item.id}`}
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: theme.fontSize - 4,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {t('inbox.senderAgent')}
+                  </Text>
+                ) : null}
                 {item.body ? (
                   <Text
                     style={{ color: theme.colors.textMuted, fontSize: theme.fontSize - 2 }}
@@ -230,6 +258,11 @@ export function InboxList({ tab = 'inbox', onOpenItem, undoWindowMs, testID }: I
                   </Text>
                 ) : null}
               </Pressable>
+              <WaitpointPanel
+                item={item}
+                subscriberRecipientId={subscriberRecipientId}
+                onOpenUrl={onOpenUrl}
+              />
               <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 <Action
                   ui={ui}

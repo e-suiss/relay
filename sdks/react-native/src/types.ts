@@ -41,3 +41,20 @@ export type InboxReadAllResult = Schemas['InboxReadAllResult'];
 export type InboxReconciliation = Schemas['InboxReconciliation'];
 export type RealtimeEnvelope = Schemas['RealtimeEnvelope'];
 export type RealtimePoll = Schemas['RealtimePoll'];
+
+export type DeviceInterruptionPermissions = Schemas['DeviceInterruptionPermissions'];
+export type DeviceInterruptionPermission = Schemas['DeviceInterruptionPermission'];
+
+export type Consent = Schemas['Consent'];
+export type ConsentList = Schemas['ConsentList'];
+export type ConsentStatus = Schemas['ConsentStatus'];
+
+export type PushContentResponse = Schemas['PushContent'];
+
+export type InboxSenderType = NonNullable<InboxItem['sender_type']>;
+export type InboxWaitpoint = Schemas['InboxWaitpoint'];
+export type InboxWaitpointStatus = InboxWaitpoint['status'];
+export type InboxWaitpointOption = InboxWaitpoint['options'][number];
+export type InboxWaitpointResponder = NonNullable<InboxWaitpoint['responder']>;
+export type WaitpointResponseRequest = Schemas['WaitpointResponseRequest'];
+export type WaitpointResponseReceipt = Schemas['WaitpointResponseReceipt'];

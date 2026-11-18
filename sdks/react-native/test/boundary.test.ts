@@ -51,9 +51,27 @@ describe('X-31 mobile SDK boundary', () => {
     for (const path of paths) {
       expect(path.startsWith('/v1/subscriber/') || path.startsWith('/v1/realtime/')).toBe(true);
       expect(path).not.toMatch(
-        /consent|^\/v1\/events|notifications|\/token|waitpoints|portal|test_recipients|bulk/,
+        /^\/v1\/events|notifications|\/token|portal|test_recipients|bulk|approval|profile/,
       );
     }
+  });
+
+  it('X-44 X-31 reads consents and never writes them', () => {
+    const consent = ALLOWED_OPERATIONS.filter((operation) => /consent/.test(operation.path));
+    expect(consent).toEqual([
+      { method: 'GET', path: '/v1/subscriber/consents', idempotencyKey: false },
+    ]);
+  });
+
+  it('AG-35 AG-26 the only waitpoint operation is the response of the subscriber asked', () => {
+    const waitpoints = ALLOWED_OPERATIONS.filter((operation) => /waitpoint/.test(operation.path));
+    expect(waitpoints).toEqual([
+      {
+        method: 'POST',
+        path: '/v1/subscriber/waitpoints/{waitpoint_id}/response',
+        idempotencyKey: false,
+      },
+    ]);
   });
 
   it('X-31 the sources name no server-family endpoint and take no secret credential', () => {
@@ -83,5 +101,7 @@ describe('X-31 mobile SDK boundary', () => {
     const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(client));
     for (const name of methods) expect(name).not.toMatch(/trigger|event|send|profile|consent/i);
     expect(Object.keys(client.preferences)).not.toContain('consents');
+    const consentMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(client.consents));
+    expect(consentMethods.filter((name) => name !== 'constructor').sort()).toEqual(['all', 'list']);
   });
 });

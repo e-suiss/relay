@@ -19,6 +19,7 @@ import {
   problem,
   type Responder,
 } from './helpers';
+import { Linking } from './shims/react-native';
 
 afterEach(() => {
   cleanup();
@@ -305,5 +306,261 @@ describe('X-32 X-51 PC-17 preference center', () => {
     const { container } = renderWith(relay, <PreferenceCenter />);
     await screen.findByTestId('relay-pref-switch-order_updates-email');
     for (const height of minHeights(container)) expect(height).toBeGreaterThanOrEqual(44);
+  });
+});
+
+const DIGEST = `sha256:${'b'.repeat(64)}`;
+const WAITPOINT_ID = 'wp_01j9zq3k4m5n6p7q8r9s0t1v2w';
+
+const waitpoint = (overrides: Record<string, unknown> = {}) => ({
+  id: WAITPOINT_ID,
+  kind: 'response',
+  status: 'awaiting',
+  subject_digest: DIGEST,
+  options: [
+    { label: 'Approve the plan', value: 'yes' },
+    { label: 'Reject the plan', value: 'no' },
+  ],
+  responder: null,
+  responded_at: null,
+  approval_url: null,
+  ...overrides,
+});
+
+describe('C-24 AG-35 agent items and waitpoints in the inbox', () => {
+  it('C-24 AG-34 an agent item carries the agent label as text and in its accessible name', () => {
+    const { relay } = client(() => json(200, {}));
+    relay.inbox.reset([inboxItem({ sender_type: 'agent' })], counters(1, 1), 'c1');
+    renderWith(relay, <InboxList />);
+    expect(screen.getByText('Sent by an AI agent')).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Siparişiniz yolda, Unread, sent by an AI agent' }),
+    ).toBeTruthy();
+  });
+
+  it('C-24 a human or system item has no agent label', () => {
+    const { relay } = client(() => json(200, {}));
+    relay.inbox.reset([inboxItem({ sender_type: 'system' })], counters(1, 1), 'c1');
+    renderWith(relay, <InboxList />);
+    expect(screen.queryByTestId(`relay-inbox-agent-${ITEM_ID}`)).toBeNull();
+  });
+
+  it('AG-35 an awaiting waitpoint offers its options and a response shows who answered', async () => {
+    const { relay, requests } = client((request) =>
+      request.path.endsWith('/response')
+        ? json(200, {
+            object: 'waitpoint_response_receipt',
+            waitpoint_id: WAITPOINT_ID,
+            status: 'responded',
+            responder: { kind: 'subscriber', recipient_id: 'rcp_1' },
+            responded_at: '2026-11-18T09:00:00Z',
+          })
+        : json(200, {}),
+    );
+    relay.inbox.reset([inboxItem({ waitpoint: waitpoint() })], counters(1, 1), 'c1');
+    const { container } = renderWith(relay, <InboxList />);
+    expect(screen.getByText('Waiting for your response')).toBeTruthy();
+    for (const height of minHeights(container)) expect(height).toBeGreaterThanOrEqual(44);
+    fireEvent.click(screen.getByRole('button', { name: 'Respond: Approve the plan' }));
+    expect(await screen.findByText(/^Answered by you on /)).toBeTruthy();
+    const response = requests.find((request) => request.path.endsWith('/response'));
+    expect(response?.method).toBe('POST');
+    expect(response?.path).toBe(`/v1/subscriber/waitpoints/${WAITPOINT_ID}/response`);
+    expect(response?.body).toEqual({ response: 'yes', subject_digest: DIGEST });
+    expect(screen.queryByRole('button', { name: 'Respond: Reject the plan' })).toBeNull();
+  });
+
+  it('AG-35 a response that fails says so and offers the options again', async () => {
+    const { relay } = client((request) =>
+      request.path.endsWith('/response') ? problem(409, 'waitpoint_resolved') : json(200, {}),
+    );
+    relay.inbox.reset([inboxItem({ waitpoint: waitpoint() })], counters(1, 1), 'c1');
+    renderWith(relay, <InboxList />);
+    fireEvent.click(screen.getByRole('button', { name: 'Respond: Reject the plan' }));
+    expect(await screen.findByText('The change could not be saved.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Respond: Reject the plan' })).toBeTruthy();
+  });
+
+  it('AG-35 processing, responded by an agent and no longer awaited are shown without options', () => {
+    const { relay } = client(() => json(200, {}));
+    relay.inbox.reset(
+      [
+        inboxItem({
+          id: 'inb_01j9zq3k4m5n6p7q8r9s0t1v2a',
+          waitpoint: waitpoint({ status: 'processing' }),
+        }),
+        inboxItem({
+          id: 'inb_01j9zq3k4m5n6p7q8r9s0t1v2b',
+          waitpoint: waitpoint({
+            status: 'responded',
+            responder: { kind: 'agent', recipient_id: 'rcp_2' },
+            responded_at: '2026-11-18T08:30:00Z',
+          }),
+        }),
+        inboxItem({
+          id: 'inb_01j9zq3k4m5n6p7q8r9s0t1v2c',
+          waitpoint: waitpoint({ status: 'not_awaited' }),
+        }),
+      ],
+      counters(1, 3),
+      'c1',
+    );
+    renderWith(relay, <InboxList />);
+    expect(screen.getByText('Processing your response…')).toBeTruthy();
+    expect(screen.getByText(/^Answered by an agent on /)).toBeTruthy();
+    expect(screen.getByText('No longer expecting a response')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Respond:/ })).toBeNull();
+  });
+
+  it('AG-35 a response of another recipient is told apart when the subscriber is known', () => {
+    const { relay } = client(() => json(200, {}));
+    relay.inbox.reset(
+      [
+        inboxItem({
+          waitpoint: waitpoint({
+            status: 'responded',
+            responder: { kind: 'subscriber', recipient_id: 'rcp_other' },
+            responded_at: '2026-11-18T08:30:00Z',
+          }),
+        }),
+      ],
+      counters(1, 1),
+      'c1',
+    );
+    renderWith(relay, <InboxList subscriberRecipientId="rcp_me" />, 'tr');
+    expect(screen.getByText(/^Başka bir alıcı yanıtladı, /)).toBeTruthy();
+  });
+
+  it('IN-6 AG-32 an approval item shows only the link to the approval surface', () => {
+    const opened: string[] = [];
+    const { relay, requests } = client(() => json(200, {}));
+    relay.inbox.reset(
+      [
+        inboxItem({
+          approval: true,
+          waitpoint: waitpoint({
+            kind: 'approval',
+            approval_url: 'https://access.example.com/approvals/42',
+          }),
+        }),
+      ],
+      counters(1, 1),
+      'c1',
+    );
+    renderWith(relay, <InboxList onOpenUrl={(url) => opened.push(url)} />);
+    expect(screen.getByText('Approvals are given in your account, not here.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Respond:/ })).toBeNull();
+    fireEvent.click(screen.getByRole('link', { name: 'Review in your account' }));
+    expect(opened).toEqual(['https://access.example.com/approvals/42']);
+    expect(requests).toHaveLength(0);
+  });
+
+  it('IN-6 the approval link opens with the system by default', () => {
+    Linking.opened.length = 0;
+    const { relay } = client(() => json(200, {}));
+    relay.inbox.reset(
+      [
+        inboxItem({
+          approval: true,
+          waitpoint: waitpoint({
+            kind: 'approval',
+            options: [],
+            approval_url: 'https://access.example.com/approvals/7',
+          }),
+        }),
+      ],
+      counters(1, 1),
+      'c1',
+    );
+    renderWith(relay, <InboxList />);
+    fireEvent.click(screen.getByRole('link', { name: 'Review in your account' }));
+    expect(Linking.opened).toEqual(['https://access.example.com/approvals/7']);
+  });
+});
+
+const BRAND = 'stn_01j9zq3k4m5n6p7q8r9s0t1v2w';
+
+const consent = (overrides: Record<string, unknown> = {}) => ({
+  object: 'consent',
+  id: 'cns_01j9zq3k4m5n6p7q8r9s0t1v2w',
+  brand: null,
+  channel: 'email',
+  status: 'active',
+  consent_kind: 'explicit_opt_in',
+  recipient_type: 'individual',
+  source: 'checkout',
+  occurred_at: '2026-11-01T10:00:00Z',
+  ...overrides,
+});
+
+function withConsents(consents: unknown[] | 'fail'): Responder {
+  return (request) => {
+    if (request.path !== '/v1/subscriber/consents') return json(200, preferences);
+    if (consents === 'fail') return problem(403, 'auth_insufficient_scope');
+    return json(200, { object: 'list', data: consents, has_more: false, next_cursor: null });
+  };
+}
+
+describe('X-44 PC-59 consents in the preference center', () => {
+  it('X-44 shows the consents read-only with a link to Access and no switch', async () => {
+    const opened: string[] = [];
+    const sms = consent({
+      id: 'cns_01j9zq3k4m5n6p7q8r9s0t1v2x',
+      channel: 'sms',
+      status: 'revoked',
+      brand: BRAND,
+    });
+    const { relay, requests } = client(withConsents([consent(), sms]));
+    renderWith(
+      relay,
+      <PreferenceCenter
+        consentManageUrl="https://access.example.com/consents"
+        brandName={(brand) => (brand === BRAND ? 'Shop' : null)}
+        onOpenUrl={(url) => opened.push(url)}
+      />,
+    );
+    expect(await screen.findByText('Marketing permissions')).toBeTruthy();
+    expect(screen.getByLabelText('Email: Given')).toBeTruthy();
+    expect(screen.getByLabelText('Shop, SMS: Withdrawn')).toBeTruthy();
+    const section = screen.getByTestId('relay-consents');
+    expect(section.querySelectorAll('[role="switch"], input')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('link', { name: 'Manage permissions in your account' }));
+    expect(opened).toEqual(['https://access.example.com/consents']);
+    const consentRequests = requests.filter((request) => request.path.includes('consent'));
+    expect(consentRequests.map((request) => request.method)).toEqual(['GET']);
+  });
+
+  it('X-44 without a configured Access link no link is shown', async () => {
+    const { relay } = client(withConsents([consent()]));
+    renderWith(relay, <PreferenceCenter />);
+    expect(await screen.findByLabelText('Email: Given')).toBeTruthy();
+    expect(screen.queryByRole('link')).toBeNull();
+  });
+
+  it('X-44 no consents and no link hide the section', async () => {
+    const { relay } = client(withConsents([]));
+    renderWith(relay, <PreferenceCenter />);
+    await screen.findByTestId('relay-pref-switch-order_updates-email');
+    expect(screen.queryByTestId('relay-consents')).toBeNull();
+  });
+
+  it('X-44 consents that cannot be loaded are said to be unavailable next to the link', async () => {
+    const { relay } = client(withConsents('fail'));
+    renderWith(relay, <PreferenceCenter consentManageUrl="https://access.example.com/c" />);
+    expect(await screen.findByText('Permission details are not shown here.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Manage permissions in your account' })).toBeTruthy();
+  });
+
+  it('X-44 the consents speak Turkish and can be left out', async () => {
+    const { relay, requests } = client(withConsents([consent({ status: 'pending_iys' })]));
+    const { unmount } = renderWith(relay, <PreferenceCenter />, 'tr');
+    expect(await screen.findByLabelText('E-posta: İYS bekleniyor')).toBeTruthy();
+    expect(screen.getByText('Pazarlama izinleri')).toBeTruthy();
+    unmount();
+    requests.length = 0;
+    renderWith(relay, <PreferenceCenter showConsents={false} />);
+    await screen.findByTestId('relay-pref-switch-order_updates-email');
+    expect(requests.some((request) => request.path === '/v1/subscriber/consents')).toBe(false);
+    expect(screen.queryByTestId('relay-consents')).toBeNull();
   });
 });

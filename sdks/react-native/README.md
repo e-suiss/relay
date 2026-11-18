@@ -69,7 +69,7 @@ Implement `PushAdapter` on top of your push library:
 | `getInterruptionCapabilities`                                                      | Do Not Disturb access, Critical Alerts and time-sensitive permission              |
 | `displayNotification`, `getDisplayedNotifications`, `removeDisplayedNotifications` | show and remove notifications                                                     |
 
-The SDK registers the token, the permission and the channel importances on every start and whenever they change, and sends the previous token when the platform rotates it. `relay.devices.requestPermission()` asks for provisional authorisation on iOS only when every category the app starts with is `marketing` or `social`.
+The SDK registers the token, the permission, the interruption permissions and the channel importances on every start and whenever they change, and sends the previous token when the platform rotates it. Interruption permissions are `granted`, `denied` or `not_determined`: iOS reports Critical Alerts and time-sensitive, Android reports Do Not Disturb access. A permission the adapter reports as `unsupported`, or cannot read, is left out, and Relay keeps the level it has. `relay.devices.requestPermission()` asks for provisional authorisation on iOS only when every category the app starts with is `marketing` or `social`.
 
 ### Android channels
 
@@ -85,7 +85,7 @@ notifee.onForegroundEvent(({ detail }) => relay.push?.opened(detail.notification
 
 `received` understands every Relay payload:
 
-- **Content-free notifications** carry only an opaque id. The SDK asks your `contentSource` for the content over TLS and shows a generic text (`Yeni bildirim` / `New notification`) when it cannot be fetched; content never goes back into a push. On iOS the content of a content-free notification is fetched by a Notification Service Extension, which comes with the native iOS SDK.
+- **Content-free notifications** carry only the delivery id. By default the SDK fetches the content from Relay over TLS with the subscriber token (`inbox:read`); pass `contentSource` to fetch it elsewhere. When it cannot be fetched (not found, offline, timed out) the neutral text of the push or a generic text (`Yeni bildirim` / `New notification`) is shown; content never goes back into a push. On iOS the content of a content-free notification is fetched by a Notification Service Extension, which comes with the native iOS SDK.
 - **Sync signals** refresh the badge; when nothing is unread, notifications shown by Relay are removed.
 - **Read signals** remove a notification that was read on another device.
 
@@ -101,6 +101,14 @@ await relay.sync.readAll();
 
 Changes are sent as intents in `client_seq` order from a durable queue that keeps only the newest intent per item. If another device changed the item first, the server state is accepted silently; `onConflicts` reports it only for a change the user just made on screen. Realtime uses WebSocket first, then Server-Sent Events, then long-polling, and reconnects with full-jitter exponential backoff.
 
+### Waitpoints
+
+```ts
+await relay.waitpoints.respond(item.waitpoint.id, option.value, item.waitpoint.subject_digest);
+```
+
+A response is collected and passed on; it is never an approval. Approval items are answered only on the approval surface of your account system, which the item links to.
+
 ## Device status
 
 ```ts
@@ -114,8 +122,9 @@ Signals are `worn`, `locked`, `headphones`, `focus` and `break`. Writes are limi
 | Component          | What it shows                                                                                                                                                                                |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `InboxBell`        | bell with the unseen badge, capped at `99+`                                                                                                                                                  |
-| `InboxList`        | items with read, unread, archive and hide, and a five second undo for archive and hide                                                                                                       |
+| `InboxList`        | items with read, unread, archive and hide, and a five second undo for archive and hide; the AI agent label; a waitpoint's state with its options as buttons, or for an approval only a link  |
 | `PreferenceCenter` | category by channel switches; locked categories with their reason; push shown off when disabled in device settings; a three-option step (instant, digest, never) when a switch is turned off |
+| `ConsentSummary`   | the subscriber's marketing permissions, read-only, with an optional link to change them in your account system (`consentManageUrl` on `PreferenceCenter`)                                    |
 
 Theme with `scheme` (`light`, `dark` or `system`), `brand` (accent and radius, also per subtenant) and `theme` overrides. Texts follow the locale (`tr` or `en`) and can be replaced with `messages`. Components set accessibility roles, labels and states, never rely on colour alone, keep touch targets at least 44 points and ship colour tokens that meet WCAG 2.2 AA contrast.
 

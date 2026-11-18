@@ -1,3 +1,4 @@
+import { ConsentsClient } from './consents';
 import { RelayHttp, TokenManager } from './http';
 import { resolveLocale, type RelayLocale } from './i18n';
 import { IntentQueue, type FlushResult } from './inbox/queue';
@@ -16,8 +17,9 @@ import {
 } from './ports';
 import { PreferencesClient } from './preferences';
 import { DeviceStatusWriter } from './presence';
-import { noPushContent, type PushAdapter, type PushContentSource } from './push/adapter';
+import type { PushAdapter, PushContentSource } from './push/adapter';
 import type { CategoryDefinition } from './push/channels';
+import { RelayPushContentSource } from './push/content';
 import { PushHandler } from './push/handler';
 import type { NotificationPush } from './push/payload';
 import { ReceiptQueue } from './push/receipts';
@@ -28,10 +30,12 @@ import { SseTransport, xhrConnector, type StreamingConnector } from './realtime/
 import type { RealtimeTransport } from './realtime/transport';
 import { WebSocketTransport, type WebSocketFactory } from './realtime/websocket';
 import type { InboxIntentOp } from './types';
+import { WaitpointsClient } from './waitpoints';
 
 export interface RelayPushOptions {
   readonly adapter: PushAdapter;
   readonly categories: readonly CategoryDefinition[];
+  /** Where the content of a content-free push comes from; Relay's push content endpoint by default. */
   readonly contentSource?: PushContentSource;
   /** The Android channel a data message is shown on; build it with `androidChannelId`. */
   readonly channelId?: (push: NotificationPush) => string | null;
@@ -76,6 +80,8 @@ export class RelayClient {
   readonly receipts: ReceiptQueue;
   readonly presence: DeviceStatusWriter;
   readonly preferences: PreferencesClient;
+  readonly consents: ConsentsClient;
+  readonly waitpoints: WaitpointsClient;
   readonly devices: DeviceRegistrar | null;
   readonly push: PushHandler | null;
   readonly realtime: RealtimeConnection | null;
@@ -119,6 +125,8 @@ export class RelayClient {
     });
     this.receipts = new ReceiptQueue(this.http, options.storage, clock, random, logger);
     this.preferences = new PreferencesClient(this.http);
+    this.consents = new ConsentsClient(this.http);
+    this.waitpoints = new WaitpointsClient(this.http);
     this.devices = options.push
       ? new DeviceRegistrar(this.http, options.push.adapter, options.storage, logger, {
           categories: options.push.categories,
@@ -217,7 +225,7 @@ export class RelayClient {
   ): PushHandler {
     return new PushHandler({
       adapter: push.adapter,
-      contentSource: push.contentSource ?? noPushContent,
+      contentSource: push.contentSource ?? new RelayPushContentSource(this.http),
       receipts: this.receipts,
       store: storage,
       clock,

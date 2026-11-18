@@ -1095,6 +1095,19 @@ defmodule EsuissRelay.Api do
         opts
       )
 
+  @doc "Mint a hosted preference page link.\n\n`POST /v1/subscribers/{subscriber_id}/preference_page_links`"
+  @spec create_preference_page_link(Client.t(), String.t() | integer(), keyword()) ::
+          Client.result()
+  def create_preference_page_link(client, subscriber_id, opts \\ []),
+    do:
+      Client.call(
+        client,
+        Operations.fetch!(:create_preference_page_link),
+        [subscriber_id],
+        nil,
+        opts
+      )
+
   @doc "Get subscriber preferences.\n\n`GET /v1/subscribers/{subscriber_id}/preferences`"
   @spec get_subscriber_preferences(Client.t(), String.t() | integer(), keyword()) ::
           Client.result()

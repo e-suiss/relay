@@ -2142,6 +2142,19 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :create_preference_page_link,
+      method: :post,
+      path: "/v1/subscribers/{subscriber_id}/preference_page_links",
+      path_params: [:subscriber_id],
+      query: [],
+      idempotency: :required,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :get_subscriber_preferences,
       method: :get,
       path: "/v1/subscribers/{subscriber_id}/preferences",

@@ -331,6 +331,37 @@ defmodule Relay.Keys.SoftHSMTest do
              KeyPort.wrap(keys, "es256", "", Redacted.wrap("k"))
   end
 
+  test "OP-85: a tenant's own key wraps its data keys again and its destruction shreds them", %{
+    keys: keys,
+    pkcs11_module: module
+  } do
+    tool = ~w(--module #{module} --token-label #{@token} --login --pin #{@pin})
+    run!("pkcs11-tool", tool ++ ~w(--keygen --key-type AES:32 --label tenant-byok --id 0a))
+
+    data_key = :crypto.strong_rand_bytes(32)
+    aad = "tenant-1/live/data"
+    assert {:ok, regional} = KeyPort.wrap(keys, "kek", aad, Redacted.wrap(data_key))
+    assert {:ok, plain} = KeyPort.unwrap(keys, "kek", aad, regional)
+    assert {:ok, own} = KeyPort.wrap(keys, "tenant-byok", aad, plain)
+    assert {:ok, back} = KeyPort.unwrap(keys, "tenant-byok", aad, own)
+    assert Redacted.expose(back) == data_key
+
+    assert {:error, %Relay.Error{code: :key_integrity}} =
+             KeyPort.unwrap(keys, "kek", aad, own)
+
+    run!("pkcs11-tool", tool ++ ~w(--delete-object --type secrkey --label tenant-byok))
+
+    assert {:error, %Relay.Error{code: :key_not_found}} =
+             result = KeyPort.unwrap(keys, "tenant-byok", aad, own)
+
+    scope = Relay.Scope.new!(Relay.Id.generate(), :live)
+
+    assert {:error, %Relay.Error{code: :key_unavailable}} =
+             Relay.Tenancy.KeyCustody.available(scope, "tenant-byok", result)
+
+    assert {:ok, _plain} = KeyPort.unwrap(keys, "kek", aad, regional)
+  end
+
   test "TN-26: a wrong PIN keeps the server up and reports the store unavailable", %{
     pkcs11_module: module,
     dir: dir

@@ -3,6 +3,7 @@ defmodule RelayWeb.Api.SubscriberController do
 
   use RelayWeb, :api_controller
 
+  alias Relay.Api.SubjectExport
   alias Relay.Api.Subscribers
   alias RelayWeb.Api.Response
   alias RelayWeb.Api.Work
@@ -112,6 +113,21 @@ defmodule RelayWeb.Api.SubscriberController do
   end
 
   defp write(conn, {:error, error}, _expected), do: Response.problem(conn, error)
+
+  # OP-26
+  # OP-86
+  @spec export(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def export(conn, %{"subscriber_id" => external_id}) do
+    scope = conn.assigns.scope
+
+    result =
+      with {:ok, external_id} <- external_id(external_id) do
+        digest = Work.digest(scope, "subject.exported", external_id)
+        Work.answer(conn, SubjectExport.export(scope, external_id, digest, Work.actor(conn)))
+      end
+
+    finish(conn, result)
+  end
 
   defp external_id(text) do
     if Regex.match?(@external_id, text),

@@ -466,5 +466,11 @@
     "rule": "physical_delete",
     "match": "BEFORE TRUNCATE ON %I.%I",
     "reason": "OP-84: the seal of a restored partition rejects TRUNCATE"
+  },
+  {
+    "path": "priv/repo/migrations/20270113000200_create_tenant_closures.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-9: the trigger rejects TRUNCATE on the tenant closures"
   }
 ]

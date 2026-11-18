@@ -701,6 +701,41 @@ defmodule Relay.Delivery do
           {:ok, :completed | :failed | :not_pending | :not_found} | {:error, term()}
   defdelegate run_export(scope, id), to: Exports.Store, as: :run
 
+  # OP-86
+  @doc "The kinds of raw rows a tenant's data is exported in."
+  @spec export_kinds() :: [String.t()]
+  defdelegate export_kinds(), to: Exports.Store, as: :kinds
+
+  # OP-86
+  @doc "The columns of an export kind; see `Relay.Delivery.Exports.Store.columns/1`."
+  @spec export_columns(String.t()) :: [String.t()]
+  defdelegate export_columns(kind), to: Exports.Store, as: :columns
+
+  # OP-86
+  @doc "One CSV line of values; see `Relay.Delivery.Exports.Store.csv_line/1`."
+  @spec export_csv_line([term()]) :: iolist()
+  defdelegate export_csv_line(values), to: Exports.Store, as: :csv_line
+
+  # OP-26
+  # OP-86
+  @doc "Reads a page of an export kind over the scope's whole history on the report pool; see `Relay.Delivery.Exports.Store.history_page/3`."
+  @spec export_history_page(Scope.t(), String.t(), term(), pos_integer()) ::
+          result({[[term()]], term() | nil})
+  def export_history_page(scope, kind, after_key, limit) do
+    Relay.ReportRepo.run(fn ->
+      Store.in_scope(scope, fn _status -> Exports.Store.history_page(kind, after_key, limit) end)
+    end)
+  end
+
+  # OP-26
+  @doc "Reads the newest deliveries of one recipient in its own scoped transaction; see `Relay.Delivery.Exports.Store.subject_deliveries/2`."
+  @spec subject_deliveries(Scope.t(), Relay.Id.t(), pos_integer()) :: result([[term()]])
+  def subject_deliveries(scope, recipient_id, limit),
+    do:
+      Store.in_scope(scope, fn _status ->
+        Exports.Store.subject_deliveries(recipient_id, limit)
+      end)
+
   # DS-37
   @doc "Fails a pending export as `unavailable` in its own scoped transaction."
   @spec fail_export(Scope.t(), Relay.Id.t()) :: result(:failed | :not_pending | :not_found)

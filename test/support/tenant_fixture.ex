@@ -16,6 +16,20 @@ defmodule RelayTest.TenantFixture do
     actor
   end
 
+  @doc "The audit records of `scope` with `action` (any action for `nil`) written in the last hour, read through the audit query function (TN-50)."
+  @spec audit!(Scope.t(), String.t() | nil) :: [map()]
+  def audit!(scope, action) do
+    now = DateTime.utc_now()
+    params = [DateTime.add(now, -3_600), DateTime.add(now, 3_600), action, nil, 1_000]
+
+    {:ok, rows} =
+      Repo.in_scope(scope, fn _status ->
+        Repo.call!("relay_fn.audit_query", params ++ [digest() | Relay.Actor.params(actor())])
+      end)
+
+    rows
+  end
+
   @doc "A random 32-byte digest."
   @spec digest() :: <<_::256>>
   def digest, do: :crypto.strong_rand_bytes(32)

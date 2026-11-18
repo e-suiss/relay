@@ -39,6 +39,18 @@ config :relay, Relay.Access,
   client_id: "app_relay_dev",
   http: [plug: {RelayDev.Access, []}]
 
+config :relay, Relay.TenantLifecycle,
+  export_store:
+    {Relay.TenantLifecycle.ExportStore.S3,
+     [
+       endpoint: "http://localhost:9000",
+       bucket: "relay-exports",
+       region: "us-east-1",
+       access_key_id: "relay",
+       secret_access_key: "relay-dev-secret",
+       prefix: ""
+     ]}
+
 config :relay, Relay.Audit,
   publishers: [
     {"worm_store", Relay.Audit.Checkpointer.Publisher.S3,

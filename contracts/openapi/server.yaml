@@ -14042,11 +14042,15 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
       security:
         - access_bearer:
             - read
         - access_bearer:
             - subscribers
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: The seed recipients in seed order.
@@ -14081,6 +14085,8 @@ paths:
           "$ref": "./components/responses.yaml#/Unauthorized"
         "403":
           "$ref": "./components/responses.yaml#/Forbidden"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
         "429":
           "$ref": "./components/responses.yaml#/TooManyRequests"
         "500":
@@ -14102,9 +14108,13 @@ paths:
         - internal_error
         - service_unavailable
         - auth_environment_mismatch
+        - auth_invalid_session
+        - auth_insufficient_role
+        - validation_failed
       x-relay-scopes:
         - read
         - subscribers
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false
@@ -14121,9 +14131,14 @@ paths:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
         - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
       security:
         - access_bearer:
             - subscribers
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "202":
           description: The reset is queued.
@@ -14191,8 +14206,13 @@ paths:
         - idempotency_key_reuse
         - idempotency_key_in_progress
         - auth_environment_mismatch
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_csrf_failed
+        - validation_failed
       x-relay-scopes:
         - subscribers
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: required
       x-relay-step-up: false
@@ -14208,12 +14228,16 @@ paths:
       parameters:
         - "$ref": "./components/parameters.yaml#/RelayVersion"
         - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/RelayTenant"
+        - "$ref": "./components/parameters.yaml#/RelayEnvironment"
         - "$ref": "./components/parameters.yaml#/Limit"
         - "$ref": "./components/parameters.yaml#/StartingAfter"
         - "$ref": "./components/parameters.yaml#/EndingBefore"
       security:
         - access_bearer:
             - read
+        - operator_session: []
+        - operator_bearer: []
       responses:
         "200":
           description: A page of the test inbox.
@@ -14272,8 +14296,11 @@ paths:
         - service_unavailable
         - auth_environment_mismatch
         - validation_failed
+        - auth_invalid_session
+        - auth_insufficient_role
       x-relay-scopes:
         - read
+      x-relay-role: tenant_operator
       x-relay-weight: 1
       x-relay-idempotency: not_applicable
       x-relay-step-up: false

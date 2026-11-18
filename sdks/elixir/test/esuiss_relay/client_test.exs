@@ -97,17 +97,15 @@ defmodule EsuissRelay.ClientTest do
 
     assert {:error, %EsuissRelay.ServerError{status: 500}} = Api.get_waitpoint(client, "wp_1")
     assert length(Stub.requests(stub)) == 4
+    assert_received {:slept, 250}
     assert_received {:slept, 500}
     assert_received {:slept, 1000}
-    assert_received {:slept, 2000}
 
-    client = %{client | max_delay_ms: 1500}
-    assert Client.delay(client, 5, 10, true, nil) == 1500
-
-    client = %{client | random: &Client.uniform/1}
+    client = %{client | random: &:rand.uniform/0}
 
     for _round <- 1..200 do
-      assert Client.delay(client, 2, 10, true, nil) in 0..1500
+      assert {:retry, wait} = Client.retry_decision(client, 3, 10, :network_error)
+      assert wait in 0..1999
     end
   end
 

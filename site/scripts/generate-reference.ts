@@ -12,7 +12,6 @@ interface SidebarItem {
 
 interface SidebarGroup {
   text: string;
-  collapsed: boolean;
   items: SidebarItem[];
 }
 
@@ -312,7 +311,6 @@ function generateFamily(key: string, relative: string): SidebarGroup {
   );
   return {
     text: title,
-    collapsed: true,
     items: [{ text: "Overview", link: `/reference/api/${key}/` }, ...items],
   };
 }

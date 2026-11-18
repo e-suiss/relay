@@ -80,4 +80,4 @@ relay.consume_mailbox(max: 10) { |record| handle_record(record) }
 ## Development
 
 The generated code lives in `lib/esuiss/relay/generated` and is rebuilt from the contract with
-`ruby codegen/generate.rb`; CI fails when it differs.
+`./regenerate.sh`; CI fails when it differs.

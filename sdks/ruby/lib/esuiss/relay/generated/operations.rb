@@ -3156,6 +3156,62 @@ module Esuiss
           )
         end
 
+        # Get the status of a provider account
+        def get_provider_account_status(provider_account_id, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/provider_accounts/#{segment(provider_account_id)}/status",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Check the sending domains of an e-mail provider account
+        def get_provider_account_email_domains(provider_account_id, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/provider_accounts/#{segment(provider_account_id)}/email_domains",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # List the e-mail warm-up plans
+        def list_email_warmup_plans(request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/email_warmup_plans",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Quote the cost of a paid channel
+        def quote_channel_cost(channel:, country:, category: nil, quantity: nil, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/channel_costs",
+            query: { "channel" => channel, "country" => country, "category" => category, "quantity" => quantity },
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
         # List provider invoices
         def list_provider_invoices(limit: nil, starting_after: nil, ending_before: nil, request_options: {})
           paginate(

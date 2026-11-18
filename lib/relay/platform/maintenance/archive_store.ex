@@ -45,7 +45,8 @@ defmodule Relay.Platform.Maintenance.ArchiveStore do
       select(
         """
         SELECT a.attname::text, format_type(a.atttypid, a.atttypmod),
-          array_position(i.indkey::int2[], a.attnum)
+          (SELECT k.ord::integer FROM unnest(i.indkey::int2[]) WITH ORDINALITY AS k(attnum, ord)
+            WHERE k.attnum = a.attnum)
         FROM pg_catalog.pg_attribute a
         LEFT JOIN pg_catalog.pg_index i ON i.indrelid = a.attrelid AND i.indisprimary
         WHERE a.attrelid = format('relay.%I', $1::text)::regclass

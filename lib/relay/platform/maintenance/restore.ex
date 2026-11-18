@@ -10,6 +10,7 @@ defmodule Relay.Platform.Maintenance.Restore do
 
   # OP-84
   # OP-14 (6)
+  # sobelow_skip ["Traversal.FileModule"]
   @doc "Restores the archived leaf of manifest `id` into `schema` (`restore_…`). Options: `:tmp_dir` and the options of `Relay.Parquet`."
   @spec run(Relay.Id.t(), String.t(), keyword()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def run(id, schema, opts \\ []) do

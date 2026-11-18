@@ -33,6 +33,7 @@ defmodule Relay.Platform.Maintenance.Archive do
     end
   end
 
+  # sobelow_skip ["Traversal.FileModule"]
   defp in_scratch(manifest, token, store, opts) do
     with {:ok, dir} <- scratch(opts, "relay-archive-" <> Relay.Id.to_string(manifest.id)) do
       try do

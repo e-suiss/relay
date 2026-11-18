@@ -116,7 +116,7 @@ installServiceWorkerHandlers(self);
 
 ```sh
 npm ci
-npm run generate   # regenerate from the contract
+./regenerate.sh    # regenerate from the contract
 npm run typecheck && npm run lint && npm test
 ```
 

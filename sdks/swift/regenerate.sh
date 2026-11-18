@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-sdk=$(cd "$(dirname "$0")/.." && pwd)
+sdk=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$sdk/../.." && pwd)
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-sdk=$(cd "$(dirname "$0")/.." && pwd)
+sdk=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$sdk/../.." && pwd)
 version=7.27.0
 sha256=db9c4b738727698748746144394cb7ee96512fe50166555baaeeca9311ee1dba

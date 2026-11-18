@@ -22,6 +22,24 @@ COPY native/mjml_port/src src
 
 RUN cargo build --locked --release
 
+FROM node:24.22.1-trixie-slim@sha256:89c5244bc22a9bc3287d89ebc7e49b9cb5bb84cd40e6175ac3421d5a9f68b95a AS web
+
+ENV SOURCE_DATE_EPOCH=0 \
+    NPM_CONFIG_IGNORE_SCRIPTS=true \
+    NPM_CONFIG_AUDIT=false \
+    NPM_CONFIG_FUND=false
+
+WORKDIR /web
+
+COPY web/package.json web/package-lock.json web/.npmrc ./
+
+RUN npm ci
+
+COPY web ./
+
+# X-47
+RUN npm run build
+
 FROM hexpm/elixir:1.20.4-erlang-29.0.6-debian-trixie-20260918-slim@sha256:1907c8e173e9b65657da6ad15a2c618939368d2fc52e90f69984a31561536a7c AS build
 
 ENV MIX_ENV=prod \
@@ -41,6 +59,7 @@ COPY contracts contracts
 COPY rel rel
 COPY --from=native /build/target/release/pkcs11_port priv/native/pkcs11_port
 COPY --from=mjml /build/target/release/mjml_port priv/native/mjml_port
+COPY --from=web /web/dist priv/static/console
 
 # TN-65 (7)
 RUN sha256sum priv/native/pkcs11_port > priv/native/pkcs11_port.sha256

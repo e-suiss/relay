@@ -265,6 +265,18 @@ defmodule Relay.Preferences.Store do
   @spec cells(Relay.Id.t()) :: [map()]
   def cells(recipient_id), do: Repo.call!("relay_fn.preference_cells", [recipient_id])
 
+  # X-51
+  # PC-17
+  @doc "The name and digest permission of every active category, by key."
+  @spec category_labels() :: %{String.t() => map()}
+  def category_labels do
+    sql = """
+    SELECT c.key, c.name, c.digest_allowed FROM relay.categories c WHERE c.state = 'active'
+    """
+
+    Map.new(maps(Repo.scoped_query!(sql, [])), &{&1["key"], &1})
+  end
+
   # PC-57 (5)
   @doc "The channel, workflow and scope key switches of a recipient."
   @spec switches(Relay.Id.t()) :: [map()]

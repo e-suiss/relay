@@ -207,6 +207,16 @@ public final class RelayApi {
           Operation.Presence.REQUIRED,
           "application/json",
           Operation.Response.JSON);
+  private static final Operation CREATE_PREFERENCE_PAGE_LINK =
+      new Operation(
+          "createPreferencePageLink",
+          "POST",
+          "/v1/subscribers/{subscriber_id}/preference_page_links",
+          Operation.Presence.REQUIRED,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
   private static final Operation LIST_SUBSCRIBER_CONSENTS =
       new Operation(
           "listSubscriberConsents",
@@ -3076,6 +3086,31 @@ public final class RelayApi {
    */
   public JsonNode updateSubscriberPreferences(String subscriberId, JsonNode body) {
     return updateSubscriberPreferences(subscriberId, body, RequestOptions.none());
+  }
+
+  /**
+   * Mint a hosted preference page link.
+   *
+   * <p>{@code POST /v1/subscribers/{subscriber_id}/preference_page_links}
+   *
+   * @param subscriberId the {@code subscriber_id} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode createPreferencePageLink(String subscriberId, RequestOptions options) {
+    return requester.json(CREATE_PREFERENCE_PAGE_LINK, List.of(subscriberId), null, null, options);
+  }
+
+  /**
+   * Mint a hosted preference page link.
+   *
+   * <p>{@code POST /v1/subscribers/{subscriber_id}/preference_page_links}
+   *
+   * @param subscriberId the {@code subscriber_id} path parameter
+   * @return the response body
+   */
+  public JsonNode createPreferencePageLink(String subscriberId) {
+    return createPreferencePageLink(subscriberId, RequestOptions.none());
   }
 
   /**

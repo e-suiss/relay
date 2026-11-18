@@ -69,6 +69,7 @@ defmodule Relay.Api do
       KillSwitches,
       Categories,
       Preferences,
+      PreferencePage,
       Suppressions,
       Templates,
       TemplateAssets,

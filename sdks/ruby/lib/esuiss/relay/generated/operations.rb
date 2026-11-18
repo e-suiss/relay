@@ -296,6 +296,21 @@ module Esuiss
           )
         end
 
+        # Mint a hosted preference page link
+        def create_preference_page_link(subscriber_id, idempotency_key: nil, request_options: {})
+          perform(
+            method: :post,
+            path: "/v1/subscribers/#{segment(subscriber_id)}/preference_page_links",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: true,
+            idempotency_key: idempotency_key,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
         # List subscriber consents
         def list_subscriber_consents(subscriber_id, limit: nil, starting_after: nil, ending_before: nil, request_options: {})
           paginate(

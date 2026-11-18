@@ -36,6 +36,8 @@ jobs:
         working-directory: sdks/elixir
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
         with:
           version-file: .tool-versions
@@ -48,10 +50,25 @@ jobs:
             sdks/elixir/priv/plts
           key: sdk-elixir-${{ runner.os }}-${{ hashFiles('.tool-versions', 'sdks/elixir/mix.lock') }}
           restore-keys: sdk-elixir-${{ runner.os }}-
+      - id: scope
+        name: drift check scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          own=true
+          if [ "$EVENT" != "workflow_dispatch" ] && [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+            if git -C "$GITHUB_WORKSPACE" diff --quiet "$BASE" HEAD -- sdks/elixir .github/workflows/sdk-elixir.yml; then
+              own=false
+            fi
+          fi
+          echo "own=$own" >> "$GITHUB_OUTPUT"
       - run: mix deps.get
-      - run: mix esuiss_relay.gen
-      - run: mix format
+      - name: regenerate
+        if: steps.scope.outputs.own == 'true'
+        run: ./regenerate.sh
       - name: generated code, formatting and lock file match the commit
+        if: steps.scope.outputs.own == 'true'
         run: |
           git add -N .
           if ! git diff --exit-code --stat -- .; then

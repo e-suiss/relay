@@ -1,0 +1,47 @@
+name: sdk-ruby-release
+
+on:
+  push:
+    tags:
+      - "sdk-ruby-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-ruby-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: rubygems
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: sdks/ruby
+    env:
+      BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: 4.0.9
+          working-directory: sdks/ruby
+      - run: bundle install
+      - run: bundle exec rake test
+      - env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="$(ruby -Ilib -e 'require "esuiss/relay/version"; print Esuiss::Relay::VERSION')"
+          if [ "$TAG" != "sdk-ruby-v$version" ]; then
+            echo "tag $TAG does not match gem version $version"
+            exit 1
+          fi
+      - run: gem build esuiss-relay.gemspec
+      # X-50
+      - uses: rubygems/configure-rubygems-credentials@dc5a8d8553e6ee01fc26761a49e99e733d17954a # v2.1.0
+      - run: gem push esuiss-relay-*.gem

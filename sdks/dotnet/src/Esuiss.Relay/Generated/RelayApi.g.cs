@@ -1519,6 +1519,39 @@ public sealed partial class RelayApi
         return _client.SendJsonAsync(Operations.ListSimulatedResults, [], query, null, options, cancellationToken);
     }
 
+    /// <summary>List the seed recipients of the test plane</summary>
+    public Task<JsonNode> ListSeedRecipientsAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.ListSeedRecipients, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Reset the seed recipients of the test plane</summary>
+    public Task<JsonNode> ResetSeedRecipientsAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.ResetSeedRecipients, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>List the test inbox</summary>
+    public Task<Page> ListTestInboxMessagesAsync(
+        int? limit = null,
+        string? startingAfter = null,
+        string? endingBefore = null,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("limit", limit);
+        query.Add("starting_after", startingAfter);
+        query.Add("ending_before", endingBefore);
+        return _client.ListAsync(Operations.ListTestInboxMessages, [], query, null, options, cancellationToken);
+    }
+
     /// <summary>List waitpoints</summary>
     public Task<Page> ListWaitpointsAsync(
         int? limit = null,
@@ -2609,6 +2642,52 @@ public sealed partial class RelayApi
     {
         var query = new QueryBuilder();
         return _client.SendJsonAsync(Operations.VerifyProviderAccount, [providerAccountId], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Get the status of a provider account</summary>
+    public Task<JsonNode> GetProviderAccountStatusAsync(
+        string providerAccountId,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetProviderAccountStatus, [providerAccountId], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Check the sending domains of an e-mail provider account</summary>
+    public Task<JsonNode> GetProviderAccountEmailDomainsAsync(
+        string providerAccountId,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetProviderAccountEmailDomains, [providerAccountId], query, null, options, cancellationToken);
+    }
+
+    /// <summary>List the e-mail warm-up plans</summary>
+    public Task<JsonNode> ListEmailWarmupPlansAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.ListEmailWarmupPlans, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Quote the cost of a paid channel</summary>
+    public Task<JsonNode> QuoteChannelCostAsync(
+        string channel,
+        string country,
+        string? category = null,
+        int? quantity = null,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("channel", channel);
+        query.Add("country", country);
+        query.Add("category", category);
+        query.Add("quantity", quantity);
+        return _client.SendJsonAsync(Operations.QuoteChannelCost, [], query, null, options, cancellationToken);
     }
 
     /// <summary>List provider invoices</summary>

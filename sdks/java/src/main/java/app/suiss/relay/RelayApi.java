@@ -1267,6 +1267,36 @@ public final class RelayApi {
           Operation.Presence.NONE,
           "application/json",
           Operation.Response.JSON);
+  private static final Operation LIST_SEED_RECIPIENTS =
+      new Operation(
+          "listSeedRecipients",
+          "GET",
+          "/v1/test/seed-recipients",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation RESET_SEED_RECIPIENTS =
+      new Operation(
+          "resetSeedRecipients",
+          "POST",
+          "/v1/test/seed-recipients/reset",
+          Operation.Presence.REQUIRED,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation LIST_TEST_INBOX_MESSAGES =
+      new Operation(
+          "listTestInboxMessages",
+          "GET",
+          "/v1/test/inbox",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
   private static final Operation LIST_WAITPOINTS =
       new Operation(
           "listWaitpoints",
@@ -2173,6 +2203,46 @@ public final class RelayApi {
           "POST",
           "/v1/provider_accounts/{provider_account_id}/verify",
           Operation.Presence.REQUIRED,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_PROVIDER_ACCOUNT_STATUS =
+      new Operation(
+          "getProviderAccountStatus",
+          "GET",
+          "/v1/provider_accounts/{provider_account_id}/status",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation GET_PROVIDER_ACCOUNT_EMAIL_DOMAINS =
+      new Operation(
+          "getProviderAccountEmailDomains",
+          "GET",
+          "/v1/provider_accounts/{provider_account_id}/email_domains",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation LIST_EMAIL_WARMUP_PLANS =
+      new Operation(
+          "listEmailWarmupPlans",
+          "GET",
+          "/v1/email_warmup_plans",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation QUOTE_CHANNEL_COST =
+      new Operation(
+          "quoteChannelCost",
+          "GET",
+          "/v1/channel_costs",
+          Operation.Presence.NONE,
           Operation.Presence.NONE,
           Operation.Presence.NONE,
           "application/json",
@@ -5823,6 +5893,76 @@ public final class RelayApi {
   }
 
   /**
+   * List the seed recipients of the test plane.
+   *
+   * <p>{@code GET /v1/test/seed-recipients}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode listSeedRecipients(RequestOptions options) {
+    return requester.json(LIST_SEED_RECIPIENTS, List.of(), null, null, options);
+  }
+
+  /**
+   * List the seed recipients of the test plane.
+   *
+   * <p>{@code GET /v1/test/seed-recipients}
+   *
+   * @return the response body
+   */
+  public JsonNode listSeedRecipients() {
+    return listSeedRecipients(RequestOptions.none());
+  }
+
+  /**
+   * Reset the seed recipients of the test plane.
+   *
+   * <p>{@code POST /v1/test/seed-recipients/reset}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode resetSeedRecipients(RequestOptions options) {
+    return requester.json(RESET_SEED_RECIPIENTS, List.of(), null, null, options);
+  }
+
+  /**
+   * Reset the seed recipients of the test plane.
+   *
+   * <p>{@code POST /v1/test/seed-recipients/reset}
+   *
+   * @return the response body
+   */
+  public JsonNode resetSeedRecipients() {
+    return resetSeedRecipients(RequestOptions.none());
+  }
+
+  /**
+   * List the test inbox.
+   *
+   * <p>{@code GET /v1/test/inbox}
+   *
+   * @param params the query parameters
+   * @param options the request options
+   * @return the first page; further pages are fetched lazily
+   */
+  public Page listTestInboxMessages(ListTestInboxMessagesParams params, RequestOptions options) {
+    return requester.page(LIST_TEST_INBOX_MESSAGES, List.of(), params, options);
+  }
+
+  /**
+   * List the test inbox.
+   *
+   * <p>{@code GET /v1/test/inbox}
+   *
+   * @return the first page; further pages are fetched lazily
+   */
+  public Page listTestInboxMessages() {
+    return listTestInboxMessages(null, RequestOptions.none());
+  }
+
+  /**
    * List waitpoints.
    *
    * <p>{@code GET /v1/waitpoints}
@@ -8165,6 +8305,106 @@ public final class RelayApi {
    */
   public JsonNode verifyProviderAccount(String providerAccountId) {
     return verifyProviderAccount(providerAccountId, RequestOptions.none());
+  }
+
+  /**
+   * Get the status of a provider account.
+   *
+   * <p>{@code GET /v1/provider_accounts/{provider_account_id}/status}
+   *
+   * @param providerAccountId the {@code provider_account_id} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getProviderAccountStatus(String providerAccountId, RequestOptions options) {
+    return requester.json(
+        GET_PROVIDER_ACCOUNT_STATUS, List.of(providerAccountId), null, null, options);
+  }
+
+  /**
+   * Get the status of a provider account.
+   *
+   * <p>{@code GET /v1/provider_accounts/{provider_account_id}/status}
+   *
+   * @param providerAccountId the {@code provider_account_id} path parameter
+   * @return the response body
+   */
+  public JsonNode getProviderAccountStatus(String providerAccountId) {
+    return getProviderAccountStatus(providerAccountId, RequestOptions.none());
+  }
+
+  /**
+   * Check the sending domains of an e-mail provider account.
+   *
+   * <p>{@code GET /v1/provider_accounts/{provider_account_id}/email_domains}
+   *
+   * @param providerAccountId the {@code provider_account_id} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getProviderAccountEmailDomains(String providerAccountId, RequestOptions options) {
+    return requester.json(
+        GET_PROVIDER_ACCOUNT_EMAIL_DOMAINS, List.of(providerAccountId), null, null, options);
+  }
+
+  /**
+   * Check the sending domains of an e-mail provider account.
+   *
+   * <p>{@code GET /v1/provider_accounts/{provider_account_id}/email_domains}
+   *
+   * @param providerAccountId the {@code provider_account_id} path parameter
+   * @return the response body
+   */
+  public JsonNode getProviderAccountEmailDomains(String providerAccountId) {
+    return getProviderAccountEmailDomains(providerAccountId, RequestOptions.none());
+  }
+
+  /**
+   * List the e-mail warm-up plans.
+   *
+   * <p>{@code GET /v1/email_warmup_plans}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode listEmailWarmupPlans(RequestOptions options) {
+    return requester.json(LIST_EMAIL_WARMUP_PLANS, List.of(), null, null, options);
+  }
+
+  /**
+   * List the e-mail warm-up plans.
+   *
+   * <p>{@code GET /v1/email_warmup_plans}
+   *
+   * @return the response body
+   */
+  public JsonNode listEmailWarmupPlans() {
+    return listEmailWarmupPlans(RequestOptions.none());
+  }
+
+  /**
+   * Quote the cost of a paid channel.
+   *
+   * <p>{@code GET /v1/channel_costs}
+   *
+   * @param params the query parameters
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode quoteChannelCost(QuoteChannelCostParams params, RequestOptions options) {
+    return requester.json(QUOTE_CHANNEL_COST, List.of(), params, null, options);
+  }
+
+  /**
+   * Quote the cost of a paid channel.
+   *
+   * <p>{@code GET /v1/channel_costs}
+   *
+   * @param params the query parameters
+   * @return the response body
+   */
+  public JsonNode quoteChannelCost(QuoteChannelCostParams params) {
+    return quoteChannelCost(params, RequestOptions.none());
   }
 
   /**

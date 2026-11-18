@@ -383,6 +383,15 @@ public static partial class Operations
     /// <summary>List the simulated results of the fake provider</summary>
     public static readonly Operation ListSimulatedResults = new("listSimulatedResults", "GET", "/v1/test/simulated-results", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
+    /// <summary>List the seed recipients of the test plane</summary>
+    public static readonly Operation ListSeedRecipients = new("listSeedRecipients", "GET", "/v1/test/seed-recipients", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Reset the seed recipients of the test plane</summary>
+    public static readonly Operation ResetSeedRecipients = new("resetSeedRecipients", "POST", "/v1/test/seed-recipients/reset", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>List the test inbox</summary>
+    public static readonly Operation ListTestInboxMessages = new("listTestInboxMessages", "GET", "/v1/test/inbox", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>List waitpoints</summary>
     public static readonly Operation ListWaitpoints = new("listWaitpoints", "GET", "/v1/waitpoints", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -656,6 +665,18 @@ public static partial class Operations
     /// <summary>Verify a provider account</summary>
     public static readonly Operation VerifyProviderAccount = new("verifyProviderAccount", "POST", "/v1/provider_accounts/{provider_account_id}/verify", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
+    /// <summary>Get the status of a provider account</summary>
+    public static readonly Operation GetProviderAccountStatus = new("getProviderAccountStatus", "GET", "/v1/provider_accounts/{provider_account_id}/status", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Check the sending domains of an e-mail provider account</summary>
+    public static readonly Operation GetProviderAccountEmailDomains = new("getProviderAccountEmailDomains", "GET", "/v1/provider_accounts/{provider_account_id}/email_domains", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>List the e-mail warm-up plans</summary>
+    public static readonly Operation ListEmailWarmupPlans = new("listEmailWarmupPlans", "GET", "/v1/email_warmup_plans", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Quote the cost of a paid channel</summary>
+    public static readonly Operation QuoteChannelCost = new("quoteChannelCost", "GET", "/v1/channel_costs", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>List provider invoices</summary>
     public static readonly Operation ListProviderInvoices = new("listProviderInvoices", "GET", "/v1/provider_invoices", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -887,6 +908,9 @@ public static partial class Operations
         GetVirtualClock,
         AdvanceVirtualClock,
         ListSimulatedResults,
+        ListSeedRecipients,
+        ResetSeedRecipients,
+        ListTestInboxMessages,
         ListWaitpoints,
         CreateWaitpoint,
         GetWaitpoint,
@@ -978,6 +1002,10 @@ public static partial class Operations
         GetProviderAccount,
         UpdateProviderAccount,
         VerifyProviderAccount,
+        GetProviderAccountStatus,
+        GetProviderAccountEmailDomains,
+        ListEmailWarmupPlans,
+        QuoteChannelCost,
         ListProviderInvoices,
         CreateProviderInvoice,
         GetProviderInvoice,

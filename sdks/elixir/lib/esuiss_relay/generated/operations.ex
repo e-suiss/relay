@@ -412,6 +412,24 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :quote_channel_cost,
+      method: :get,
+      path: "/v1/channel_costs",
+      path_params: [],
+      query: [
+        {:channel, :string, true},
+        {:country, :string, true},
+        {:category, :string, false},
+        {:quantity, :integer, false}
+      ],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :list_channel_identities,
       method: :get,
       path: "/v1/channel_identities",
@@ -564,6 +582,19 @@ defmodule EsuissRelay.Generated.Operations do
       path: "/v1/email_reports/summary",
       path_params: [],
       query: [{:domain, :string, true}, {:from, :string, false}, {:to, :string, false}],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :list_email_warmup_plans,
+      method: :get,
+      path: "/v1/email_warmup_plans",
+      path_params: [],
+      query: [],
       idempotency: :none,
       if_match: :none,
       body: :none,
@@ -1569,6 +1600,32 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :get_provider_account_email_domains,
+      method: :get,
+      path: "/v1/provider_accounts/{provider_account_id}/email_domains",
+      path_params: [:provider_account_id],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :get_provider_account_status,
+      method: :get,
+      path: "/v1/provider_accounts/{provider_account_id}/status",
+      path_params: [:provider_account_id],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :verify_provider_account,
       method: :post,
       path: "/v1/provider_accounts/{provider_account_id}/verify",
@@ -2404,6 +2461,49 @@ defmodule EsuissRelay.Generated.Operations do
       query: [{:subtenant, :string, false}],
       idempotency: :required,
       if_match: :required,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :list_test_inbox_messages,
+      method: :get,
+      path: "/v1/test/inbox",
+      path_params: [],
+      query: [
+        {:limit, :integer, false},
+        {:starting_after, :string, false},
+        {:ending_before, :string, false}
+      ],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: true,
+      response: :json
+    },
+    %Operation{
+      id: :list_seed_recipients,
+      method: :get,
+      path: "/v1/test/seed-recipients",
+      path_params: [],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :reset_seed_recipients,
+      method: :post,
+      path: "/v1/test/seed-recipients/reset",
+      path_params: [],
+      query: [],
+      idempotency: :required,
+      if_match: :none,
       body: :none,
       content_type: nil,
       paginated: false,

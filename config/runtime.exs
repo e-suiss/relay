@@ -87,8 +87,25 @@ if config_env() == :prod do
       configure: {Relay.Config.SecretFiles, :configure, [:queue_repo]},
       pool_size: 2
 
+    config :relay, Relay.Platform.ArchiveRepo,
+      url: Relay.Config.Env.database_url!("ARCHIVE_DATABASE_URL"),
+      configure: {Relay.Config.SecretFiles, :configure, [:archive_repo]},
+      pool_size: 2
+
+    config :relay, Relay.Platform.Maintenance.ArchiveTask,
+      store: [
+        endpoint: Relay.Config.Env.fetch!("ARCHIVE_S3_ENDPOINT"),
+        bucket: Relay.Config.Env.fetch!("ARCHIVE_S3_BUCKET"),
+        region: Relay.Config.Env.fetch!("ARCHIVE_S3_REGION"),
+        access_key_id: Relay.Config.Env.fetch!("ARCHIVE_S3_ACCESS_KEY_ID"),
+        secret_access_key: {Relay.Config.SecretFiles, :fetch!, [:archive_s3]},
+        prefix: ""
+      ]
+
     config :relay, Relay.Config.SecretFiles,
-      queue_repo: Relay.Config.Env.fetch!("QUEUE_DATABASE_PASSWORD_FILE")
+      queue_repo: Relay.Config.Env.fetch!("QUEUE_DATABASE_PASSWORD_FILE"),
+      archive_repo: Relay.Config.Env.fetch!("ARCHIVE_DATABASE_PASSWORD_FILE"),
+      archive_s3: Relay.Config.Env.fetch!("ARCHIVE_S3_SECRET_ACCESS_KEY_FILE")
   end
 
   config :relay, Relay.Connectors,

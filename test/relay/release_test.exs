@@ -152,6 +152,34 @@ defmodule Relay.ReleaseTest do
       assert checksum < compile
     end
 
+    test "OP-84: the image builds the archive program and embeds its checksum before compiling" do
+      dockerfile = File.read!("deploy/docker/Dockerfile")
+
+      [_, channel] =
+        Regex.run(
+          ~r/^channel = "([^"]+)"$/m,
+          File.read!("native/archive_port/rust-toolchain.toml")
+        )
+
+      assert dockerfile =~
+               ~r/^FROM rust:#{Regex.escape(channel)}-\S+@sha256:[0-9a-f]{64} AS archive$/m
+
+      assert dockerfile =~
+               "COPY native/archive_port/Cargo.toml native/archive_port/Cargo.lock ./"
+
+      assert dockerfile =~
+               "COPY --from=archive /build/target/release/archive_port priv/native/archive_port"
+
+      assert dockerfile =~
+               "RUN sha256sum priv/native/archive_port > priv/native/archive_port.sha256"
+
+      [checksum, compile] =
+        for marker <- ["archive_port.sha256", "mix compile"],
+            do: :binary.match(dockerfile, marker) |> elem(0)
+
+      assert checksum < compile
+    end
+
     test "TN-63: the production image carries no PKCS#11 provider" do
       runtime =
         "deploy/docker/Dockerfile" |> File.read!() |> String.split(~r/^FROM /m) |> List.last()

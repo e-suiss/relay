@@ -624,6 +624,22 @@ groups:
         annotations:
           summary: "An integrator brand reached the İYS direct access threshold"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayiysdirectaccessreached
+      - alert: RelayArchiveFailing
+        expr: relay_archive_failures >= 3
+        labels:
+          severity: warning
+          decision: OP-84
+        annotations:
+          summary: "The cold archive failed three or more attempts in a row"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayarchivefailing
+      - alert: RelayArchiveBacklog
+        expr: relay_archive_backlog_age_seconds > 2 * 86400
+        labels:
+          severity: warning
+          decision: OP-15
+        annotations:
+          summary: "A detached partition has waited more than two days for the cold archive"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayarchivebacklog
   - name: relay-agents
     rules:
       - alert: RelayAgentSilentWaitpoints

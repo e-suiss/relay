@@ -74,3 +74,13 @@ config :relay, Relay.Keys,
   kek_label: "kek-dev",
   fingerprint_label: "fingerprint-dev",
   cursor_label: "cursor-dev"
+
+config :relay, Relay.Platform.Maintenance.ArchiveTask,
+  store: [
+    endpoint: "http://localhost:9000",
+    bucket: "relay-archive",
+    region: "us-east-1",
+    access_key_id: "relay",
+    secret_access_key: "relay-dev-secret",
+    prefix: ""
+  ]

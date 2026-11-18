@@ -172,21 +172,7 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
           DateTime.t(),
           non_neg_integer()
         ) :: [{String.t(), String.t()}]
-  def lock_headers({mode, period}, %DateTime{} = now, days \\ 0)
-      when mode in ["GOVERNANCE", "COMPLIANCE"] and is_integer(days) and days >= 0 do
-    now = %{now | microsecond: {0, 0}}
-
-    until =
-      Enum.max([DateTime.shift(now, shift(period)), DateTime.shift(now, day: days)], DateTime)
-
-    [
-      {"x-amz-object-lock-mode", mode},
-      {"x-amz-object-lock-retain-until-date", DateTime.to_iso8601(until)}
-    ]
-  end
-
-  defp shift({:days, count}), do: [day: count]
-  defp shift({:years, count}), do: [year: count]
+  defdelegate lock_headers(rule, now, days \\ 0), to: Relay.ObjectStore.S3
 
   # OP-70
   @impl Relay.Audit.Checkpointer.Publisher
@@ -254,18 +240,7 @@ defmodule Relay.Audit.Checkpointer.Publisher.S3 do
   @doc "The default retention rule of an object lock configuration document: `{:ok, {mode, {unit, count}}}`, or `:error` without object lock or a default rule."
   @spec lock_rule_of(String.t()) ::
           {:ok, {String.t(), {:days | :years, pos_integer()}}} | :error
-  def lock_rule_of(body) when is_binary(body) do
-    with true <- Regex.match?(~r/<ObjectLockEnabled>\s*Enabled\s*<\/ObjectLockEnabled>/, body),
-         [_, mode] <- Regex.run(~r/<Mode>\s*(GOVERNANCE|COMPLIANCE)\s*<\/Mode>/, body),
-         [_, unit, count] <- Regex.run(~r/<(Days|Years)>\s*([1-9][0-9]{0,5})\s*<\/\1>/, body) do
-      {:ok, {mode, {unit(unit), String.to_integer(count)}}}
-    else
-      _ -> :error
-    end
-  end
-
-  defp unit("Days"), do: :days
-  defp unit("Years"), do: :years
+  defdelegate lock_rule_of(body), to: Relay.ObjectStore.S3
 
   @doc "Object key of a checkpoint."
   @spec key(Relay.Audit.Checkpointer.Publisher.checkpoint(), keyword()) :: String.t()

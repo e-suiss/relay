@@ -6,6 +6,7 @@ defmodule Relay.Api.Subscribers do
   alias Relay.Api.Views
 
   @etag ~r/\A(?:W\/)?"?(\d{1,18})"?\z/
+  @lookup_max Relay.Limits.fetch!(["subscriber_lookup", "max_matches"])
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
   @type row :: {non_neg_integer(), map(), {:ok, map()} | {:error, Relay.Error.t()}}
@@ -105,6 +106,32 @@ defmodule Relay.Api.Subscribers do
       {:ok, nil} -> {:error, not_found()}
       {:ok, view} -> {:ok, {200, [etag(view["version"])], clean(view)}}
       {:error, _reason} -> {:error, not_found()}
+    end
+  end
+
+  # X-12
+  # X-5
+  @doc "Finds the subscribers of a phone or e-mail address (`lookupSubscribers`): at most the contract's `subscriber_lookup.max_matches`, with masked personal fields; an unknown address is an empty answer."
+  @spec lookup(Relay.Scope.t(), map()) :: answer()
+  def lookup(scope, body) do
+    {kind, address} =
+      case body do
+        %{"email" => email} -> {"email", email}
+        %{"phone" => phone} -> {"phone", phone}
+      end
+
+    case Relay.Subscribers.lookup(scope, kind, address, @lookup_max) do
+      {:ok, {found, truncated}} ->
+        {:ok,
+         {200, [],
+          %{
+            "object" => "subscriber_lookup",
+            "data" => Enum.map(found, &clean/1),
+            "truncated" => truncated
+          }}}
+
+      {:error, _reason} ->
+        {:error, unavailable()}
     end
   end
 

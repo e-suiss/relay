@@ -65,6 +65,16 @@ defmodule RelayWeb.Api.RouteController do
     end
   end
 
+  # WF-14
+  # X-10
+  @spec usage(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def usage(conn, %{"route_key" => key}) do
+    case key(key) do
+      {:ok, key} -> Work.answer(conn, Routes.usage(conn.assigns.scope, key))
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
   defp key(key) do
     if Regex.match?(@key, key), do: {:ok, key}, else: {:error, Routes.not_found()}
   end

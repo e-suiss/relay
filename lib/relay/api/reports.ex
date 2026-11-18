@@ -1,15 +1,22 @@
 defmodule Relay.Api.Reports do
   @moduledoc """
-  The ready-made reports on the server API (DS-35, DS-36, OP-39, CH-18, TN-18): the delivery report (funnel, outcomes and engagement with human and likely bot clicks and `machine_open` opens apart), the skip distribution by reason and `rule_id`, and the cost report from the immutable usage records, each for UTC days `from` to `to` (exclusive, at most 92 days) of the caller's tenant environment. They are read from the rollups on the report pool; test sends are their own rows and the test environment its own scope. Counts are exact; rates are left to the reader, so they are never rounded twice.
+  The ready-made reports on the server API (DS-35, DS-36, OP-39, CH-18, TN-18, WF-50, TP-26, TP-41): the delivery report (funnel, outcomes and engagement with human and likely bot clicks and `machine_open` opens apart), the skip distribution by reason and `rule_id`, the cost report from the immutable usage records, the A/B variant report and the render and locale problem report (render failures by `failure_reason`, fallbacks to the tenant default locale as `template_locale_missing`), each for UTC days `from` to `to` (exclusive, at most 92 days) of the caller's tenant environment. They are read from the rollups on the report pool; test sends are their own rows and the test environment its own scope. Counts are exact; rates are left to the reader, so they are never rounded twice.
   """
 
   @type answer :: {:ok, {100..599, [{String.t(), String.t()}], map()}} | {:error, Relay.Error.t()}
+  @type kind :: :deliveries | :skips | :costs | :variants | :render_problems
 
   @max_days 92
   @counters ~w(accepted enqueued dispatched provider_accepted delivered engaged sdk_receipts
                skipped failed uncertain expired cancelled duplicate_delivered conflicts
                human_clicks bot_clicks opens machine_opens)
-  @objects %{deliveries: "delivery_report", skips: "skip_report", costs: "cost_report"}
+  @objects %{
+    deliveries: "delivery_report",
+    skips: "skip_report",
+    costs: "cost_report",
+    variants: "variant_report",
+    render_problems: "render_problem_report"
+  }
 
   # DS-35
   @doc "Reads the `from` and `to` query parameters of a report."
@@ -29,8 +36,11 @@ defmodule Relay.Api.Reports do
 
   # DS-35
   # TN-18
+  # WF-50
+  # TP-26
+  # TP-41
   @doc "Answers a report of the caller's scope."
-  @spec get(Relay.Scope.t(), :deliveries | :skips | :costs, {Date.t(), Date.t()}) :: answer()
+  @spec get(Relay.Scope.t(), kind(), {Date.t(), Date.t()}) :: answer()
   def get(scope, kind, {from, to}) do
     case Relay.Delivery.report(scope, kind, from, to) do
       {:ok, rows} ->
@@ -49,7 +59,7 @@ defmodule Relay.Api.Reports do
   end
 
   @doc "The API view of one report row."
-  @spec row(:deliveries | :skips | :costs, map()) :: map()
+  @spec row(kind(), map()) :: map()
   def row(:deliveries, r) do
     r
     |> Map.take(@counters)
@@ -91,6 +101,36 @@ defmodule Relay.Api.Reports do
       "voice_seconds" => r["voice_seconds"],
       "cost_micros" => r["cost_micros"] && Integer.to_string(r["cost_micros"]),
       "currency" => r["currency"]
+    }
+  end
+
+  def row(:variants, r) do
+    %{
+      "day" => Date.to_iso8601(r["report_day"]),
+      "workflow" => r["workflow_key"],
+      "step" => r["step_key"],
+      "variant" => r["variant"],
+      "channel" => r["channel"],
+      "is_test" => r["is_test"],
+      "accepted" => r["accepted"],
+      "sent" => r["sent"],
+      "delivered" => r["delivered"],
+      "seen" => r["seen"],
+      "human_clicks" => r["human_clicks"],
+      "bot_clicks" => r["bot_clicks"],
+      "recomputed_at" => r["recomputed_at"]
+    }
+  end
+
+  def row(:render_problems, r) do
+    %{
+      "day" => r["report_day"] |> DateTime.to_date() |> Date.to_iso8601(),
+      "channel" => r["channel"],
+      "template" => r["template"],
+      "is_test" => r["is_test"],
+      "problem" => r["problem"],
+      "reason" => r["reason"],
+      "deliveries" => r["deliveries"]
     }
   end
 

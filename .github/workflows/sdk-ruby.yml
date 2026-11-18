@@ -1,0 +1,168 @@
+name: sdk-ruby
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "sdks/ruby/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - "conformance/webhooks/**"
+      - ".github/workflows/sdk-ruby.yml"
+  pull_request:
+    paths:
+      - "sdks/ruby/**"
+      - "contracts/**"
+      - "conformance/sdk/**"
+      - "conformance/webhooks/**"
+      - ".github/workflows/sdk-ruby.yml"
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-ruby-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: sdks/ruby
+
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: 4.0.9
+          bundler: none
+          working-directory: sdks/ruby
+      # X-53
+      - id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request) base="$PR_BASE"; range="$base...HEAD" ;;
+            push) base="$BEFORE"; range="$base HEAD" ;;
+            *) base="" ;;
+          esac
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            echo "own=true" >> "$GITHUB_OUTPUT"
+          elif git diff --name-only $range -- . ../../.github/workflows/sdk-ruby.yml | grep -q .; then
+            echo "own=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Only shared inputs changed; the bot pull request of sdk-regenerate carries the regenerated code"
+          fi
+      - run: ./regenerate.sh
+      - id: diff
+        run: |
+          if [ -n "$(git status --porcelain -- lib/esuiss/relay/generated)" ]; then
+            git status --porcelain -- lib/esuiss/relay/generated
+            git diff --stat -- lib/esuiss/relay/generated
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-ruby-generated
+          path: sdks/ruby/lib/esuiss/relay/generated
+      - if: steps.diff.outputs.changed == 'true' && steps.scope.outputs.own == 'true'
+        run: |
+          echo "Generated code differs from contracts/openapi/server.yaml; run sdks/ruby/regenerate.sh"
+          exit 1
+
+  lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: 4.0.9
+          working-directory: sdks/ruby
+      - run: bundle lock --add-checksums
+      - run: bundle lock --add-checksums
+        env:
+          BUNDLE_GEMFILE: lint/Gemfile
+      - id: diff
+        run: |
+          if [ -n "$(git status --porcelain -- Gemfile.lock lint/Gemfile.lock)" ]; then
+            git status --porcelain -- Gemfile.lock lint/Gemfile.lock
+            git diff -- Gemfile.lock lint/Gemfile.lock
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.diff.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sdk-ruby-lockfiles
+          path: |
+            sdks/ruby/Gemfile.lock
+            sdks/ruby/lint/Gemfile.lock
+      - if: steps.diff.outputs.changed == 'true'
+        run: |
+          echo "Gemfile.lock or lint/Gemfile.lock does not match its Gemfile"
+          exit 1
+
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      BUNDLE_GEMFILE: lint/Gemfile
+      BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: 4.0.9
+          working-directory: sdks/ruby
+      - run: bundle install
+      - run: bundle exec rubocop --format github --format progress
+      - run: ruby -wc codegen/generate.rb
+
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["4.0.9", "3.2.11"]
+    env:
+      BUNDLE_FROZEN: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          working-directory: sdks/ruby
+      - run: bundle install
+      - run: bundle exec rake test
+      - run: gem build esuiss-relay.gemspec
+
+  live:
+    if: github.event_name == 'schedule' && vars.RELAY_SDK_LIVE_BASE_URL != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      BUNDLE_FROZEN: "true"
+      RELAY_SDK_LIVE_BASE_URL: ${{ vars.RELAY_SDK_LIVE_BASE_URL }}
+      RELAY_SDK_LIVE_ISSUER: ${{ vars.RELAY_SDK_LIVE_ISSUER }}
+      RELAY_SDK_LIVE_CLIENT_ID: ${{ vars.RELAY_SDK_LIVE_CLIENT_ID }}
+      RELAY_SDK_LIVE_CLIENT_SECRET: ${{ secrets.RELAY_SDK_LIVE_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: 4.0.9
+          working-directory: sdks/ruby
+      - run: bundle install
+      - run: bundle exec ruby -Ilib live/smoke.rb

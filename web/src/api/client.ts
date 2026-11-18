@@ -14,6 +14,8 @@ export interface RequestOptions {
   query?: Record<string, QueryValue>;
   body?: unknown;
   idempotencyKey?: string;
+  ifMatch?: string;
+  accept?: string;
   signal?: AbortSignal;
   context?: RequestContext;
 }
@@ -61,9 +63,11 @@ export function buildHeaders(
   context: RequestContext | undefined,
   hasBody: boolean,
   key: string | undefined,
+  extra: { ifMatch?: string; accept?: string } = {},
 ): Headers {
-  const headers = new Headers({ accept: "application/json" });
+  const headers = new Headers({ accept: extra.accept ?? "application/json" });
   if (hasBody) headers.set("content-type", "application/json");
+  if (extra.ifMatch !== undefined) headers.set("if-match", extra.ifMatch);
   if (context?.tenant) headers.set("relay-tenant", context.tenant);
   if (context?.environment)
     headers.set("relay-environment", context.environment);
@@ -99,6 +103,10 @@ export async function request<T>(
       options.context,
       hasBody,
       options.idempotencyKey,
+      {
+        ...(options.ifMatch === undefined ? {} : { ifMatch: options.ifMatch }),
+        ...(options.accept === undefined ? {} : { accept: options.accept }),
+      },
     ),
   };
   if (hasBody) init.body = JSON.stringify(options.body);
@@ -108,7 +116,14 @@ export async function request<T>(
   if (!response.ok)
     throw new ApiError(response.status, await readProblem(response));
   if (response.status === 204) return undefined as T;
+  if ((response.headers.get("content-type") ?? "").startsWith("text/plain"))
+    return (await response.text()) as T;
   return (await response.json()) as T;
+}
+
+/** The ETag value of an optimistic concurrency version, for If-Match. */
+export function etag(version: number): string {
+  return `"${version}"`;
 }
 
 export const loginPath = "/v1/operator/session/login";

@@ -1,0 +1,39 @@
+{
+    "name": "esuiss/relay",
+    "description": "PHP server SDK for Relay, the notification, messaging and event orchestration platform of Suiss.",
+    "type": "library",
+    "license": "Apache-2.0",
+    "keywords": ["relay", "suiss", "notifications", "webhooks", "sdk"],
+    "require": {
+        "php": ">=8.2",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-sodium": "*"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "3.95.29",
+        "phpstan/phpstan": "2.3.5",
+        "phpunit/phpunit": "11.5.57",
+        "symfony/yaml": "7.4.23"
+    },
+    "autoload": {
+        "psr-4": {
+            "Esuiss\\Relay\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Esuiss\\Relay\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "platform": {
+            "php": "8.2.0"
+        },
+        "sort-packages": true,
+        "allow-plugins": {},
+        "audit": {
+            "abandoned": "fail"
+        }
+    }
+}

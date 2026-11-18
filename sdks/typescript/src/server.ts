@@ -62,7 +62,7 @@ export class RelayServerClient {
     return invoke<ServerResult<K>>(
       this.transport,
       serverOperations[operation],
-      (args[0] ?? {}) as unknown as LooseArgs,
+      ((args[0] as unknown) ?? {}) as LooseArgs,
     );
   }
 
@@ -74,7 +74,7 @@ export class RelayServerClient {
     return paginate<ServerListItem<K>>(
       this.transport,
       serverOperations[operation],
-      (args[0] ?? {}) as unknown as LooseArgs,
+      ((args[0] as unknown) ?? {}) as LooseArgs,
     );
   }
 }

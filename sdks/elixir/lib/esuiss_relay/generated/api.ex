@@ -1323,6 +1323,21 @@ defmodule EsuissRelay.Api do
         opts
       )
 
+  @doc "List the test inbox.\n\n`GET /v1/test/inbox`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
+  @spec list_test_inbox_messages(Client.t(), keyword()) :: Client.result()
+  def list_test_inbox_messages(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:list_test_inbox_messages), [], nil, opts)
+
+  @doc "List the seed recipients of the test plane.\n\n`GET /v1/test/seed-recipients`"
+  @spec list_seed_recipients(Client.t(), keyword()) :: Client.result()
+  def list_seed_recipients(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:list_seed_recipients), [], nil, opts)
+
+  @doc "Reset the seed recipients of the test plane.\n\n`POST /v1/test/seed-recipients/reset`"
+  @spec reset_seed_recipients(Client.t(), keyword()) :: Client.result()
+  def reset_seed_recipients(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:reset_seed_recipients), [], nil, opts)
+
   @doc "List the simulated results of the fake provider.\n\n`GET /v1/test/simulated-results`"
   @spec list_simulated_results(Client.t(), keyword()) :: Client.result()
   def list_simulated_results(client, opts \\ []),

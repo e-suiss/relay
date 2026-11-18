@@ -4,10 +4,11 @@ defmodule Relay.Api.Previews do
 
   Sample data is the request's `data`, or one of the sample sources in priority order: the schema's first example, the newest of the last 20 accepted events of the workflow within 7 days masked at preview time and never stored (events whose content is not kept are left out), and the `max` boundary sample. A source that has no data is `preview_sample_unavailable`.
 
-  A render carries the channel's rendered fields, the measures, and for SMS the planned encoding with its counterpart on a provider not verified for the Turkish single shift (every provider until the provider catalogue, TP-53), the segments and the characters; a missing variable is `failure_reason: missing_variable` with a `missing_variable` warning. Rendered HTML is data in a JSON response that forbids every active content (`Content-Security-Policy: sandbox`); only the console's sandboxed preview origin displays it (TP-39).
+  A render carries the channel's rendered fields, the measures, and for SMS the planned encoding with its counterpart on a provider not verified for the Turkish single shift (every provider until the provider catalogue, TP-53), the segments and the characters; a missing variable is `failure_reason: missing_variable` with a `missing_variable` warning. Rendered HTML is data in a JSON response that forbids every active content (`Content-Security-Policy: sandbox`); it is displayed only on the sandboxed preview origin (`Relay.Api.PreviewSandbox`), whose link each e-mail render carries as `sandbox_url`. The HTML of a `raw_html` cell or of a template that allows `| raw` is left out of the JSON answer altogether and reaches a browser only through that link (TP-24, TP-39).
   """
 
   alias Relay.Api.Gate
+  alias Relay.Api.PreviewSandbox
   alias Relay.Api.Templates
   alias Relay.TemplateStore
 
@@ -44,7 +45,7 @@ defmodule Relay.Api.Previews do
         "template_key" => at.key,
         "version" => read.label,
         "sample" => sample,
-        "renders" => Enum.map(channels, &render(read, &1, locale, data))
+        "renders" => Enum.map(channels, &public(render(read, &1, locale, data)))
       }
 
       {:ok, {200, @headers, preview}}
@@ -57,7 +58,7 @@ defmodule Relay.Api.Previews do
         with {:ok, t} <- Templates.found(at),
              {:ok, label, v} <- pick(t, body["version"]),
              {:ok, schema} <- schema(body["workflow"]) do
-          {:ok, context(at, t, v, label, schema)}
+          {:ok, Map.put(context(at, t, v, label, schema), :scope, scope)}
         end
       end)
 
@@ -254,11 +255,51 @@ defmodule Relay.Api.Previews do
         channel
         |> Relay.Templates.render_preview(cell, options(read, resolution.locale, data, html))
         |> answer(base)
+        |> sandboxed(read, channel, cell)
 
       {:error, error} ->
         warning = %{"code" => "mjml_compile", "message" => error.message}
         Map.merge(base, failed("schema_violation", [warning]))
     end
+  end
+
+  # TP-24
+  # TP-39
+  defp sandboxed(%{"content" => %{"html" => html} = content} = render, read, :email, cell)
+       when is_binary(html) do
+    raw = cell["html_kind"] == "raw_html" or read.definition["allow_raw"] == true
+    content = if raw, do: Map.put(content, "html", nil), else: content
+    digest = Base.encode16(:crypto.hash(:sha256, html), case: :lower)
+    render = render |> Map.put("content", content) |> Map.put(:html_digest, digest)
+
+    case PreviewSandbox.put(read.scope, html) do
+      {:ok, url} -> Map.put(render, "sandbox_url", url)
+      :unconfigured -> sandbox_warning(render, raw, "sandbox_unconfigured")
+      {:error, _error} -> sandbox_warning(render, true, "sandbox_unavailable")
+    end
+  end
+
+  defp sandboxed(render, _read, _channel, _cell), do: render
+
+  defp public(render), do: Map.delete(render, :html_digest)
+
+  defp digests(preview, true), do: preview
+
+  defp digests(preview, false) do
+    Map.update!(preview, "steps", fn steps -> Enum.map(steps, &public_step/1) end)
+  end
+
+  defp public_step(%{"render" => %{} = render} = step), do: %{step | "render" => public(render)}
+  defp public_step(step), do: step
+
+  defp sandbox_warning(render, false, _code), do: Map.put(render, "sandbox_url", nil)
+
+  defp sandbox_warning(render, true, code) do
+    warning = %{"code" => code, "message" => "the HTML is shown only on the preview origin"}
+
+    render
+    |> Map.put("sandbox_url", nil)
+    |> Map.update!("warnings", &(&1 ++ [warning]))
   end
 
   defp compiled(:email, %{"html_kind" => "raw_html"}), do: {:ok, nil}
@@ -361,9 +402,9 @@ defmodule Relay.Api.Previews do
   end
 
   # API-60
-  @doc "Previews a workflow version step by step with sample or given data, for a given subscriber or a recipient with no preferences."
-  @spec workflow(Relay.Scope.t(), String.t(), map(), Relay.Id.t() | nil) :: answer()
-  def workflow(scope, key, body, subtenant_id) do
+  @doc "Previews a workflow version step by step with sample or given data, for a given subscriber or a recipient with no preferences. With `html_digests: true` each e-mail render that has HTML also carries `:html_digest`, the SHA-256 of that HTML, for a caller that must notice a change of the HTML the answer leaves out (WF-62); it is never part of an HTTP answer."
+  @spec workflow(Relay.Scope.t(), String.t(), map(), Relay.Id.t() | nil, keyword()) :: answer()
+  def workflow(scope, key, body, subtenant_id, opts \\ []) do
     with {:ok, wf} <- read_workflow(scope, key, body["version"]),
          {:ok, locale} <- locale(body["locale"]),
          {:ok, recipient_locale} <- recipient(scope, body["to"]),
@@ -379,7 +420,7 @@ defmodule Relay.Api.Previews do
         "steps" => Enum.map(steps, &step(&1, wf.schema, locale, data))
       }
 
-      {:ok, {200, @headers, preview}}
+      {:ok, {200, @headers, digests(preview, Keyword.get(opts, :html_digests, false))}}
     end
   end
 
@@ -442,7 +483,7 @@ defmodule Relay.Api.Previews do
 
         for step <- steps do
           row = Map.get(live, step.template, %{})
-          {step, row, live_read(row, subtenant_id, facts)}
+          {step, row, live_read(row, subtenant_id, facts, scope)}
         end
       end)
 
@@ -452,15 +493,16 @@ defmodule Relay.Api.Previews do
     end
   end
 
-  defp live_read(%{"template_version_id" => nil}, _subtenant_id, _facts), do: nil
-  defp live_read(row, _subtenant_id, _facts) when row == %{}, do: nil
+  defp live_read(%{"template_version_id" => nil}, _subtenant_id, _facts, _scope), do: nil
+  defp live_read(row, _subtenant_id, _facts, _scope) when row == %{}, do: nil
 
-  defp live_read(row, subtenant_id, facts) do
+  defp live_read(row, subtenant_id, facts, scope) do
     v = TemplateStore.template_version(row["template_id"], row["version_no"])
 
     %{
       label: "live",
       definition: Templates.definition(v),
+      scope: scope,
       message_class: row["message_class"],
       facts: facts,
       brand: brand(subtenant_id, v["id"])

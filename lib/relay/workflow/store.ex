@@ -277,6 +277,30 @@ defmodule Relay.Workflow.Store do
     )
   end
 
+  # WF-14
+  # X-10
+  @doc "The versions of the active workflows, the published one, the draft and a pending publication, whose channel steps name the route key: each with its `key`, `state`, `version_no` and the step keys, in workflow key order."
+  @spec using_route(String.t()) :: [map()]
+  def using_route(route_key) do
+    sql = """
+    SELECT w.key, v.state, v.version_no,
+      jsonb_path_query_array(v.definition -> 'steps',
+        '$.** ? (@.type == "channel" && @.route == $r)."key"',
+        jsonb_build_object('r', $1::text)) AS steps
+    FROM relay.workflows w
+    JOIN relay.workflow_versions v ON v.tenant_id = w.tenant_id
+      AND v.environment = w.environment AND v.workflow_id = w.id
+    WHERE w.state = 'active'
+      AND (v.id = w.published_version_id OR v.state IN ('draft', 'pending'))
+      AND jsonb_path_exists(v.definition -> 'steps',
+        '$.** ? (@.type == "channel" && @.route == $r)', jsonb_build_object('r', $1::text))
+    ORDER BY w.key, v.state DESC
+    """
+
+    for row <- maps(Repo.scoped_query!(sql, [route_key])),
+        do: Map.update!(row, "steps", &Enum.uniq/1)
+  end
+
   defp one(sql, params) do
     case maps(Repo.scoped_query!(sql, params)) do
       [row] -> row

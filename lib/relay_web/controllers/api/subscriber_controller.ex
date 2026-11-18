@@ -29,6 +29,14 @@ defmodule RelayWeb.Api.SubscriberController do
     end
   end
 
+  # X-12
+  # X-5
+  @spec lookup(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def lookup(conn, _params) do
+    %{scope: scope, body: body} = conn.assigns
+    Work.answer(conn, Subscribers.lookup(scope, body))
+  end
+
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"subscriber_id" => external_id}) do
     result =

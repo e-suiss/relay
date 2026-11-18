@@ -64,6 +64,20 @@ defmodule Relay.Workflow.RouteStore do
     end
   end
 
+  # WF-14
+  # X-10
+  @doc "The keys of the active categories that name a route as their default route, in key order."
+  @spec categories_using(String.t()) :: [String.t()]
+  def categories_using(key) do
+    sql = """
+    SELECT c.key FROM relay.categories c
+    WHERE c.default_route = $1 AND c.state = 'active'
+    ORDER BY c.key
+    """
+
+    for row <- maps(Repo.scoped_query!(sql, [key])), do: row["key"]
+  end
+
   # API-56
   @doc "Lists routes newest first, after or before a cursor position."
   @spec list(map() | nil, pos_integer()) :: [map()]

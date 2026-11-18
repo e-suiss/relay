@@ -1,0 +1,70 @@
+name: sdk-php-release
+
+on:
+  push:
+    tags:
+      - "sdk-php-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-php-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: packagist
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.2"
+          extensions: curl, sodium
+          coverage: none
+          tools: composer:2.11.1
+      - working-directory: sdks/php
+        run: |
+          ./regenerate.sh
+          git add -N src/Generated
+          git diff --exit-code -- src/Generated
+          vendor/bin/phpunit --testsuite unit
+      - id: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#sdk-php-v}"
+          grep -q "public const SDK = '$version';" sdks/php/src/Version.php || {
+            echo "::error::the tag $TAG does not match Version::SDK"
+            exit 1
+          }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - env:
+          MIRROR_KEY: ${{ secrets.RELAY_PHP_MIRROR_DEPLOY_KEY }}
+          MIRROR: ${{ vars.RELAY_PHP_MIRROR_REPOSITORY }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$MIRROR_KEY" > ~/.ssh/mirror
+          chmod 600 ~/.ssh/mirror
+          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/mirror -o IdentitiesOnly=yes"
+          git subtree split --prefix sdks/php -b php-split
+          git push "git@github.com:$MIRROR.git" php-split:main
+          git tag "v$VERSION" php-split
+          git push "git@github.com:$MIRROR.git" "v$VERSION"
+      - env:
+          PACKAGIST_USERNAME: ${{ vars.PACKAGIST_USERNAME }}
+          PACKAGIST_TOKEN: ${{ secrets.PACKAGIST_TOKEN }}
+          MIRROR: ${{ vars.RELAY_PHP_MIRROR_REPOSITORY }}
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Content-Type: application/json" \
+            --oauth2-bearer "$PACKAGIST_USERNAME:$PACKAGIST_TOKEN" \
+            --data "{\"repository\":{\"url\":\"https://github.com/$MIRROR\"}}" \
+            https://packagist.org/api/update-package

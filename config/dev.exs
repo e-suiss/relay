@@ -30,6 +30,8 @@ config :relay, RelayWeb.Api, trusted_proxies: ["172.16.0.0/12", "192.168.65.0/24
 
 config :relay, RelayWeb.Metrics, server: true, ip: {127, 0, 0, 1}, port: 9568
 
+config :relay, Relay.Api.PreviewSandbox, host: "preview.localhost"
+
 config :relay, Relay.NetworkGuard, enabled: true
 
 config :relay, Relay.Access,

@@ -10,6 +10,7 @@ defmodule Relay.Api do
       Relay.Platform,
       Relay.Ingest,
       Relay.Tenancy,
+      Relay.Tenancy.Provisioning,
       Relay.Tenancy.KillSwitch,
       Relay.Workflow,
       Relay.Subscribers,
@@ -77,6 +78,7 @@ defmodule Relay.Api do
       DeliveryWindows,
       ComplianceSettings,
       Previews,
+      PreviewSandbox,
       Discovery,
       WhatsappTemplates,
       WhatsappWebhooks,
@@ -86,6 +88,7 @@ defmodule Relay.Api do
       ChannelConsole,
       Takedowns,
       TestSends,
+      TestPlane,
       ProviderInvoices,
       Reports,
       Exports,
@@ -120,6 +123,8 @@ defmodule Relay.Api do
       Mcp,
       OpaqueStreams,
       Waitpoints,
-      WaitpointResponses
+      WaitpointResponses,
+      Rules,
+      Settings
     ]
 end

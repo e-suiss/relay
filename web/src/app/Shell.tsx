@@ -2,6 +2,7 @@ import { useId, type ReactNode } from "react";
 import { locales, useI18n, type Locale } from "../i18n/i18n";
 import { useSession } from "../session/session";
 import { themes, useTheme, type Theme } from "../theme/theme";
+import { ActiveKillSwitches } from "../pages/governance/KillSwitches";
 import { ContextBar } from "./ContextBar";
 import { Link, useRouter } from "./router";
 import { navigation, type NavGroup, type NavItem } from "./routes";
@@ -109,6 +110,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <p className="brand">{t("app.title")}</p>
         <ContextBar />
         <Tools />
+        <ActiveKillSwitches />
       </header>
       <nav className="shell-nav" aria-label={t("nav.label")}>
         {groups.map((group) => {

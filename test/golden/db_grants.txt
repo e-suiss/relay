@@ -294,6 +294,14 @@ table relay.first_contact_tokens relay_report SELECT
 table relay.idempotency_keys relay_archive SELECT
 table relay.idempotency_keys relay_maint SELECT
 table relay.idempotency_keys relay_owner INSERT,SELECT,UPDATE
+table relay.import_records relay_app SELECT
+table relay.import_records relay_archive SELECT
+table relay.import_records relay_maint SELECT
+table relay.import_records relay_owner INSERT,SELECT,UPDATE
+table relay.imports relay_app SELECT
+table relay.imports relay_archive SELECT
+table relay.imports relay_maint SELECT
+table relay.imports relay_owner INSERT,SELECT,UPDATE
 table relay.inbox_announcement_states relay_app SELECT
 table relay.inbox_announcement_states relay_archive SELECT
 table relay.inbox_announcement_states relay_maint SELECT

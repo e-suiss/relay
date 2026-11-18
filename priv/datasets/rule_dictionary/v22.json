@@ -1,5 +1,5 @@
 {
-  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; CH-54; TN-52; E-33; OP-24; TN-60; PC-40; PC-27; PC-33; PC-47; AG-17; AG-19; AG-63; INV-35; AG-48; AG-49; AG-50; AG-11; AG-28; AG-62; OP-95; OP-54",
+  "source_ref": "DS-47; DS-25; TP-51; CH-14; CH-72; CH-48; CH-50; CH-51; CH-57; CH-58; CH-61; CH-52; CH-87; WF-53; WF-14; WF-15; WF-21; PC-10; WF-61; WF-27; WF-30; WF-32; WF-35; PC-46; WF-8; WF-13; WF-37; WF-59; WF-52; WF-34; WF-44; WF-62; X-14; WF-56; IN-40; CH-54; TN-52; E-33; OP-24; TN-60; PC-40; PC-27; PC-33; PC-47; AG-17; AG-19; AG-63; INV-35; AG-48; AG-49; AG-50; AG-11; AG-28; AG-62; OP-97",
   "rules": [
     {
       "id": "admission.aimd.l2",
@@ -773,18 +773,6 @@
       "description": {
         "en": "Not sent because the same content went to the recipient on this channel a short while ago.",
         "tr": "Aynı içerik kısa süre önce bu kanaldan alıcıya gittiği için gönderilmedi."
-      }
-    },
-    {
-      "id": "dedup.claimed_by_legacy",
-      "reason": "dedup_claimed",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "OP-54",
-      "detail": [],
-      "description": {
-        "en": "Not sent because the system being replaced already claimed this notification's dedup key and sends it itself.",
-        "tr": "Yerine geçilen sistem bu bildirimin tekilleştirme anahtarını zaten talep ettiği ve bildirimi kendisi gönderdiği için gönderilmedi."
       }
     },
     {
@@ -1644,6 +1632,21 @@
       }
     },
     {
+      "id": "recurrence.handoff_dry_run",
+      "reason": "recurrence_handoff_dry_run",
+      "kind": "shaper",
+      "outcome": "skip",
+      "decision": "OP-97",
+      "detail": [
+        "recurrence_id",
+        "occurrence_at"
+      ],
+      "description": {
+        "en": "Not sent because this is the first occurrence after the schedule was handed over from another system; it ran as a supervised dry run and the next occurrences are sent.",
+        "tr": "Zamanlama başka bir sistemden devralındıktan sonraki ilk tekrar olduğu için gönderilmedi; gözetimli deneme olarak çalıştı, sonraki tekrarlar gönderilir."
+      }
+    },
+    {
       "id": "recurrence.missed",
       "reason": "recurrence_missed",
       "kind": "shaper",
@@ -1756,18 +1759,6 @@
       "description": {
         "en": "Not retried because the outcome of the last attempt is unknown.",
         "tr": "Son denemenin sonucu bilinmediği için yeniden denenmedi."
-      }
-    },
-    {
-      "id": "rollout.routed_to_legacy",
-      "reason": "routed_to_legacy",
-      "kind": "gate",
-      "outcome": "skip",
-      "decision": "OP-95",
-      "detail": [],
-      "description": {
-        "en": "Not sent by Relay because the staged rollout routes this recipient to the system being replaced.",
-        "tr": "Kademeli yayılım bu alıcıyı yerine geçilen sisteme yönlendirdiği için Relay tarafından gönderilmedi."
       }
     },
     {

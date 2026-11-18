@@ -8,6 +8,12 @@ defmodule Relay.Repo.Migrations.RebuildReferenceCheckForShadowComparisons do
      "tenant_id,environment,recipient_id", "recipients", "tenant_id,environment,id"},
     {"shadow_keys", "shadow_keys_wrapping_key_id_fkey", "tenant_id,environment,wrapping_key_id",
      "tenant_keys", "tenant_id,environment,id"},
+    {"imports", "imports_content_key_id_fkey", "tenant_id,environment,content_key_id",
+     "tenant_keys", "tenant_id,environment,id"},
+    {"import_records", "import_records_import_id_fkey", "tenant_id,environment,import_id",
+     "imports", "tenant_id,environment,id"},
+    {"import_records", "import_records_recipient_id_fkey", "tenant_id,environment,recipient_id",
+     "recipients", "tenant_id,environment,id"},
     {"kill_switch_effects", "kill_switch_effects_kill_switch_id_fkey",
      "tenant_id,environment,kill_switch_id", "kill_switches", "tenant_id,environment,id"},
     {"agent_task_notifications", "agent_task_notifications_receipt_id_fkey",
@@ -512,6 +518,7 @@ defmodule Relay.Repo.Migrations.RebuildReferenceCheckForShadowComparisons do
   # TN-12
   # TN-16
   # TN-44
+  # OP-96
   # OP-94
   def up do
     execute("DROP FUNCTION relay_ops.reference_check()")

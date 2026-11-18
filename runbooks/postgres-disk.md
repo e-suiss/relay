@@ -1,12 +1,13 @@
 ---
 id: postgres-disk
+kind: alert
 severity: SEV2
 channels: [all]
-tenant_scope: installation
+tenant_scope: all
 alerts: [RelayPostgresDiskHigh, RelayPostgresDiskCritical]
 last_tested: 2026-11-18
 tested_by: none
-automation: 0
+automation: 1
 eta_minutes: 30
 reversible: true
 ---
@@ -26,17 +27,19 @@ None yet at 70%. A full volume stops every write: the API answers `503`, no job 
 Find what grows: WAL kept for a slot or for failed archiving, a table or its indexes, or temporary files.
 
 ```sh
-psql "$ADMIN_DATABASE_URL" -c "SELECT slot_name, active, wal_status, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS kept FROM pg_replication_slots"
-psql "$ADMIN_DATABASE_URL" -c "SELECT last_failed_wal, last_failed_time, last_archived_time FROM pg_stat_archiver"
-psql "$ADMIN_DATABASE_URL" -c "SELECT n.nspname, c.relname, pg_size_pretty(pg_total_relation_size(c.oid)) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('r', 'p') ORDER BY pg_total_relation_size(c.oid) DESC LIMIT 15"
+psql "$MAINT_DATABASE_URL" -c "SELECT slot_name, active, wal_status, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS kept FROM pg_replication_slots"
+psql "$MAINT_DATABASE_URL" -c "SELECT last_failed_wal, last_failed_time, last_archived_time FROM pg_stat_archiver"
+psql "$MAINT_DATABASE_URL" -c "SELECT n.nspname, c.relname, pg_size_pretty(pg_total_relation_size(c.oid)) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('r', 'p') ORDER BY pg_total_relation_size(c.oid) DESC LIMIT 15"
 ```
 
 ## Decision tree
 
+```text
 1. A slot keeps most of the WAL: follow `postgres-replication-slot`.
 2. The archiver fails and WAL piles up: follow `postgres-archiver`.
 3. A table grew past its plan: check that partition detach runs (`RelayPartitionHorizon`, partition maintenance task) and that dead rows are vacuumed (`postgres-vacuum`).
 4. Growth is real data: grow the volume.
+```
 
 ## Mitigation
 

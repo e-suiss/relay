@@ -1,12 +1,13 @@
 ---
 id: postgres-xid-age
+kind: alert
 severity: SEV2
 channels: [all]
-tenant_scope: installation
+tenant_scope: all
 alerts: [RelayPostgresXidAge, RelayPostgresXidAgeCritical]
 last_tested: 2026-11-18
 tested_by: none
-automation: 0
+automation: 1
 eta_minutes: 60
 reversible: true
 ---
@@ -24,23 +25,25 @@ Nothing yet. Near two billion PostgreSQL stops accepting writes to prevent wrapa
 ## Diagnosis
 
 ```sh
-psql "$ADMIN_DATABASE_URL" -c "SELECT datname, age(datfrozenxid) FROM pg_database ORDER BY 2 DESC"
-psql "$ADMIN_DATABASE_URL" -c "SELECT c.oid::regclass, age(c.relfrozenxid) FROM pg_class c WHERE c.relkind IN ('r', 't', 'm') ORDER BY 2 DESC LIMIT 10"
-psql "$ADMIN_DATABASE_URL" -c "SELECT slot_name, xmin, catalog_xmin FROM pg_replication_slots"
+psql "$MAINT_DATABASE_URL" -c "SELECT datname, age(datfrozenxid) FROM pg_database ORDER BY 2 DESC"
+psql "$MAINT_DATABASE_URL" -c "SELECT c.oid::regclass, age(c.relfrozenxid) FROM pg_class c WHERE c.relkind IN ('r', 't', 'm') ORDER BY 2 DESC LIMIT 10"
+psql "$MAINT_DATABASE_URL" -c "SELECT slot_name, xmin, catalog_xmin FROM pg_replication_slots"
 ```
 
 ## Decision tree
 
+```text
 1. A long open transaction or a prepared transaction holds the horizon: follow `postgres-long-transaction`.
 2. A slot with an old `xmin` holds it: follow `postgres-replication-slot`.
 3. Autovacuum cannot keep up on the oldest tables: run a manual freeze on them.
+```
 
 ## Mitigation
 
 Freeze the oldest table found above, one at a time:
 
 ```sh state-changing
-psql "$ADMIN_DATABASE_URL" -c "VACUUM (FREEZE, VERBOSE) $TABLE"
+psql "$PG_ADMIN_URL" -c "VACUUM (FREEZE, VERBOSE) $TABLE"
 ```
 
 ## Fix and escalation

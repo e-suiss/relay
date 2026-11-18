@@ -2,9 +2,6 @@ defmodule RelayWeb.MetricsTest do
   use RelayWeb.ConnCase, async: false
 
   @rules "deploy/observability/alerts.yaml"
-  @runbooks "deploy/observability/runbooks.md"
-  @runbook_base "https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#"
-  @runbook_files "runbooks/"
   @exporter_queries "deploy/helm/relay/files/postgres-exporter-queries.yaml"
   @platform_metrics ~w(kubelet_volume_stats_available_bytes node_filesystem_avail_bytes
                        container_memory_working_set_bytes)
@@ -80,18 +77,6 @@ defmodule RelayWeb.MetricsTest do
         do: "#{query}_#{column}"
   end
 
-  defp assert_runbook(@runbook_base <> anchor, alert, runbooks) do
-    assert anchor == String.downcase(alert), alert
-    assert runbooks =~ ~r/^## #{alert}$/m, alert
-  end
-
-  defp assert_runbook(@runbook_files <> file, alert, _runbooks) do
-    content = File.read!(Path.join("runbooks", file))
-    [_, front] = Regex.run(~r/\A---\n(.*?)\n---\n/s, content)
-    {:ok, meta} = YamlElixir.read_from_string(front)
-    assert alert in meta["alerts"], alert
-  end
-
   describe "OP-69 alarms" do
     test "OP-69: every alarm metric has an alert rule" do
       names = Enum.map(RelayWeb.Telemetry.alarm_metrics(), &prometheus_name/1)
@@ -105,7 +90,6 @@ defmodule RelayWeb.MetricsTest do
       recorded = for rule <- rules(), rule["record"], uniq: true, do: rule["record"]
       names = exported ++ recorded ++ @reconciliation ++ exporter_metrics() ++ @platform_metrics
       names = names ++ ["ALERTS"]
-      runbooks = File.read!(@runbooks)
 
       assert length(exported) == length(Enum.uniq(exported))
 
@@ -113,7 +97,8 @@ defmodule RelayWeb.MetricsTest do
         assert Enum.any?(names, &(rule["expr"] =~ ~r/\b#{Regex.escape(&1)}(_bucket)?\b/)), alert
         assert rule["labels"]["severity"] in ["page", "warning", "ticket"], alert
         assert rule["labels"]["decision"] =~ ~r/^[A-Z]+-\d+$/, alert
-        assert_runbook(rule["annotations"]["runbook_url"], alert, runbooks)
+        assert "runbooks/" <> _ = url = rule["annotations"]["runbook_url"]
+        assert File.regular?(url), alert
       end
     end
 

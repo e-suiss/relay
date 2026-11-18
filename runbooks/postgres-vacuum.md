@@ -1,12 +1,13 @@
 ---
 id: postgres-vacuum
+kind: alert
 severity: SEV3
 channels: [all]
-tenant_scope: installation
+tenant_scope: all
 alerts: [RelayPostgresDeadTuples]
 last_tested: 2026-11-18
 tested_by: none
-automation: 0
+automation: 1
 eta_minutes: 30
 reversible: true
 ---
@@ -24,20 +25,22 @@ Scans of the table slow down: the job queue and the hot ledger leaves are the mo
 ## Diagnosis
 
 ```sh
-psql "$ADMIN_DATABASE_URL" -c "SELECT schemaname, relname, n_live_tup, n_dead_tup, last_autovacuum, last_vacuum FROM pg_stat_user_tables ORDER BY n_dead_tup DESC LIMIT 10"
-psql "$ADMIN_DATABASE_URL" -c "SELECT pid, relid::regclass, phase, heap_blks_scanned, heap_blks_total FROM pg_stat_progress_vacuum"
+psql "$MAINT_DATABASE_URL" -c "SELECT schemaname, relname, n_live_tup, n_dead_tup, last_autovacuum, last_vacuum FROM pg_stat_user_tables ORDER BY n_dead_tup DESC LIMIT 10"
+psql "$MAINT_DATABASE_URL" -c "SELECT pid, relid::regclass, phase, heap_blks_scanned, heap_blks_total FROM pg_stat_progress_vacuum"
 ```
 
 ## Decision tree
 
+```text
 1. A long transaction holds back vacuum: follow `postgres-long-transaction`.
 2. Autovacuum runs but cannot keep up: vacuum the table now and tune its per-leaf settings.
 3. Autovacuum never runs on it: check `autovacuum` and the table's storage parameters.
+```
 
 ## Mitigation
 
 ```sh state-changing
-psql "$ADMIN_DATABASE_URL" -c "VACUUM (VERBOSE, ANALYZE) $TABLE"
+psql "$PG_ADMIN_URL" -c "VACUUM (VERBOSE, ANALYZE) $TABLE"
 ```
 
 ## Fix and escalation

@@ -1,12 +1,13 @@
 ---
 id: postgres-pool-rule
+kind: alert
 severity: SEV3
 channels: [all]
-tenant_scope: installation
+tenant_scope: all
 alerts: [RelayPoolRuleExceeded]
 last_tested: 2026-11-18
 tested_by: none
-automation: 0
+automation: 1
 eta_minutes: 60
 reversible: true
 ---
@@ -24,17 +25,19 @@ A rollout that runs old and new nodes side by side, or a scale-out, can exhaust 
 ## Diagnosis
 
 ```sh
-psql "$ADMIN_DATABASE_URL" -c "SHOW max_connections"
-psql "$ADMIN_DATABASE_URL" -c "SELECT usename, count(*) FROM pg_stat_activity GROUP BY 1 ORDER BY 2 DESC"
+psql "$MAINT_DATABASE_URL" -c "SHOW max_connections"
+psql "$MAINT_DATABASE_URL" -c "SELECT usename, count(*) FROM pg_stat_activity GROUP BY 1 ORDER BY 2 DESC"
 ```
 
 Compare `RELAY_NODE_COUNT` and `POOL_SIZE` with the actual node count.
 
 ## Decision tree
 
+```text
 1. `RELAY_NODE_COUNT` is wrong: correct it.
 2. Nodes autoscale or the count is right: put a transaction-mode PgBouncer in front of PostgreSQL.
 3. Pool waits are already shedding requests: do not grow the pool; that only moves the queue into PostgreSQL.
+```
 
 ## Mitigation
 

@@ -1,12 +1,13 @@
 ---
 id: container-memory
+kind: alert
 severity: SEV2
 channels: [all]
-tenant_scope: installation
+tenant_scope: all
 alerts: [RelayContainerMemoryHigh, RelayContainerMemoryCritical]
 last_tested: 2026-11-18
 tested_by: none
-automation: 0
+automation: 1
 eta_minutes: 30
 reversible: true
 ---
@@ -32,9 +33,11 @@ Check `relay_vm_*` metrics and `RelayLongMessageQueue` for a growing process mai
 
 ## Decision tree
 
+```text
 1. One process mailbox grows: follow its own alert; apply backpressure, do not kill it.
 2. Binary memory grows: look for long-lived references to large binaries.
 3. Memory follows load and the peak was measured above the limit: raise the limit after measuring; raising it is not a fix for a leak.
+```
 
 ## Mitigation
 

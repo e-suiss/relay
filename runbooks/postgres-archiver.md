@@ -1,12 +1,13 @@
 ---
 id: postgres-archiver
+kind: alert
 severity: SEV2
 channels: [all]
-tenant_scope: installation
+tenant_scope: all
 alerts: [RelayPostgresArchiverFailing]
 last_tested: 2026-11-18
 tested_by: none
-automation: 0
+automation: 1
 eta_minutes: 30
 reversible: true
 ---
@@ -24,15 +25,17 @@ Point-in-time recovery stops at the last archived segment, so the recovery point
 ## Diagnosis
 
 ```sh
-psql "$ADMIN_DATABASE_URL" -c "SELECT archived_count, last_archived_wal, last_archived_time, failed_count, last_failed_wal, last_failed_time FROM pg_stat_archiver"
+psql "$MAINT_DATABASE_URL" -c "SELECT archived_count, last_archived_wal, last_archived_time, failed_count, last_failed_wal, last_failed_time FROM pg_stat_archiver"
 kubectl logs "$PRIMARY_POD" -c postgres --since=30m | grep -i archive
 ```
 
 ## Decision tree
 
+```text
 1. The object store rejects the upload (credentials, bucket policy, object lock): fix the store side.
 2. The object store is unreachable: check the network path inside the region.
 3. The archive command itself fails: check the operator and plugin versions.
+```
 
 ## Mitigation
 

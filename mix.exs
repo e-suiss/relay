@@ -98,6 +98,7 @@ defmodule Relay.MixProject do
         "relay.lint.nif",
         "relay.lint.workers",
         "relay.lint.tests",
+        "relay.lint.runbooks",
         "relay.catalog.check"
       ]
     ]

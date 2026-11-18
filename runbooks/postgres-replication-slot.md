@@ -1,12 +1,13 @@
 ---
 id: postgres-replication-slot
+kind: alert
 severity: SEV2
 channels: [all]
-tenant_scope: installation
+tenant_scope: all
 alerts: [RelayPostgresSlotInactive, RelayPostgresSlotWalRetention, RelayPostgresSlotWalAtRisk]
 last_tested: 2026-11-18
 tested_by: none
-automation: 0
+automation: 1
 eta_minutes: 30
 reversible: false
 ---
@@ -24,23 +25,25 @@ An abandoned slot pins WAL on the primary until the disk fills. A slot whose WAL
 ## Diagnosis
 
 ```sh
-psql "$ADMIN_DATABASE_URL" -c "SELECT slot_name, slot_type, active, inactive_since, wal_status, pg_size_pretty(safe_wal_size) AS safe, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS kept FROM pg_replication_slots"
+psql "$MAINT_DATABASE_URL" -c "SELECT slot_name, slot_type, active, inactive_since, wal_status, pg_size_pretty(safe_wal_size) AS safe, pg_size_pretty(pg_wal_lsn_diff(pg_current_wal_lsn(), restart_lsn)) AS kept FROM pg_replication_slots"
 ```
 
 Find the owner of the slot: a standby of the HA cluster, a connector or an external consumer.
 
 ## Decision tree
 
+```text
 1. The slot belongs to a standby that is restarting or catching up: watch it; it clears on its own.
 2. The consumer is gone for good: drop the slot.
 3. The WAL is lost: drop the slot and rebuild the standby or consumer from a fresh base backup.
+```
 
 ## Mitigation
 
 Drop an abandoned slot; never delete files under `pg_wal` by hand.
 
 ```sh state-changing
-psql "$ADMIN_DATABASE_URL" -c "SELECT pg_drop_replication_slot('$SLOT')"
+psql "$PG_ADMIN_URL" -c "SELECT pg_drop_replication_slot('$SLOT')"
 ```
 
 ## Fix and escalation

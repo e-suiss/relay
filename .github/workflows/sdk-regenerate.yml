@@ -1,0 +1,136 @@
+name: sdk-regenerate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "contracts/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-regenerate
+  cancel-in-progress: false
+
+jobs:
+  regenerate-java:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: "9.8.2"
+          cache-read-only: true
+      - run: sdks/java/regenerate.sh
+      - run: |
+          git add -N sdks/java
+          git diff --binary -- sdks/java > "$RUNNER_TEMP/java.patch"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: regenerate-java
+          path: ${{ runner.temp }}/java.patch
+
+  regenerate-dotnet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: sdks/dotnet/global.json
+      - run: sdks/dotnet/regenerate.sh
+      - run: |
+          git add -N sdks/dotnet
+          git diff --binary -- sdks/dotnet > "$RUNNER_TEMP/dotnet.patch"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: regenerate-dotnet
+          path: ${{ runner.temp }}/dotnet.patch
+
+  regenerate-elixir:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      MIX_ENV: test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - run: sdks/elixir/regenerate.sh
+      - run: |
+          git add -N sdks/elixir
+          git diff --binary -- sdks/elixir > "$RUNNER_TEMP/elixir.patch"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: regenerate-elixir
+          path: ${{ runner.temp }}/elixir.patch
+
+  open-pull-request:
+    needs: [regenerate-java, regenerate-dotnet, regenerate-elixir]
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      BRANCH: bot/sdk-regenerate
+      MESSAGE: "chore(sdk): regenerate SDKs from the contract"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: regenerate-*
+          path: ${{ runner.temp }}/patches
+          merge-multiple: true
+      - name: apply
+        run: |
+          for patch in "$RUNNER_TEMP"/patches/*.patch; do
+            [ -s "$patch" ] && git apply --binary "$patch"
+          done
+          git add -A sdks
+          git diff --cached --name-status --no-renames > "$RUNNER_TEMP/changes"
+          cat "$RUNNER_TEMP/changes"
+      - name: commit and open the pull request
+        run: |
+          if [ ! -s "$RUNNER_TEMP/changes" ]; then
+            exit 0
+          fi
+          base_tree=$(gh api "repos/$REPO/git/commits/$GITHUB_SHA" --jq .tree.sha)
+          entries='[]'
+          while IFS="$(printf '\t')" read -r status path; do
+            if [ "$status" = "D" ]; then
+              entry=$(jq -n --arg path "$path" '{path: $path, mode: "100644", type: "blob", sha: null}')
+            else
+              mode=100644
+              [ -x "$path" ] && mode=100755
+              blob=$(base64 -w0 "$path" | jq -Rs '{content: ., encoding: "base64"}' | gh api "repos/$REPO/git/blobs" --input - --jq .sha)
+              entry=$(jq -n --arg path "$path" --arg mode "$mode" --arg sha "$blob" '{path: $path, mode: $mode, type: "blob", sha: $sha}')
+            fi
+            entries=$(jq -c --argjson entry "$entry" '. + [$entry]' <<< "$entries")
+          done < "$RUNNER_TEMP/changes"
+          tree=$(jq -n --arg base "$base_tree" --argjson tree "$entries" '{base_tree: $base, tree: $tree}' | gh api "repos/$REPO/git/trees" --input - --jq .sha)
+          commit=$(jq -n --arg message "$MESSAGE" --arg tree "$tree" --arg parent "$GITHUB_SHA" '{message: $message, tree: $tree, parents: [$parent]}' | gh api "repos/$REPO/git/commits" --input - --jq .sha)
+          if gh api "repos/$REPO/git/ref/heads/$BRANCH" > /dev/null 2>&1; then
+            gh api -X PATCH "repos/$REPO/git/refs/heads/$BRANCH" -f sha="$commit" -F force=true > /dev/null
+          else
+            gh api "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$commit" > /dev/null
+          fi
+          if [ -z "$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number')" ]; then
+            gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$MESSAGE" --body "Regenerates the SDK code generated from contracts/ on main."
+          fi

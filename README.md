@@ -90,19 +90,19 @@ just test    # the test suite against the real database
 just check   # every check CI runs on a pull request
 ```
 
-`just dev` seeds a sample tenant with a recipient, a published `welcome` workflow and a test API client, linked to a local stand-in for Access. Send a first event:
+`just dev` seeds a sample tenant with a recipient, a published `welcome` workflow and a test API client, linked to a local stand-in for Access. Relay serves its API over HTTPS only; locally a Caddy reverse proxy with its own certificate authority terminates TLS on <https://localhost:4443>, and `just up` copies its root certificate to `deploy/tls/root.crt`. Send a first event:
 
 ```sh
 TOKEN=$(mix relay.dev.token)
-curl -X POST http://localhost:4000/v1/events \
+curl --cacert deploy/tls/root.crt -X POST https://localhost:4443/v1/events \
   -H "Authorization: DPoP $TOKEN" \
-  -H "DPoP: $(mix relay.dev.proof POST http://localhost:4000/v1/events "$TOKEN")" \
+  -H "DPoP: $(mix relay.dev.proof POST https://localhost:4443/v1/events "$TOKEN")" \
   -H "Idempotency-Key: $(uuidgen)" \
   -H "Content-Type: application/json" \
   -d '{"workflow": "welcome", "to": ["dev-sample-recipient"], "data": {"first_name": "Ayşe"}}'
 ```
 
-Local services: Mailpit on <http://localhost:8025>, Jaeger on <http://localhost:16686>, Prometheus on <http://localhost:9090> and Grafana on <http://localhost:3000>.
+Local services: the API on <https://localhost:4443>, Mailpit on <http://localhost:8025>, Jaeger on <http://localhost:16686>, Prometheus on <http://localhost:9090> and Grafana on <http://localhost:3000>.
 
 SDKs are planned for TypeScript/Node, Python, Go, Java, .NET, Elixir, PHP and Ruby, plus iOS, Android, React Native and Flutter, with ready-made inbox, toast and preference components (React and web components).
 

@@ -1,4 +1,4 @@
-curl -sS --fail-with-body -X POST "$RELAY/v1/event_type_mappings" \
+curl --cacert "$CA" -sS --fail-with-body -X POST "$RELAY/v1/event_type_mappings" \
   -H "Authorization: DPoP $TOKEN" \
   -H "DPoP: $(dpop POST /v1/event_type_mappings)" \
   -H "Idempotency-Key: $(uuidgen)" \

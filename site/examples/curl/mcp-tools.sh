@@ -1,4 +1,4 @@
-curl -sS --fail-with-body -X POST "$RELAY/v1/mcp" \
+curl --cacert "$CA" -sS --fail-with-body -X POST "$RELAY/v1/mcp" \
   -H "Authorization: DPoP $TOKEN" \
   -H "DPoP: $(dpop POST /v1/mcp)" \
   -H "MCP-Protocol-Version: 2026-07-28" \

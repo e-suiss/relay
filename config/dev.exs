@@ -19,12 +19,14 @@ config :relay, Relay.QueueRepo,
 config :relay, Relay.ReportRepo, username: "relay_report", password: "relay", pool_size: 2
 
 config :relay, RelayWeb.Endpoint,
-  http: [ip: {127, 0, 0, 1}, port: 4000],
+  http: [ip: {0, 0, 0, 0}, port: 4000],
   check_origin: false,
   code_reloader: true,
   debug_errors: false,
   secret_key_base: "dev-only-secret-key-base-0000000000000000000000000000000000000000000000",
   watchers: []
+
+config :relay, RelayWeb.Api, trusted_proxies: ["172.16.0.0/12", "192.168.65.0/24"]
 
 config :relay, RelayWeb.Metrics, server: true, ip: {127, 0, 0, 1}, port: 9568
 

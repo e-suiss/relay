@@ -40,6 +40,18 @@ services:
       timeout: 2s
       retries: 30
 
+  tls:
+    image: caddy:2.11.8-alpine@sha256:f6228111e5fafa1a5238258d0858e103f10599b8d1659a146e7726681a002bb9
+    command: ["caddy", "reverse-proxy", "--from", "https://localhost:4443", "--to", "host.docker.internal:4000", "--internal-certs"]
+    ports: ["4443:4443"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    volumes: [caddy:/data]
+    healthcheck:
+      test: ["CMD", "test", "-f", "/data/caddy/pki/authorities/local/root.crt"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   mailpit:
     image: axllent/mailpit:v1.31.3@sha256:ed9b00c609e77e99c79b93f1178255ebc271868920f2c69a8d166bd5634ed10d
     ports: ["1025:1025", "8025:8025"]
@@ -103,3 +115,4 @@ services:
 volumes:
   postgres:
   minio:
+  caddy:

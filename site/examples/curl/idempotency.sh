@@ -1,6 +1,6 @@
 KEY=$(uuidgen)
 send() {
-  curl -sS --fail-with-body -D - -o /dev/null -X POST "$RELAY/v1/events" \
+  curl --cacert "$CA" -sS --fail-with-body -D - -o /dev/null -X POST "$RELAY/v1/events" \
     -H "Authorization: DPoP $TOKEN" \
     -H "DPoP: $(dpop POST /v1/events)" \
     -H "Idempotency-Key: $KEY" \

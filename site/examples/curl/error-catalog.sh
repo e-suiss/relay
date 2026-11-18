@@ -1,1 +1,1 @@
-curl -sS --fail-with-body "$RELAY/v1/errors/unknown_field"
+curl --cacert "$CA" -sS --fail-with-body "$RELAY/v1/errors/unknown_field"

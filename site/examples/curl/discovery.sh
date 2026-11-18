@@ -1,1 +1,1 @@
-curl -sS --fail-with-body "$RELAY/.well-known/relay-configuration"
+curl --cacert "$CA" -sS --fail-with-body "$RELAY/.well-known/relay-configuration"

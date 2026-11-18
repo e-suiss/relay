@@ -15,6 +15,8 @@ dev: up hsm-keys port
 
 up:
     {{compose}} up -d --wait
+    mkdir -p deploy/tls
+    {{compose}} cp tls:/data/caddy/pki/authorities/local/root.crt deploy/tls/root.crt
 
 down:
     {{compose}} down

@@ -10,7 +10,7 @@ just dev
 
 | Service    | Address                  | Purpose                                        |
 | ---------- | ------------------------ | ---------------------------------------------- |
-| Relay      | `http://localhost:4000`  | The API, realtime and webhooks                 |
+| Relay      | `https://localhost:4443` | The API, realtime and webhooks, through TLS    |
 | PostgreSQL | `localhost:5432`         | Every source of truth                          |
 | Valkey     | `localhost:6379`         | Signals, counters and rate limits              |
 | MinIO      | `http://localhost:9001`  | The write-once store of audit checkpoints      |
@@ -24,6 +24,10 @@ just dev
 | Grafana    | `http://localhost:3000`  | Dashboards                                     |
 
 Keys live in a local SoftHSM token, exactly as they would in a hardware security module in production. Relay never reads a key from a file or an environment variable.
+
+## HTTPS, locally
+
+Relay never answers its API over plain HTTP, locally included. The `tls` service of the Compose file is a Caddy reverse proxy with its own certificate authority: it serves `https://localhost:4443` and forwards to the node on port 4000, which trusts forwarded headers only from the Docker bridge network. `just up` copies the proxy's root certificate to `deploy/tls/root.crt`; pass it to `curl --cacert`, or set `NODE_EXTRA_CA_CERTS` for Node.js.
 
 ## Access, locally
 

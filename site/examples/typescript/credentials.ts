@@ -24,7 +24,7 @@ export const keyPair: CryptoKeyPair = {
   publicKey: await crypto.subtle.importKey("jwk", publicJwk, curve, true, ["verify"]),
 };
 
-export const relayUrl = process.env.RELAY ?? "http://localhost:4000";
+export const relayUrl = process.env.RELAY ?? "https://localhost:4443";
 
 export function getAccessToken(): string {
   const token = process.env.TOKEN;

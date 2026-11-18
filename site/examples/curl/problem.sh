@@ -1,4 +1,4 @@
-curl -sS -X POST "$RELAY/v1/events" \
+curl --cacert "$CA" -sS -X POST "$RELAY/v1/events" \
   -H "Authorization: DPoP $TOKEN" \
   -H "DPoP: $(dpop POST /v1/events)" \
   -H "Idempotency-Key: $(uuidgen)" \

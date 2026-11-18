@@ -12,7 +12,7 @@ cd relay
 just dev
 ```
 
-`just dev` starts the local services with the official Docker Compose file, creates a SoftHSM key store, builds the database and starts Relay on `http://localhost:4000`. It also seeds what a new account gets:
+`just dev` starts the local services with the official Docker Compose file, creates a SoftHSM key store, builds the database and starts Relay. Relay serves its API over HTTPS only, so a Caddy reverse proxy with its own local certificate authority answers on `https://localhost:4443`, and `just dev` copies its root certificate to `deploy/tls/root.crt`. It also seeds what a new account gets:
 
 - a tenant with its `default_timezone` and `default_locale`, and its `live` and `test` environments,
 - a `test` API client with every server scope,
@@ -27,7 +27,7 @@ Relay accepts Access client credentials tokens bound to a key with DPoP. Locally
 
 <<< @/examples/curl/env.sh
 
-`TOKEN` is valid for an hour. Every request carries a fresh DPoP proof for its method and URL, which `dpop` prints. With an SDK you never handle either: it obtains, binds and refreshes tokens for you.
+`CA` is the local root certificate that `curl --cacert` and Node.js (`NODE_EXTRA_CA_CERTS`) trust. `TOKEN` is valid for an hour. Every request carries a fresh DPoP proof for its method and URL, which `dpop` prints. With an SDK you never handle either: it obtains, binds and refreshes tokens for you.
 
 ## 3. Send a notification
 

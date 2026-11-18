@@ -46,8 +46,8 @@ defmodule Relay.Channels.Push.PolicyTest do
       facts = %{message_class: "security", interruption: "critical", critical: critical}
       denied = %{"critical_alerts" => "denied", "time_sensitive" => "granted"}
 
-      lowered =
-        PushFixture.policy(Map.merge(facts, %{platform: "apns", interruption_permissions: denied}))
+      device = %{platform: "apns", interruption_permissions: denied}
+      lowered = PushFixture.policy(Map.merge(facts, device))
 
       assert lowered.level == :time_sensitive
       assert lowered.reasons == [:interruption_platform_lowered]

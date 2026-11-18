@@ -58,6 +58,7 @@ defmodule Relay.Channels.Push.Policy do
     with {:ok, class} <- class(facts[:message_class]),
          {:ok, mapping} <- lookup(table, class, facts) do
       sensitive = facts[:sensitivity] == "sensitive" or facts[:sensitive] == true
+
       interruption =
         class
         |> interruption(mapping, facts, sensitive)

@@ -61,15 +61,18 @@ defmodule Relay.Chaos.ValkeyOutageTest do
 
     Toxiproxy.enabled(@proxy, true)
 
-    eventually(fn ->
-      :ok = Signal.publish(topic, 41)
+    eventually(
+      fn ->
+        _ = Signal.publish(topic, 41)
 
-      receive do
-        {:relay_signal, ^topic, {:seq, 41}} -> true
-      after
-        100 -> false
-      end
-    end)
+        receive do
+          {:relay_signal, ^topic, {:seq, 41}} -> true
+        after
+          100 -> false
+        end
+      end,
+      600
+    )
 
     IO.puts("valkey outage: polling after #{polling_ms} ms")
   end

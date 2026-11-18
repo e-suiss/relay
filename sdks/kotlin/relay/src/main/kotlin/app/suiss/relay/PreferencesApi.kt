@@ -36,6 +36,22 @@ public enum class RelayDigestChoice(
     DIGEST("digest"),
 }
 
+// X-51
+
+/** Whom the lock of a locked category serves (PC-6). */
+public enum class RelayLockBeneficiary(
+    public val wire: String,
+) {
+    SUBSCRIBER("subscriber"),
+    TENANT("tenant"),
+}
+
+// PC-6
+// PC-15
+// PC-16
+// PC-17
+// X-51
+
 /** One category × channel cell. */
 public data class RelayPreferenceCell(
     val category: String,
@@ -43,6 +59,12 @@ public data class RelayPreferenceCell(
     val value: RelayPreferenceValue,
     val effective: Boolean,
     val source: RelayPreferenceSource,
+    val categoryName: String = category,
+    val locked: Boolean = false,
+    val lockBeneficiary: RelayLockBeneficiary? = null,
+    val disabledByAdmin: Boolean = false,
+    val disabledInDeviceSettings: Boolean = false,
+    val digestAllowed: Boolean = false,
 )
 
 /** The subscriber's preferences as the components show them. */
@@ -77,6 +99,15 @@ public data class RelayPreferences(
                             source =
                                 RelayPreferenceSource.entries.firstOrNull { it.wire == cell.source.value }
                                     ?: RelayPreferenceSource.CLASS_DEFAULT,
+                            categoryName = cell.categoryName,
+                            locked = cell.locked,
+                            lockBeneficiary =
+                                cell.lockBeneficiary?.let { beneficiary ->
+                                    RelayLockBeneficiary.entries.firstOrNull { it.wire == beneficiary.value }
+                                },
+                            disabledByAdmin = cell.disabledByAdmin,
+                            disabledInDeviceSettings = cell.disabledInDeviceSettings,
+                            digestAllowed = cell.digestAllowed,
                         )
                     },
                 channels =

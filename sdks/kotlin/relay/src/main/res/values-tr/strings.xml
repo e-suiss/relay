@@ -17,6 +17,8 @@
     <string name="relay_prefs_on">Açık</string>
     <string name="relay_prefs_off">Kapalı</string>
     <string name="relay_prefs_locked_on">Açık (kilitli)</string>
+    <string name="relay_prefs_locked_subscriber">Kilitli: hesabınızı korur</string>
+    <string name="relay_prefs_locked_tenant">Kilitli: hizmet için gerekli</string>
     <string name="relay_prefs_admin_disabled">Yöneticiniz kapattı</string>
     <string name="relay_prefs_device_disabled">Cihaz ayarlarından kapalı</string>
     <string name="relay_prefs_open_settings">Ayarları aç</string>

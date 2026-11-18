@@ -28,10 +28,10 @@ import app.suiss.relay.R
 import app.suiss.relay.RelayCategoryInfo
 import app.suiss.relay.RelayDigestChoice
 import app.suiss.relay.RelayException
+import app.suiss.relay.RelayLockBeneficiary
 import app.suiss.relay.RelayNotificationSettingsReader
 import app.suiss.relay.RelayPermission
 import app.suiss.relay.RelayPreferenceCell
-import app.suiss.relay.RelayPreferenceSource
 import app.suiss.relay.RelayPreferenceValue
 import app.suiss.relay.RelayPreferences
 import app.suiss.relay.RelayPreferencesApi
@@ -61,8 +61,9 @@ public enum class RelayPreferenceRowState {
             cell: RelayPreferenceCell,
             permission: RelayPermission,
         ): RelayPreferenceRowState {
-            if (cell.source == RelayPreferenceSource.LOCKED) return LOCKED_ON
-            if (cell.source == RelayPreferenceSource.TENANT && !cell.effective) return ADMIN_DISABLED
+            if (cell.locked) return LOCKED_ON
+            if (cell.disabledByAdmin) return ADMIN_DISABLED
+            if (cell.disabledInDeviceSettings) return DEVICE_DISABLED
             if (cell.channel == "push") {
                 when (permission) {
                     RelayPermission.DENIED -> return DEVICE_DISABLED
@@ -105,7 +106,7 @@ public class RelayPreferencesModel(
     public fun state(cell: RelayPreferenceCell): RelayPreferenceRowState = RelayPreferenceRowState.of(cell, mutablePermission.value)
 
     public fun name(category: String): String =
-        byKey[category]?.name ?: category.replace('_', ' ').replaceFirstChar { it.uppercase() }
+        byKey[category]?.name ?: mutablePreferences.value?.cells(category)?.firstOrNull()?.categoryName ?: category
 
     /** Turns a cell on, or off; turning a digest category off first asks the three-choice question. */
     public suspend fun set(
@@ -114,7 +115,7 @@ public class RelayPreferencesModel(
     ) {
         when {
             on -> write { api.set(cell.category, cell.channel, RelayPreferenceValue.OPT_IN) }
-            byKey[cell.category]?.allowsDigest == true -> mutablePending.value = cell
+            cell.digestAllowed -> mutablePending.value = cell
             else -> write { api.set(cell.category, cell.channel, RelayPreferenceValue.OPT_OUT) }
         }
     }
@@ -251,6 +252,14 @@ public fun RelayPreferencesScreen(
     }
 }
 
+// X-51
+private fun lockText(beneficiary: RelayLockBeneficiary?): Int =
+    when (beneficiary) {
+        RelayLockBeneficiary.SUBSCRIBER -> R.string.relay_prefs_locked_subscriber
+        RelayLockBeneficiary.TENANT -> R.string.relay_prefs_locked_tenant
+        null -> R.string.relay_prefs_locked_on
+    }
+
 /** One channel row of the preference centre. */
 @Composable
 public fun RelayPreferenceRow(
@@ -267,7 +276,7 @@ public fun RelayPreferenceRow(
             when (state) {
                 RelayPreferenceRowState.ON -> R.string.relay_prefs_on
                 RelayPreferenceRowState.OFF -> R.string.relay_prefs_off
-                RelayPreferenceRowState.LOCKED_ON -> R.string.relay_prefs_locked_on
+                RelayPreferenceRowState.LOCKED_ON -> lockText(cell.lockBeneficiary)
                 RelayPreferenceRowState.ADMIN_DISABLED -> R.string.relay_prefs_admin_disabled
                 RelayPreferenceRowState.DEVICE_DISABLED -> R.string.relay_prefs_device_disabled
                 RelayPreferenceRowState.PERMISSION_PENDING -> R.string.relay_prefs_permission_pending

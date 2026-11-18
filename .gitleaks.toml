@@ -58,5 +58,7 @@ paths = ['''^sdks/php/tests/''']
 regexes = ['''^order-4821-wait$''']
 
 [[allowlists]]
-description = "Synthetic one-time token of the shadow content masking vectors"
-paths = ['''^conformance/vectors/shadow-content/''']
+description = "Synthetic idempotency key of the displayed notification reporter test"
+condition = "AND"
+paths = ['''^sdks/react/test/displayed\.test\.ts$''']
+regexes = ['''^6f1c9e0a-1111-4222-8333-944445555666$''']

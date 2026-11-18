@@ -1,6 +1,6 @@
 defmodule RelayDev.Lint.Runbooks do
   @moduledoc """
-  Runbook lint. Every file under `runbooks/` (but its READMEs) starts with a YAML front matter block and an alert or procedure runbook carries the six sections `Symptom`, `Impact`, `Diagnosis`, `Decision tree`, `Mitigation` and `Fix and escalation` in that order, none of them empty. A ` ```sh state-changing ` block holds one command. A runbook whose `last_tested` is older than 183 days is unreliable. Every alert in `deploy/observability/alerts.yaml` points its `runbook_url` at an existing runbook, and every alert runbook is pointed at by the alerts it lists.
+  Runbook lint. Every file under `runbooks/` (but its READMEs) starts with a YAML front matter block and an alert or procedure runbook carries the six sections `Symptom`, `Impact`, `Diagnosis`, `Decision tree`, `Mitigation` and `Fix and escalation` in that order, none of them empty. A shell block marked `state-changing` holds one command. A runbook whose `last_tested` is older than 183 days is unreliable. Every alert in `deploy/observability/alerts.yaml` points its `runbook_url` at an existing runbook, and every alert runbook is pointed at by the alerts it lists.
   """
 
   alias RelayDev.Lint.Violation
@@ -307,14 +307,14 @@ defmodule RelayDev.Lint.Runbooks do
 
   defp chained?(command), do: chained?(String.graphemes(command), nil)
 
-  defp chained?([], _quote), do: false
-  defp chained?(["\\", _ | rest], quote), do: chained?(rest, quote)
+  defp chained?([], _open), do: false
+  defp chained?(["\\", _ | rest], open), do: chained?(rest, open)
   defp chained?([q | rest], nil) when q in ["'", "\""], do: chained?(rest, q)
   defp chained?([q | rest], q), do: chained?(rest, nil)
   defp chained?([";" | _rest], nil), do: true
   defp chained?(["&", "&" | _rest], nil), do: true
   defp chained?(["|", "|" | _rest], nil), do: true
-  defp chained?([_ | rest], quote), do: chained?(rest, quote)
+  defp chained?([_ | rest], open), do: chained?(rest, open)
 
   defp alerts(root) do
     case YamlElixir.read_from_file(Path.join(root, @alerts)) do

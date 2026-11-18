@@ -114,9 +114,33 @@ export function useMutation() {
       path: string,
       body: unknown,
       idempotencyKey: string,
-    ) => request<T>(method, path, { body, idempotencyKey, context }),
+      ifMatch?: string,
+    ) =>
+      request<T>(method, path, {
+        body,
+        idempotencyKey,
+        context,
+        ...(ifMatch === undefined ? {} : { ifMatch }),
+      }),
     [context],
   );
+}
+
+/** Reads one API resource on demand in the current tenant context, outside the render cycle. */
+export function useFetch() {
+  const context = useRequestContext();
+  return useCallback(
+    <T>(path: string, accept?: string) =>
+      request<T>("GET", path, {
+        context,
+        ...(accept === undefined ? {} : { accept }),
+      }),
+    [context],
+  );
+}
+
+export function errorStatus(error: unknown): number | null {
+  return error instanceof ApiError ? error.status : null;
 }
 
 export function errorCode(error: unknown): string | null {

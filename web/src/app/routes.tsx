@@ -20,6 +20,12 @@ import { Reports } from "../pages/reports/Reports";
 import { Settings } from "../pages/settings/Settings";
 import { RouteSlot } from "../pages/RouteSlot";
 import { Why } from "../pages/why/Why";
+import { Escalation, EscalationPolicyEditor } from "../pages/escalation/Escalation";
+import { TemplateEditor } from "../pages/templates/TemplateEditor";
+import { Templates } from "../pages/templates/Templates";
+import { TestInbox } from "../pages/test-inbox/TestInbox";
+import { WorkflowEditor } from "../pages/workflows/WorkflowEditor";
+import { Workflows } from "../pages/workflows/Workflows";
 import type { Params } from "./router";
 
 export type NavGroup =
@@ -135,6 +141,31 @@ export const pages: readonly ConsoleRoute[] = [
   { pattern: "/operator/tenants", render: () => <Tenants /> },
   { pattern: "/operator/kill-switch", render: () => <PlatformKillSwitch /> },
   { pattern: "/operator/regions", render: () => <Regions /> },
+  { pattern: "/workflows", render: () => <Workflows /> },
+  {
+    pattern: "/workflows/:key",
+    render: (params) => {
+      const key = param(params, "key");
+      return <WorkflowEditor key={key} workflowKey={key} />;
+    },
+  },
+  { pattern: "/templates", render: () => <Templates /> },
+  {
+    pattern: "/templates/:key",
+    render: (params) => {
+      const key = param(params, "key");
+      return <TemplateEditor key={key} templateKey={key} />;
+    },
+  },
+  { pattern: "/escalation", render: () => <Escalation /> },
+  {
+    pattern: "/escalation/policies/:key",
+    render: (params) => {
+      const key = param(params, "key");
+      return <EscalationPolicyEditor key={key} policyKey={key} />;
+    },
+  },
+  { pattern: "/test-inbox", render: () => <TestInbox /> },
   {
     pattern: "/recipients/:id",
     render: (params) => {

@@ -3,6 +3,7 @@ defmodule RelayWeb.Api.ChannelController do
 
   use RelayWeb, :api_controller
 
+  alias Relay.Api.ChannelConsole
   alias Relay.Api.ChannelManagement
   alias RelayWeb.Api.Response
   alias RelayWeb.Api.Work
@@ -87,6 +88,33 @@ defmodule RelayWeb.Api.ChannelController do
   # OP-73
   @spec archive_channel_identity(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def archive_channel_identity(conn, params), do: archive(conn, :channel_identity, params)
+
+  # CH-4
+  # CH-6
+  # T-25
+  @spec account_status(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def account_status(conn, params), do: console(conn, params, &ChannelConsole.status/2)
+
+  # CH-36
+  @spec email_domains(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def email_domains(conn, params), do: console(conn, params, &ChannelConsole.email_domains/2)
+
+  # CH-42
+  @spec warmup_plans(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def warmup_plans(conn, _params), do: Work.answer(conn, ChannelConsole.warmup_plans())
+
+  # CH-18
+  # CH-58
+  @spec cost_quote(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def cost_quote(conn, _params),
+    do: Work.answer(conn, ChannelConsole.quote(conn.assigns.scope, conn.query_params))
+
+  defp console(conn, params, read) do
+    case path_id(:account, params) do
+      {:ok, id} -> Work.answer(conn, read.(conn.assigns.scope, id))
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
 
   defp index(conn, kind) do
     %{scope: scope, operation: %{endpoint: endpoint}} = conn.assigns

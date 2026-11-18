@@ -3835,6 +3835,78 @@ paths:
       x-relay-step-up: false
       x-relay-choice: true
       x-relay-choice-note: Mount path chosen by the contract.
+  "/v1/operator/region_health":
+    get:
+      operationId: getRegionHealth
+      tags:
+        - platform
+      summary: Get the health of this region
+      description: "The health of the region this node serves, as this node sees it at the time of the request: PostgreSQL, the key store, Valkey, the kill switch state cache and the active channel parameters, each ok or unavailable with its reason code, and the queue panel link. Nothing counts rows of large tables. A region is one installation; other regions are not queried."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: Region health.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/RegionHealth"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 14
+      x-relay-choice: true
+      x-relay-choice-note: "Path and checks chosen by the contract; the region is the node's own installation."
   "/v1/operator/provider_accounts":
     post:
       operationId: createProviderAccount
@@ -6911,6 +6983,65 @@ components:
           format: uri-reference
           examples:
             - "/v1/operator/queues"
+      additionalProperties: false
+    RegionHealth:
+      type: object
+      required:
+        - object
+        - region
+        - status
+        - checked_at
+        - checks
+        - queue_panel_url
+      properties:
+        object:
+          type: string
+          const: region_health
+        region:
+          type: string
+          enum:
+            - tr
+            - eu
+            - us
+        status:
+          type: string
+          enum:
+            - ok
+            - degraded
+        checked_at:
+          type: string
+          format: date-time
+        checks:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - status
+              - reason
+            properties:
+              name:
+                type: string
+                enum:
+                  - database
+                  - key_store
+                  - valkey
+                  - kill_switch_state
+                  - channel_parameters
+              status:
+                type: string
+                enum:
+                  - ok
+                  - unavailable
+              reason:
+                oneOf:
+                  - type: string
+                    maxLength: 64
+                  - type: "null"
+            additionalProperties: false
+        queue_panel_url:
+          type: string
+          format: uri-reference
       additionalProperties: false
     ApiVersionPin:
       type: object

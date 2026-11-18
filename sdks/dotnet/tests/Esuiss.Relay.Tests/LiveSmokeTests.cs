@@ -24,6 +24,7 @@ public sealed class LiveSmokeTests
         {
             ["workflow"] = Env("SDK_LIVE_WORKFLOW"),
             ["to"] = new JsonArray(Env("SDK_LIVE_RECIPIENT")),
+            ["data"] = new JsonObject { ["first_name"] = "Ayse" },
         };
         var accepted = await client.Api.CreateEventAsync(evt, cancellationToken: TestContext.Current.CancellationToken);
         Assert.NotNull(accepted["id"]);

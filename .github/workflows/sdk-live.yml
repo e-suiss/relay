@@ -60,9 +60,14 @@ jobs:
       - name: tls front
         run: |
           sudo apt-get install -y --no-install-recommends nginx
-          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 2 -subj /CN=localhost \
-            -addext subjectAltName=DNS:localhost -keyout "$RUNNER_TEMP/live.key" -out "$RUNNER_TEMP/live.crt"
-          sudo cp "$RUNNER_TEMP/live.crt" /usr/local/share/ca-certificates/sdk-live.crt
+          cd "$RUNNER_TEMP"
+          openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -days 2 -subj "/CN=sdk-live CA" \
+            -keyout live-ca.key -out live-ca.crt
+          openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -nodes -subj /CN=localhost -keyout live.key -out live.csr
+          printf 'subjectAltName=DNS:localhost\nextendedKeyUsage=serverAuth\n' > live.ext
+          openssl x509 -req -in live.csr -CA live-ca.crt -CAkey live-ca.key -CAcreateserial -days 2 -extfile live.ext -out live.crt
+          cd "$GITHUB_WORKSPACE"
+          sudo cp "$RUNNER_TEMP/live-ca.crt" /usr/local/share/ca-certificates/sdk-live.crt
           sudo update-ca-certificates
           sudo tee /etc/nginx/conf.d/sdk-live.conf > /dev/null <<EOF
           server {
@@ -112,7 +117,7 @@ jobs:
         with:
           distribution: temurin
           java-version: "25"
-      - run: sudo "$JAVA_HOME/bin/keytool" -importcert -noprompt -cacerts -storepass changeit -alias sdk-live -file "$RUNNER_TEMP/live.crt"
+      - run: sudo "$JAVA_HOME/bin/keytool" -importcert -noprompt -cacerts -storepass changeit -alias sdk-live -file "$RUNNER_TEMP/live-ca.crt"
       - name: toolchain gradle
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:

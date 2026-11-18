@@ -55,6 +55,7 @@ class LiveSmokeTest {
 
     ObjectNode event = Json.object().put("workflow", env("SDK_LIVE_WORKFLOW"));
     event.putArray("to").add(env("SDK_LIVE_RECIPIENT"));
+    event.putObject("data").put("first_name", "Ayse");
     JsonNode accepted = relay.api().createEvent(event);
     assertTrue(accepted.hasNonNull("id"), accepted.toString());
 

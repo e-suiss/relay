@@ -134,8 +134,7 @@ export const MESSAGES = {
     'prefs.digestNotAllowed': 'A digest is not available for this category.',
     'prefs.saveFailed': 'The preference could not be saved. Please try again.',
     'prefs.consents': 'Marketing permissions',
-    'prefs.consentsHint':
-      'Your marketing permissions are kept in your account and changed there.',
+    'prefs.consentsHint': 'Your marketing permissions are kept in your account and changed there.',
     'prefs.consentsUnavailable': 'Permission details are not shown here.',
     'prefs.consentsEmpty': 'You have no marketing permissions on record.',
     'prefs.manageConsents': 'Manage permissions in your account',

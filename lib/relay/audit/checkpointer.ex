@@ -13,6 +13,7 @@ defmodule Relay.Audit.Checkpointer do
       Relay,
       Relay.Audit,
       Relay.Datasets,
+      Relay.ObjectStore,
       Relay.Platform.Maintenance,
       Relay.Platform.Leadership
     ],

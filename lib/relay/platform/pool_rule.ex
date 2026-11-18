@@ -32,6 +32,7 @@ defmodule Relay.Platform.PoolRule do
       {Relay.Platform.MaintRepo, true, 2},
       {Relay.ReportRepo, Relay.ReportRepo.enabled?(), 4},
       {Relay.QueueRepo, worker?, 2},
+      {Relay.Platform.ArchiveRepo, worker?, 2},
       {Relay.BulkRepo, worker?, pool_size(Relay.Repo, 10)}
     ]
     |> Enum.filter(fn {_repo, open?, _default} -> open? end)

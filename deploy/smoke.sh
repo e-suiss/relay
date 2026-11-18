@@ -62,6 +62,13 @@ AUDIT_S3_BUCKET=${bucket}
 AUDIT_S3_REGION=us-east-1
 AUDIT_S3_ACCESS_KEY_ID=relay
 AUDIT_S3_SECRET_ACCESS_KEY_FILE=/run/s3-secret
+ARCHIVE_DATABASE_URL=ecto://relay_archive@${db_host}:5432/relay_dev
+ARCHIVE_DATABASE_PASSWORD_FILE=/run/db-password
+ARCHIVE_S3_ENDPOINT=${s3_url}
+ARCHIVE_S3_BUCKET=relay-archive
+ARCHIVE_S3_REGION=us-east-1
+ARCHIVE_S3_ACCESS_KEY_ID=relay
+ARCHIVE_S3_SECRET_ACCESS_KEY_FILE=/run/s3-secret
 ENV
 
 run() {
@@ -93,6 +100,13 @@ case "$(s3_call -X PUT -H 'x-amz-bucket-object-lock-enabled: true' "$s3_url/$buc
 esac
 [ "$(s3_call -X PUT -H "content-md5: $(printf %s "$lock" | openssl dgst -md5 -binary | base64)" --data-binary "$lock" "$s3_url/$bucket?object-lock")" = 200 ] \
   || fail "audit bucket lock failed"
+# OP-84
+case "$(s3_call -X PUT -H 'x-amz-bucket-object-lock-enabled: true' "$s3_url/relay-archive")" in
+  200|409) ;;
+  *) fail "archive bucket creation failed" ;;
+esac
+[ "$(s3_call -X PUT -H "content-md5: $(printf %s "$lock" | openssl dgst -md5 -binary | base64)" --data-binary "$lock" "$s3_url/relay-archive?object-lock")" = 200 ] \
+  || fail "archive bucket lock failed"
 case "$(s3_call -X PUT "$s3_url/relay-audit-unlocked")" in
   200|409) ;;
   *) fail "unlocked bucket creation failed" ;;
@@ -127,7 +141,7 @@ bootstrap() {
 
 # TN-14
 bootstrap || fail "bootstrap failed"
-for role in relay_migrator relay_worker relay_queue relay_maint relay_report; do
+for role in relay_migrator relay_worker relay_queue relay_maint relay_archive relay_report; do
   psql -q -c "ALTER ROLE $role PASSWORD 'relay'" || fail "role password failed"
 done
 

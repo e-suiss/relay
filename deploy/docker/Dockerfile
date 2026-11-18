@@ -22,6 +22,18 @@ COPY native/mjml_port/src src
 
 RUN cargo build --locked --release
 
+FROM rust:1.99.0-slim-bookworm@sha256:2c3a22f0a5533ea2dd5a16627bc841228151faa2d4de2644ac9987e4a2f1f2fa AS archive
+
+ENV SOURCE_DATE_EPOCH=0 \
+    CARGO_INCREMENTAL=0
+
+WORKDIR /build
+
+COPY native/archive_port/Cargo.toml native/archive_port/Cargo.lock ./
+COPY native/archive_port/src src
+
+RUN cargo build --locked --release
+
 FROM node:24.22.1-trixie-slim@sha256:89c5244bc22a9bc3287d89ebc7e49b9cb5bb84cd40e6175ac3421d5a9f68b95a AS web
 
 ENV SOURCE_DATE_EPOCH=0 \
@@ -59,6 +71,7 @@ COPY contracts contracts
 COPY rel rel
 COPY --from=native /build/target/release/pkcs11_port priv/native/pkcs11_port
 COPY --from=mjml /build/target/release/mjml_port priv/native/mjml_port
+COPY --from=archive /build/target/release/archive_port priv/native/archive_port
 COPY --from=web /web/dist priv/static/console
 
 # TN-65 (7)
@@ -66,6 +79,9 @@ RUN sha256sum priv/native/pkcs11_port > priv/native/pkcs11_port.sha256
 
 # T-98
 RUN sha256sum priv/native/mjml_port > priv/native/mjml_port.sha256
+
+# OP-84
+RUN sha256sum priv/native/archive_port > priv/native/archive_port.sha256
 
 RUN --network=none mix deps.compile && mix compile --warnings-as-errors && mix release
 

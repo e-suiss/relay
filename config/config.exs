@@ -29,6 +29,8 @@ config :relay, Relay.Platform.Leadership,
   enabled: true,
   tasks: [
     {"partition_maintenance", Relay.Platform.Maintenance.PartitionTask, []},
+    {"partition_archive", Relay.Platform.Maintenance.ArchiveTask,
+     [sensitive: true, ttl_ms: 3_600_000]},
     {"integrity_check", Relay.Platform.Maintenance.IntegrityTask, []},
     {"audit_checkpoint", Relay.Audit.Checkpointer, [sensitive: true]},
     {"audit_verify", Relay.Audit.Checkpointer.Verifier, [sensitive: true]},

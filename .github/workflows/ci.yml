@@ -59,12 +59,15 @@ jobs:
             ~/.cargo/registry
             native/pkcs11_port/target
             native/mjml_port/target
+            native/archive_port/target
           key: cargo-release-${{ runner.os }}-${{ hashFiles('native/*/Cargo.lock', 'native/*/rust-toolchain.toml') }}
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends softhsm2 opensc
       - run: rustup toolchain install
         working-directory: native/pkcs11_port
       - run: rustup toolchain install
         working-directory: native/mjml_port
+      - run: rustup toolchain install
+        working-directory: native/archive_port
       - run: native/build.sh
       - run: mix test --include integration --warnings-as-errors --partitions 3
 
@@ -153,7 +156,7 @@ jobs:
 
   native:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: native/pkcs11_port
@@ -165,6 +168,7 @@ jobs:
             ~/.cargo/registry
             native/pkcs11_port/target
             native/mjml_port/target
+            native/archive_port/target
           key: cargo-debug-${{ runner.os }}-${{ hashFiles('native/*/Cargo.lock', 'native/*/rust-toolchain.toml') }}
       - run: rustup toolchain install
       - run: cargo fmt --check
@@ -178,6 +182,14 @@ jobs:
         working-directory: native/mjml_port
       - run: cargo test --locked
         working-directory: native/mjml_port
+      - run: rustup toolchain install
+        working-directory: native/archive_port
+      - run: cargo fmt --check
+        working-directory: native/archive_port
+      - run: cargo clippy --locked --all-targets -- -D warnings
+        working-directory: native/archive_port
+      - run: cargo test --locked
+        working-directory: native/archive_port
 
   image:
     if: github.event_name != 'push'

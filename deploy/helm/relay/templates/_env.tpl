@@ -15,6 +15,10 @@
   value: {{ required "database.maintUrl is required" .Values.database.maintUrl | quote }}
 - name: MAINT_DATABASE_PASSWORD_FILE
   value: /run/secrets/relay/maint-database-password
+- name: ARCHIVE_DATABASE_URL
+  value: {{ required "database.archiveUrl is required" .Values.database.archiveUrl | quote }}
+- name: ARCHIVE_DATABASE_PASSWORD_FILE
+  value: /run/secrets/relay/archive-database-password
 - name: REPORT_DATABASE_URL
   value: {{ required "database.reportUrl is required" .Values.database.reportUrl | quote }}
 - name: REPORT_DATABASE_PASSWORD_FILE
@@ -73,6 +77,16 @@
   value: {{ required "auditStore.accessKeyId is required" .Values.auditStore.accessKeyId | quote }}
 - name: AUDIT_S3_SECRET_ACCESS_KEY_FILE
   value: /run/secrets/relay-audit-store/secret-access-key
+- name: ARCHIVE_S3_ENDPOINT
+  value: {{ required "archiveStore.endpoint is required" .Values.archiveStore.endpoint | quote }}
+- name: ARCHIVE_S3_BUCKET
+  value: {{ required "archiveStore.bucket is required" .Values.archiveStore.bucket | quote }}
+- name: ARCHIVE_S3_REGION
+  value: {{ required "archiveStore.region is required" .Values.archiveStore.region | quote }}
+- name: ARCHIVE_S3_ACCESS_KEY_ID
+  value: {{ required "archiveStore.accessKeyId is required" .Values.archiveStore.accessKeyId | quote }}
+- name: ARCHIVE_S3_SECRET_ACCESS_KEY_FILE
+  value: /run/secrets/relay-archive-store/secret-access-key
 - name: SECRET_KEY_BASE_FILE
   value: /run/secrets/relay-secret-key-base/secret-key-base
 {{- with .Values.keyStore.env }}

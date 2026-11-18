@@ -716,6 +716,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/operator/region_health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the health of this region
+         * @description The health of the region this node serves, as this node sees it at the time of the request: PostgreSQL, the key store, Valkey, the kill switch state cache and the active channel parameters, each ok or unavailable with its reason code, and the queue panel link. Nothing counts rows of large tables. A region is one installation; other regions are not queried.
+         */
+        get: operations["getRegionHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/operator/provider_accounts": {
         parameters: {
             query?: never;
@@ -1460,6 +1480,25 @@ export interface components {
              * @example /v1/operator/queues
              */
             url: string;
+        };
+        RegionHealth: {
+            /** @constant */
+            object: "region_health";
+            /** @enum {string} */
+            region: "tr" | "eu" | "us";
+            /** @enum {string} */
+            status: "ok" | "degraded";
+            /** Format: date-time */
+            checked_at: string;
+            checks: {
+                /** @enum {string} */
+                name: "database" | "key_store" | "valkey" | "kill_switch_state" | "channel_parameters";
+                /** @enum {string} */
+                status: "ok" | "unavailable";
+                reason: string | null;
+            }[];
+            /** Format: uri-reference */
+            queue_panel_url: string;
         };
         ApiVersionPin: {
             /** @constant */
@@ -5150,6 +5189,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QueuePanel"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getRegionHealth: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Region health. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegionHealth"];
                 };
             };
             400: components["responses"]["BadRequest"];

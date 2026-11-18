@@ -30,6 +30,8 @@ jobs:
         working-directory: web
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.22.1
@@ -49,13 +51,31 @@ jobs:
         run: npm audit --omit=dev
       - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
         run: npm audit --audit-level=critical
+      # X-53
+      - id: scope
+        name: Console folder or workflow changed
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          case "$EVENT" in
+            pull_request) range="origin/$BASE_REF...HEAD" ;;
+            push) range="$BEFORE..HEAD" ;;
+            *) echo "own=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          if git diff --name-only "$range" -- ":/web" ":/.github/workflows/web.yml" | grep -q .; then
+            echo "own=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "own=false" >> "$GITHUB_OUTPUT"
+          fi
       # X-47
       - id: types
         if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
         name: contract types match the OpenAPI contracts
         continue-on-error: true
         run: |
-          npm run generate
+          sh regenerate.sh
           git add --intent-to-add src/api/generated
           git diff --exit-code --stat -- src/api/generated
       - if: ${{ !cancelled() && steps.ci.outcome == 'success' }}
@@ -87,8 +107,9 @@ jobs:
         env:
           LOCK: ${{ steps.lock.outcome }}
           TYPES: ${{ steps.types.outcome }}
+          OWN: ${{ steps.scope.outputs.own }}
           FORMAT: ${{ steps.format.outcome }}
-        run: test "$LOCK" = success && test "$TYPES" = success && test "$FORMAT" = success
+        run: test "$LOCK" = success && { test "$TYPES" = success || test "$OWN" = false; } && test "$FORMAT" = success
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

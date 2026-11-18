@@ -219,6 +219,33 @@ defmodule RelayWeb.Api.TestPlaneTest do
       assert delivery["render"]["content_digest"] =~ ~r/\A[0-9a-f]{64}\z/
     end
 
+    test "X-52 TP-39: a rendered e-mail shows its HTML only through the sandbox link", ctx do
+      previous = Application.get_env(:relay, Relay.Api.PreviewSandbox)
+      Application.put_env(:relay, Relay.Api.PreviewSandbox, host: "preview.relay.test")
+
+      on_exit(fn ->
+        if previous,
+          do: Application.put_env(:relay, Relay.Api.PreviewSandbox, previous),
+          else: Application.delete_env(:relay, Relay.Api.PreviewSandbox)
+      end)
+
+      seed!(ctx.scope)
+      to = [%{"id" => "user-" <> TenantFixture.random(), "email" => "ada@example.com"}]
+      event = %{"workflow" => "welcome", "to" => to, "data" => %{"first_name" => "Ada"}}
+      accepted = F.body(F.request(:post, "/v1/events", ctx.token, event), 202)
+      [%{"notification_id" => notification}] = accepted["notifications"]
+      run_sends(ctx.scope)
+
+      deliveries = message(ctx.token, notification)["deliveries"]
+      email = Enum.find(deliveries, &(&1["channel"] == "email"))
+
+      assert %{"output" => output, "sandbox_url" => "https://preview.relay.test/" <> _} =
+               email["render"]
+
+      refute Map.has_key?(output, "html")
+      assert is_binary(output["subject"])
+    end
+
     test "X-52: the live plane has no test inbox", ctx do
       conn = F.request(:get, "/v1/test/inbox", ctx.live_token)
       assert F.body(conn, 403)["code"] == "auth_environment_mismatch"

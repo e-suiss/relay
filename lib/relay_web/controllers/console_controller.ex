@@ -19,12 +19,16 @@ defmodule RelayWeb.ConsoleController do
     "object-src 'none'"
   ]
 
-  @policy Enum.join(@directives, "; ")
-
   # X-47
-  @doc "The content security policy of the console page."
+  # TP-39
+  @doc "The content security policy of the console page; with a configured preview host (`Relay.Api.PreviewSandbox.host/0`) it may frame only that host's HTTPS origin, where rendered e-mail HTML is shown in a sandboxed `iframe`."
   @spec policy() :: String.t()
-  def policy, do: @policy
+  def policy do
+    case Relay.Api.PreviewSandbox.host() do
+      nil -> Enum.join(@directives, "; ")
+      host -> Enum.join(@directives ++ ["frame-src https://" <> host], "; ")
+    end
+  end
 
   # X-47
   @doc "The directory the built console is served from: `config :relay, RelayWeb.Console, root: path`, by default `priv/static/console` of the application."
@@ -47,7 +51,7 @@ defmodule RelayWeb.ConsoleController do
       {:ok, html} ->
         conn
         |> put_secure_browser_headers(%{
-          "content-security-policy" => @policy,
+          "content-security-policy" => policy(),
           "cache-control" => "no-store",
           "referrer-policy" => "same-origin",
           "x-robots-tag" => "noindex"

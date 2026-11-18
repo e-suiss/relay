@@ -64,6 +64,7 @@ defmodule Relay.Config do
     Relay.Policy.IysGate,
     Relay.Preferences,
     RelayWeb.Links,
+    Relay.Api.PreviewSandbox,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]
@@ -76,6 +77,7 @@ defmodule Relay.Config do
     "RELAY_ACCESS_PEP_CERT_FILE",
     "RELAY_ACCESS_CA_FILE",
     "RELAY_TRUSTED_PROXIES",
+    "RELAY_PREVIEW_HOST",
     "RELAY_CONNECTORS_FILE",
     "RELAY_EMAIL_RETURN_PATH_TARGET"
   ]

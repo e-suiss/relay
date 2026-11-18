@@ -284,8 +284,22 @@ defmodule Relay.Api.Campaigns do
          {:ok, external} <- unwrap(external_ids(scope, members)),
          {:ok, data} <- open_data(scope, c) do
       entries = Enum.map(members, &sample(scope, c, Map.get(external, &1["recipient_id"]), data))
-      {:ok, {:crypto.hash(:sha256, Jason.encode!(entries)), entries}}
+      digested = Enum.map(entries, &renders(&1, fn r -> Map.delete(r, "sandbox_url") end))
+      shown = Enum.map(entries, &renders(&1, fn r -> Map.delete(r, :html_digest) end))
+      {:ok, {:crypto.hash(:sha256, Jason.encode!(digested)), shown}}
     end
+  end
+
+  # WF-62
+  # TP-39
+  defp renders(entry, fun) do
+    steps =
+      Enum.map(entry["steps"], fn
+        %{"render" => %{} = render} = step -> %{step | "render" => fun.(render)}
+        step -> step
+      end)
+
+    %{entry | "steps" => steps}
   end
 
   defp external_ids(scope, members),
@@ -297,7 +311,7 @@ defmodule Relay.Api.Campaigns do
   defp sample(scope, c, external_id, data) do
     body = %{"to" => external_id, "data" => data, "version" => c["workflow_version_no"]}
 
-    case Previews.workflow(scope, c["workflow_key"], body, nil) do
+    case Previews.workflow(scope, c["workflow_key"], body, nil, html_digests: true) do
       {:ok, {_status, _headers, preview}} ->
         %{"recipient" => external_id, "error" => nil, "steps" => preview["steps"]}
 

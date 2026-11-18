@@ -8,6 +8,7 @@ defmodule RelayDev do
     deps: [
       Relay,
       Relay.Access,
+      Relay.Api,
       Relay.Datasets,
       Relay.Preferences,
       Relay.Tenancy,

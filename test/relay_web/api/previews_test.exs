@@ -1,10 +1,13 @@
 defmodule RelayWeb.Api.PreviewsTest do
   use Relay.DataCase, async: false
 
+  import Phoenix.ConnTest, only: [build_conn: 0, get: 2]
   import Plug.Conn
 
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
+
+  @endpoint RelayWeb.Endpoint
 
   @key "order-shipped"
   @schema %{
@@ -174,6 +177,94 @@ defmodule RelayWeb.Api.PreviewsTest do
 
       missing = F.request(:post, "/v1/workflows/none/preview", ctx.token, %{})
       assert code(missing, 404) == "workflow_not_found"
+    end
+  end
+
+  describe "TP-24 TP-39 sandboxed preview origin" do
+    defp email_template!(token, extra, cell) do
+      cells = %{"email" => %{"tr" => cell}}
+      definition = %{"default_locale" => "tr", "sensitivity" => "public", "cells" => cells}
+      body = %{"key" => @key, "name" => "Shipped", "category" => "orders"}
+      template = Map.put(body, "definition", Map.merge(definition, extra))
+      F.body(F.request(:post, "/v1/templates", token, template), 201)
+    end
+
+    defp email_render(token) do
+      [render] = F.body(preview(token, %{"channels" => ["email"]}), 200)["renders"]
+      render
+    end
+
+    defp mjml(text) do
+      "<mjml><mj-body><mj-section><mj-column><mj-text>" <>
+        text <> "</mj-text></mj-column></mj-section></mj-body></mjml>"
+    end
+
+    test "TP-39, TP-24: raw_html output leaves the JSON answer and is served on the preview host",
+         ctx do
+      workflow!(ctx)
+      html = "<p>Merhaba {{ order }}</p><script>alert(1)</script>"
+      cell = %{"subject" => "Sipariş", "html_kind" => "raw_html", "html" => html, "text" => "M"}
+      email_template!(ctx.token, %{}, cell)
+
+      render = email_render(ctx.token)
+      assert render["content"]["html"] == nil
+      assert render["content"]["subject"] == "Sipariş"
+      assert "https://preview.relay.test/sandbox/" <> token = render["sandbox_url"]
+
+      page = get(build_conn(), render["sandbox_url"])
+      assert page.status == 200
+      assert page.resp_body =~ "Merhaba A-1"
+      assert ["text/html" <> _] = get_resp_header(page, "content-type")
+      assert [csp] = get_resp_header(page, "content-security-policy")
+      assert csp =~ "default-src 'none'"
+      assert csp =~ "; sandbox"
+      assert csp =~ "frame-ancestors " <> RelayWeb.Endpoint.url()
+      refute csp =~ "script-src"
+      assert get_resp_header(page, "cache-control") == ["no-store"]
+      assert get_resp_header(page, "x-frame-options") == []
+
+      api_host = get(build_conn(), "https://localhost/sandbox/" <> token)
+      assert api_host.status == 404
+      assert api_host.resp_body == ""
+
+      unknown = get(build_conn(), "https://preview.relay.test/sandbox/" <> String.reverse(token))
+      assert unknown.status == 404
+    end
+
+    test "TP-24: a template that allows the raw filter keeps its HTML out of the JSON answer",
+         ctx do
+      workflow!(ctx)
+      cell = %{"subject" => "S", "html" => mjml("Merhaba {{ order | raw }}"), "text" => "M"}
+      email_template!(ctx.token, %{"allow_raw" => true}, cell)
+
+      render = email_render(ctx.token)
+      assert render["content"]["html"] == nil
+      assert get(build_conn(), render["sandbox_url"]).resp_body =~ "Merhaba A-1"
+    end
+
+    test "TP-39: an escaped e-mail keeps its HTML as data and also gets a sandbox link", ctx do
+      workflow!(ctx)
+      cell = %{"subject" => "S", "html" => mjml("Merhaba {{ order }}"), "text" => "M"}
+      email_template!(ctx.token, %{}, cell)
+
+      render = email_render(ctx.token)
+      assert render["content"]["html"] =~ "Merhaba A-1"
+      assert "https://preview.relay.test/sandbox/" <> _token = render["sandbox_url"]
+    end
+
+    test "TP-39: without a preview host the raw HTML is withheld with a warning", ctx do
+      workflow!(ctx)
+      previous = Application.get_env(:relay, Relay.Api.PreviewSandbox)
+      Application.put_env(:relay, Relay.Api.PreviewSandbox, host: nil)
+      on_exit(fn -> Application.put_env(:relay, Relay.Api.PreviewSandbox, previous) end)
+
+      cell = %{"subject" => "S", "html_kind" => "raw_html", "html" => "<p>x</p>", "text" => "M"}
+      email_template!(ctx.token, %{}, cell)
+
+      render = email_render(ctx.token)
+      assert render["content"]["html"] == nil
+      assert render["sandbox_url"] == nil
+      assert "sandbox_unconfigured" in Enum.map(render["warnings"], & &1["code"])
     end
   end
 end

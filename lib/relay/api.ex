@@ -123,6 +123,8 @@ defmodule Relay.Api do
       Mcp,
       OpaqueStreams,
       Waitpoints,
-      WaitpointResponses
+      WaitpointResponses,
+      Rules,
+      Settings
     ]
 end

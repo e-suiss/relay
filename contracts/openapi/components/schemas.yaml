@@ -14552,3 +14552,533 @@ IysUploadList:
           items:
             "$ref": "#/IysUpload"
   description: "A page of uploads."
+SubscriberLookupRequest:
+  type: object
+  description: "The address to find subscribers by: exactly one of email and phone."
+  properties:
+    email:
+      "$ref": "#/Email"
+    phone:
+      "$ref": "#/E164"
+  oneOf:
+    - required:
+        - email
+    - required:
+        - phone
+  additionalProperties: false
+SubscriberLookup:
+  type: object
+  description: "The subscribers whose active address is the one sent, with masked personal fields; at most x-relay-limits subscriber_lookup.max_matches."
+  required:
+    - object
+    - data
+    - truncated
+  properties:
+    object:
+      type: string
+      const: subscriber_lookup
+    data:
+      type: array
+      items:
+        "$ref": "#/Subscriber"
+      maxItems: 5
+    truncated:
+      type: boolean
+      description: "More subscribers share the address than the answer holds."
+  additionalProperties: false
+RuleEntry:
+  type: object
+  description: "One rule of the rule dictionary with its sentence in every language the dictionary carries."
+  required:
+    - rule_id
+    - reason
+    - kind
+    - outcome
+    - detail
+    - deprecated
+    - description
+  properties:
+    rule_id:
+      "$ref": "#/RuleId"
+    reason:
+      type: string
+      maxLength: 64
+    kind:
+      type: string
+      enum:
+        - gate
+        - filter
+        - shaper
+        - terminal
+        - admission
+    outcome:
+      type: string
+      enum:
+        - skip
+        - defer
+        - expire
+        - cancel
+        - pause
+        - reject
+        - fail
+        - resume
+        - alarm
+    detail:
+      type: array
+      description: "The detail fields a decision records for the rule; nothing else is shown."
+      items:
+        type: string
+        maxLength: 64
+    deprecated:
+      type: boolean
+    description:
+      type: object
+      description: "The one sentence explanation by language tag."
+      propertyNames:
+        "$ref": "#/Locale"
+      additionalProperties:
+        type: string
+  additionalProperties: false
+RuleDictionary:
+  type: object
+  description: "Every rule of the rule dictionary in force, by rule_id."
+  required:
+    - object
+    - data
+  properties:
+    object:
+      type: string
+      const: rule_dictionary
+    data:
+      type: array
+      items:
+        "$ref": "#/RuleEntry"
+  additionalProperties: false
+RetentionSetting:
+  type: object
+  description: "The retention period of one record class in days: the legal period of the tenant's region and sector, the tenant's longer period when set, and the period in force."
+  required:
+    - retention_class
+    - legal_days
+    - days
+    - effective_days
+  properties:
+    retention_class:
+      type: string
+      enum:
+        - commercial_message
+        - commercial_consent
+        - delivery_record
+    legal_days:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    days:
+      oneOf:
+        - type: integer
+          minimum: 1
+          maximum: 36525
+        - type: "null"
+    effective_days:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+  additionalProperties: false
+TenantSettings:
+  type: object
+  description: "The tenant settings of the console."
+  required:
+    - object
+    - region
+    - default_timezone
+    - default_locale
+    - version
+    - retention
+  properties:
+    object:
+      type: string
+      const: tenant_settings
+    region:
+      "$ref": "#/Region"
+    default_timezone:
+      "$ref": "#/TimeZone"
+    default_locale:
+      "$ref": "#/Locale"
+    version:
+      type: integer
+      minimum: 1
+      description: "The tenant record's version; updateTenantSettings names it to refuse a concurrent change."
+    retention:
+      type: array
+      items:
+        "$ref": "#/RetentionSetting"
+  additionalProperties: false
+RouteUsageWorkflow:
+  type: object
+  description: "A version of an active workflow whose channel steps name the route."
+  required:
+    - key
+    - state
+    - version
+    - steps
+  properties:
+    key:
+      "$ref": "#/WorkflowKey"
+    state:
+      type: string
+      enum:
+        - published
+        - draft
+        - pending
+    version:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    steps:
+      type: array
+      description: "The keys of the channel steps that name the route."
+      items:
+        type: string
+        maxLength: 128
+  additionalProperties: false
+RouteUsage:
+  type: object
+  description: "Where a route is used."
+  required:
+    - object
+    - route_key
+    - workflows
+    - categories
+  properties:
+    object:
+      type: string
+      const: route_usage
+    route_key:
+      "$ref": "#/RouteKey"
+    workflows:
+      type: array
+      items:
+        "$ref": "#/RouteUsageWorkflow"
+    categories:
+      type: array
+      description: "The active categories that name the route as their default route."
+      items:
+        "$ref": "#/CategoryKey"
+  additionalProperties: false
+EscalationPolicyUsageVersion:
+  type: object
+  required:
+    - version
+    - open
+    - stalled
+  properties:
+    version:
+      type: integer
+      minimum: 1
+    open:
+      type: integer
+      minimum: 0
+    stalled:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+EscalationPolicyUsage:
+  type: object
+  description: "The open and stalled waitpoints that pinned a version of the policy."
+  required:
+    - object
+    - policy_key
+    - latest_version
+    - versions
+  properties:
+    object:
+      type: string
+      const: escalation_policy_usage
+    policy_key:
+      "$ref": "#/EscalationPolicyKey"
+    latest_version:
+      type: integer
+      minimum: 1
+    versions:
+      type: array
+      items:
+        "$ref": "#/EscalationPolicyUsageVersion"
+  additionalProperties: false
+WorkflowPublicationCheck:
+  type: object
+  description: "The workflow publication gate's result on the draft, computed without publishing."
+  required:
+    - object
+    - publishable
+    - errors
+  properties:
+    object:
+      type: string
+      const: workflow_publication_check
+    publishable:
+      type: boolean
+    errors:
+      type: array
+      items:
+        "$ref": "./problem.yaml#/FieldError"
+  additionalProperties: false
+TemplatePublicationCheck:
+  type: object
+  description: "The template publication gate's findings on the draft, computed without publishing."
+  required:
+    - object
+    - publishable
+    - checksum
+    - findings
+  properties:
+    object:
+      type: string
+      const: template_publication_check
+    publishable:
+      type: boolean
+      description: "No hard finding blocks the draft; warnings still need accept_warnings."
+    checksum:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    findings:
+      type: array
+      items:
+        "$ref": "#/GateFinding"
+  additionalProperties: false
+WaitpointStats:
+  type: object
+  description: "Exact waitpoint figures of the tenant environment at as_of."
+  required:
+    - object
+    - as_of
+    - open
+    - stalled
+    - silent
+    - resolved_last_7_days
+    - resolved_by_escalation_last_7_days
+    - evidence_levels_last_7_days
+    - held_notifications
+  properties:
+    object:
+      type: string
+      const: waitpoint_stats
+    as_of:
+      "$ref": "#/Timestamp"
+    open:
+      type: integer
+      minimum: 0
+    stalled:
+      type: integer
+      minimum: 0
+    silent:
+      type: integer
+      minimum: 0
+    resolved_last_7_days:
+      type: integer
+      minimum: 0
+    resolved_by_escalation_last_7_days:
+      type: integer
+      minimum: 0
+    evidence_levels_last_7_days:
+      type: object
+      required:
+        - channel_claim
+        - relay_session
+        - access_aas_ref
+      properties:
+        channel_claim:
+          type: integer
+          minimum: 0
+        relay_session:
+          type: integer
+          minimum: 0
+        access_aas_ref:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    held_notifications:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+VariantReportRow:
+  type: object
+  description: "Exact counts of the deliveries created on one UTC day for one variant of a workflow channel step, channel and test flag."
+  required:
+    - day
+    - workflow
+    - step
+    - variant
+    - channel
+    - is_test
+    - accepted
+    - sent
+    - delivered
+    - seen
+    - human_clicks
+    - bot_clicks
+    - recomputed_at
+  properties:
+    day:
+      type: string
+      format: date
+    workflow:
+      "$ref": "#/WorkflowKey"
+    step:
+      type: string
+      maxLength: 128
+    variant:
+      type: string
+      maxLength: 128
+    channel:
+      "$ref": "#/Channel"
+    is_test:
+      type: boolean
+    accepted:
+      type: integer
+      minimum: 0
+    sent:
+      type: integer
+      minimum: 0
+    delivered:
+      type: integer
+      minimum: 0
+    seen:
+      type: integer
+      minimum: 0
+    human_clicks:
+      type: integer
+      minimum: 0
+    bot_clicks:
+      type: integer
+      minimum: 0
+    recomputed_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+VariantReport:
+  type: object
+  description: "The A/B variant report of a period of the tenant environment."
+  required:
+    - object
+    - from
+    - to
+    - rows
+  properties:
+    object:
+      type: string
+      const: variant_report
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+    rows:
+      type: array
+      items:
+        "$ref": "#/VariantReportRow"
+  additionalProperties: false
+RenderProblemReportRow:
+  type: object
+  description: "The deliveries created on one UTC day for one channel, template and test flag that failed to render for one failure_reason (problem render_failed) or fell back to the tenant default locale (problem template_locale_missing, reason null)."
+  required:
+    - day
+    - channel
+    - template
+    - is_test
+    - problem
+    - reason
+    - deliveries
+  properties:
+    day:
+      type: string
+      format: date
+    channel:
+      "$ref": "#/Channel"
+    template:
+      oneOf:
+        - "$ref": "#/TemplateKey"
+        - type: "null"
+    is_test:
+      type: boolean
+    problem:
+      type: string
+      enum:
+        - render_failed
+        - template_locale_missing
+    reason:
+      oneOf:
+        - type: string
+          enum:
+            - missing_variable
+            - render_timeout
+            - output_too_large
+            - schema_violation
+            - inbox_item_too_large
+        - type: "null"
+    deliveries:
+      type: integer
+      minimum: 1
+  additionalProperties: false
+RenderProblemReport:
+  type: object
+  description: "The render and locale problem report of a period of the tenant environment."
+  required:
+    - object
+    - from
+    - to
+    - rows
+  properties:
+    object:
+      type: string
+      const: render_problem_report
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+    rows:
+      type: array
+      items:
+        "$ref": "#/RenderProblemReportRow"
+  additionalProperties: false
+TenantSettingsUpdate:
+  type: object
+  description: "A change of the tenant settings. A member left out keeps its value. A retention period may only extend the legal period of the tenant's region and sector, and null clears the tenant's own period."
+  required:
+    - version
+  properties:
+    version:
+      type: integer
+      minimum: 1
+      description: "The version getTenantSettings returned."
+    default_timezone:
+      "$ref": "#/TimeZone"
+    default_locale:
+      "$ref": "#/Locale"
+    retention:
+      type: object
+      properties:
+        commercial_message:
+          oneOf:
+            - type: integer
+              minimum: 1
+              maximum: 36525
+            - type: "null"
+        commercial_consent:
+          oneOf:
+            - type: integer
+              minimum: 1
+              maximum: 36525
+            - type: "null"
+        delivery_record:
+          oneOf:
+            - type: integer
+              minimum: 1
+              maximum: 36525
+            - type: "null"
+      additionalProperties: false
+  additionalProperties: false

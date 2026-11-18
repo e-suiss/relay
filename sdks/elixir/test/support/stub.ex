@@ -24,7 +24,7 @@ defmodule EsuissRelay.Stub do
             credentials: Static.new("token-1", DpopKey.from_seed(:binary.copy(<<7>>, 32))),
             transport: {__MODULE__, stub},
             sleep: fn ms -> send(test, {:slept, ms}) end,
-            random: fn max -> max end,
+            random: fn -> 0.5 end,
             clock: fn -> 1_800_000_000 end
           ],
           opts

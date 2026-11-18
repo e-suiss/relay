@@ -303,6 +303,30 @@ defmodule Relay.Api.EscalationPolicies do
     :crypto.hash(:sha256, canonical)
   end
 
+  # AG-17
+  # X-10
+  @doc "Where an escalation policy is used (`getEscalationPolicyUsage`): its latest version and the open and stalled waitpoints that pinned each version."
+  @spec usage(Relay.Scope.t(), String.t()) :: answer()
+  def usage(scope, key) do
+    case Relay.Agents.escalation_policy_usage(scope, key) do
+      {:ok, nil} ->
+        {:error, not_found()}
+
+      {:ok, %{latest_version: latest, versions: versions}} ->
+        {:ok,
+         {200, [],
+          %{
+            "object" => "escalation_policy_usage",
+            "policy_key" => key,
+            "latest_version" => latest,
+            "versions" => Enum.map(versions, &Map.take(&1, ["version", "open", "stalled"]))
+          }}}
+
+      {:error, _reason} ->
+        {:error, unavailable()}
+    end
+  end
+
   @doc "The error of a write to a key that is not a policy key."
   @spec invalid_key() :: Relay.Error.t()
   def invalid_key do

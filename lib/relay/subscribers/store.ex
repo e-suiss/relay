@@ -194,6 +194,25 @@ defmodule Relay.Subscribers.Store do
 
   defp at(%{sort_ts_us: ts, id: id}), do: [DateTime.from_unix!(ts, :microsecond), id]
 
+  # X-12
+  # X-5
+  @doc "Reads the subscribers, oldest first, with an active or disabled address of `kind` among the address blind indexes `digests`; at most `limit` rows."
+  @spec address_lookup(String.t(), [binary()], pos_integer()) :: [map()]
+  def address_lookup(kind, digests, limit) when kind in ["email", "phone"] and limit > 0 do
+    sql =
+      @row <>
+        """
+        WHERE r.kind = 'subscriber' AND NOT r.transient AND r.state <> 'deleted'
+          AND r.id IN (SELECT a.recipient_id FROM relay.recipient_addresses a
+            WHERE a.kind = $1 AND a.state IN ('active', 'disabled')
+              AND (a.address_bidx = ANY ($2) OR a.address_bidx_next = ANY ($2)))
+        ORDER BY r.created_at, r.id
+        LIMIT $3
+        """
+
+    maps(Repo.scoped_query!(sql, [kind, digests, limit]))
+  end
+
   # API-66
   @doc "Records a deletion request for a subscriber and marks it `deletion_requested`."
   @spec deletion_request(Relay.Id.t(), Relay.Id.t(), digest(), Actor.t()) ::

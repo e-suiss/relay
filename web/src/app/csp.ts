@@ -6,6 +6,7 @@ export const contentSecurityPolicy = [
   "img-src 'self' data:",
   "font-src 'self'",
   "connect-src 'self'",
+  "frame-src https:",
   "manifest-src 'self'",
   "base-uri 'none'",
   "form-action 'self'",

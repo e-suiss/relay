@@ -12,7 +12,7 @@ defmodule Relay.Delivery.Reports.Store do
                skipped failed uncertain expired cancelled duplicate_delivered conflicts
                human_clicks bot_clicks opens machine_opens)
 
-  @type kind :: :deliveries | :skips | :costs | :variants
+  @type kind :: :deliveries | :skips | :costs | :variants | :render_problems
 
   # DS-35
   # OP-39
@@ -73,9 +73,14 @@ defmodule Relay.Delivery.Reports.Store do
   @spec read(Relay.Scope.t(), kind(), Date.t(), Date.t()) :: {:ok, [map()]} | {:error, term()}
   def read(scope, kind, %Date{} = from, %Date{} = to) do
     Relay.ReportRepo.run(fn ->
-      Repo.in_scope(scope, fn _status -> rows(sql(kind), [from, to]) end)
+      Repo.in_scope(scope, fn _status -> rows(sql(kind), params(kind, from, to)) end)
     end)
   end
+
+  defp params(:render_problems, from, to), do: [midnight(from), midnight(to)]
+  defp params(_kind, from, to), do: [from, to]
+
+  defp midnight(day), do: DateTime.new!(day, ~T[00:00:00], "Etc/UTC")
 
   defp sql(:deliveries) do
     """
@@ -106,6 +111,44 @@ defmodule Relay.Delivery.Reports.Store do
     FROM relay.report_variant_rollups r
     WHERE r.report_day >= $1::date AND r.report_day < $2::date AND r.accepted > 0
     ORDER BY r.report_day, r.workflow_key, r.step_key, r.variant, r.channel, r.is_test
+    """
+  end
+
+  # TP-26
+  # TP-41
+  # TP-7
+  defp sql(:render_problems) do
+    """
+    SELECT date_bin('1 day', d.created_at, timestamptz '2000-01-01 00:00:00+00') AS report_day,
+      d.channel::text AS channel,
+      t.key AS template, n.is_test, 'render_failed' AS problem, d.failure_reason AS reason,
+      count(*) AS deliveries
+    FROM relay.deliveries d
+    JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
+      AND n.id = d.notification_id
+    LEFT JOIN relay.delivery_render_plans p ON p.tenant_id = d.tenant_id
+      AND p.environment = d.environment AND p.delivery_id = d.id
+    LEFT JOIN relay.templates t ON t.tenant_id = p.tenant_id AND t.environment = p.environment
+      AND t.id = p.template_id
+    WHERE d.created_at >= $1::timestamptz AND d.created_at < $2::timestamptz
+      AND d.failure_reason IN ('missing_variable', 'render_timeout', 'output_too_large',
+        'schema_violation', 'inbox_item_too_large')
+    GROUP BY 1, 2, 3, 4, 6
+    UNION ALL
+    SELECT date_bin('1 day', d.created_at, timestamptz '2000-01-01 00:00:00+00'),
+      d.channel::text, t.key, n.is_test,
+      'template_locale_missing', NULL, count(*)
+    FROM relay.delivery_render_plans p
+    JOIN relay.deliveries d ON d.tenant_id = p.tenant_id AND d.environment = p.environment
+      AND d.id = p.delivery_id
+    JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
+      AND n.id = d.notification_id
+    JOIN relay.templates t ON t.tenant_id = p.tenant_id AND t.environment = p.environment
+      AND t.id = p.template_id
+    WHERE d.created_at >= $1::timestamptz AND d.created_at < $2::timestamptz
+      AND p.locale_fallback
+    GROUP BY 1, 2, 3, 4
+    ORDER BY 1, 2, 3, 4, 5, 6
     """
   end
 

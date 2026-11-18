@@ -257,6 +257,32 @@ defmodule Relay.Api.Workflows do
   end
 
   # WF-6
+  # X-10
+  @doc "Runs the publication gate on the draft without publishing (`checkWorkflowPublication`); `200` with whether it would publish and its field errors."
+  @spec check_publication(Relay.Scope.t(), String.t()) :: answer()
+  def check_publication(scope, key) do
+    case Relay.Workflow.check_draft(scope, key) do
+      {:ok, nil} ->
+        {:error, workflow_not_found()}
+
+      {:ok, :no_draft} ->
+        {:error, conflict("the workflow has no draft")}
+
+      {:ok, errors} ->
+        {:ok,
+         {200, [],
+          %{
+            "object" => "workflow_publication_check",
+            "publishable" => errors == [],
+            "errors" => errors
+          }}}
+
+      {:error, _reason} ->
+        {:error, Relay.Error.new(:service_unavailable, "try again", %{retry_after: 1})}
+    end
+  end
+
+  # WF-6
   @doc "Publishes an old version again as a new version inside the request's transaction; `202`."
   @spec promote(Relay.Scope.t(), String.t(), pos_integer(), Relay.Actor.t()) :: answer()
   def promote(scope, key, version_no, actor) do

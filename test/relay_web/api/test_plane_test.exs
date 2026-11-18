@@ -147,6 +147,17 @@ defmodule RelayWeb.Api.TestPlaneTest do
   end
 
   describe "X-35 sample workflow" do
+    test "X-35 X-43: the setup completes a sample that another run left unpublished", ctx do
+      definition = Relay.Api.TestPlane.sample_definition()
+      :ok = F.category_of!(ctx.token, definition)
+      body = %{"key" => "welcome", "definition" => definition}
+      assert F.request(:post, "/v1/workflows", ctx.token, body).status == 201
+
+      seed!(ctx.scope)
+      assert {:ok, {:ok, _published}} = Relay.Workflow.resolve_published(ctx.scope, "welcome")
+      seed!(ctx.scope)
+    end
+
     test "X-35: the test plane gets a published sample workflow with inbox and e-mail steps",
          ctx do
       seed!(ctx.scope)

@@ -962,6 +962,106 @@ paths:
       x-relay-stage: 7
       x-relay-choice: true
       x-relay-choice-note: "DS-13 makes the SDK's displayed and clicked receipts a separate evidence level but names no surface; the receipt is posted with the subscriber's own token under its devices scope."
+  "/v1/subscriber/displayed_notifications":
+    post:
+      operationId: recordMyDisplayedNotifications
+      tags:
+        - devices
+      summary: Report displayed notifications
+      description: "Client duplicate telemetry of a migration (OP-54, OP-95). An SDK that is configured to report sends the digests of the notification identifiers it displayed, in batches: the lowercase hex SHA-256 of the identifier, never the identifier or any content. A digest that was already reported for the subscriber within x-relay-limits displayed_notifications.duplicate_window counts as a duplicate; the duplicate rate is the metric relay_migration_displayed_duplicates_total over relay_migration_displayed_total. A batch holds at most displayed_notifications.max_batch digests."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/DisplayedNotifications"
+      security:
+        - subscriber_bearer:
+            - "devices:write"
+      responses:
+        "202":
+          description: Counted.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/DisplayedNotificationsRecorded"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_missing_credentials
+        - auth_malformed_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_insufficient_scope
+        - auth_tenant_suspended
+        - auth_subscriber_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+      x-relay-scopes:
+        - "devices:write"
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: false
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-95 asks the SDKs to send the digest of a displayed notification's identifier to a telemetry endpoint; the path and the batch form are chosen by the contract and the batch is posted with the subscriber's own token under its devices scope."
   "/v1/subscriber/test_recipients":
     get:
       operationId: listMyTestRecipients
@@ -4010,6 +4110,45 @@ components:
           enum:
             - displayed
             - clicked
+      additionalProperties: false
+    DisplayedNotifications:
+      type: object
+      required:
+        - notifications
+      properties:
+        notifications:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            required:
+              - digest
+              - displayed_at
+            properties:
+              digest:
+                "$ref": "./components/schemas.yaml#/Sha256Hex"
+              displayed_at:
+                "$ref": "./components/schemas.yaml#/Timestamp"
+            additionalProperties: false
+      additionalProperties: false
+    DisplayedNotificationsRecorded:
+      type: object
+      required:
+        - object
+        - accepted
+        - duplicates
+      properties:
+        object:
+          type: string
+          enum:
+            - displayed_notifications
+        accepted:
+          type: integer
+          minimum: 0
+        duplicates:
+          type: integer
+          minimum: 0
       additionalProperties: false
     RealtimePoll:
       type: object

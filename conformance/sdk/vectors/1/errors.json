@@ -2499,6 +2499,18 @@
         "max_seconds": null
       },
       "class": "validation"
+    },
+    {
+      "code": "shadow_difference_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
     }
   ]
 }

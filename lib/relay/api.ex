@@ -36,9 +36,11 @@ defmodule Relay.Api do
       Relay.Agents,
       Relay.Webhooks,
       Relay.Iys,
-      Relay.Agents
+      Relay.Agents,
+      Relay.Migration
     ],
     exports: [
+      Migration,
       Contract,
       ErrorCatalog,
       ErrorMap,

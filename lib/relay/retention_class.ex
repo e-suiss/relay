@@ -15,6 +15,7 @@ defmodule Relay.RetentionClass do
           | :suppression
           | :dsr_log
           | :erasure_log
+          | :shadow
 
   @type access_class ::
           :profile
@@ -37,7 +38,8 @@ defmodule Relay.RetentionClass do
     traffic: [:traffic],
     suppression: [:suppression],
     dsr_log: [:dsr_log],
-    erasure_log: [:erasure_log]
+    erasure_log: [:erasure_log],
+    shadow: [:message_log]
   ]
 
   @classes Keyword.keys(@mapping)
@@ -48,6 +50,7 @@ defmodule Relay.RetentionClass do
   # OP-24
   # TN-60
   # C-85
+  # OP-94
   @doc "Returns every Relay retention class."
   @spec all() :: [t(), ...]
   def all, do: @classes

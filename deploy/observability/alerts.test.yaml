@@ -577,3 +577,89 @@ tests:
       - eval_time: 75m
         alertname: RelayAccessAccountUnresolved
         exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_migration_displayed_total'
+        values: "0+1000x90"
+      - series: 'relay_migration_displayed_duplicates_total'
+        values: "0+20x90"
+    alert_rule_test:
+      - eval_time: 80m
+        alertname: RelayRolloutDuplicateWarn
+        exp_alerts:
+          - exp_labels: {severity: warning, decision: OP-80}
+            exp_annotations:
+              summary: "More than 0.1 percent of displayed notifications were shown twice during the rollout"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutduplicatewarn
+      - eval_time: 80m
+        alertname: RelayRolloutDuplicateFreeze
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-80}
+            exp_annotations:
+              summary: "More than 0.5 percent of displayed notifications were shown twice: freeze the rollout"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutduplicatefreeze
+      - eval_time: 80m
+        alertname: RelayRolloutDuplicateRollback
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-80}
+            exp_annotations:
+              summary: "More than 1 percent of displayed notifications were shown twice: roll the rollout back"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutduplicaterollback
+  - interval: 1m
+    input_series:
+      - series: 'relay_migration_displayed_total'
+        values: "0+1000x90"
+      - series: 'relay_migration_displayed_duplicates_total'
+        values: "0+0x90"
+    alert_rule_test:
+      - eval_time: 80m
+        alertname: RelayRolloutDuplicateWarn
+        exp_alerts: []
+  - interval: 1m
+    input_series:
+      - series: 'relay_shadow_unpermitted_total{channel="sms"}'
+        values: "0 0 1 1 1 1"
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: RelayRolloutUnpermittedSend
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-80}
+            exp_annotations:
+              summary: "A send went to a recipient whose consent was refused or suppressed: stop the rollout"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutunpermittedsend
+  - interval: 1m
+    input_series:
+      - series: 'relay_queue_oldest_job_age_seconds{lane="l0"}'
+        values: "20x20"
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: RelayRolloutQueueFreeze
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: RelayRolloutQueueFreeze
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-80, lane: l0}
+            exp_annotations:
+              summary: "The oldest job of l0 waits twice its threshold for 10 minutes: freeze the rollout"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutqueuefreeze
+  - interval: 1m
+    input_series:
+      - series: 'relay_http_responses_total{status_class="5xx"}'
+        values: "0+10x20"
+      - series: 'relay_http_responses_total{status_class="2xx"}'
+        values: "0+90x20"
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: RelayRollout5xxFreeze
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-80}
+            exp_annotations:
+              summary: "More than 1 percent of API responses are 5xx: freeze the rollout"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrollout5xxfreeze
+      - eval_time: 12m
+        alertname: RelayRollout5xxRollback
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-80}
+            exp_annotations:
+              summary: "More than 5 percent of API responses are 5xx: roll the rollout back"
+              runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrollout5xxrollback

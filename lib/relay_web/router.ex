@@ -364,6 +364,43 @@ defmodule RelayWeb.Router do
     get "/reports/fallback_timezones", ReportController, :fallback_timezones,
       private: %{relay_operation: "getFallbackTimezoneReport"}
 
+    # OP-94
+    # OP-79
+    post "/shadow/observations", MigrationController, :observe,
+      private: %{relay_operation: "recordShadowObservation"}
+
+    get "/shadow/coverage", MigrationController, :coverage,
+      private: %{relay_operation: "getShadowCoverage"}
+
+    get "/shadow/differences", MigrationController, :differences,
+      private: %{relay_operation: "listShadowDifferences"}
+
+    post "/shadow/differences", MigrationController, :create_difference,
+      private: %{relay_operation: "createShadowDifference"}
+
+    post "/shadow/differences/:shadow_difference_id/renew",
+         MigrationController,
+         :renew_difference,
+         private: %{relay_operation: "renewShadowDifference"}
+
+    # OP-53
+    # OP-95
+    get "/rollout", MigrationController, :rollout, private: %{relay_operation: "getRollout"}
+
+    put "/rollout", MigrationController, :replace_rollout,
+      private: %{relay_operation: "replaceRollout"}
+
+    post "/rollout/emergency_stop", MigrationController, :stop_rollout,
+      private: %{relay_operation: "stopRollout"}
+
+    post "/rollout/emergency_stop/release", MigrationController, :release_rollout,
+      private: %{relay_operation: "releaseRollout"}
+
+    # OP-54
+    # OP-95
+    post "/dedup/claims", MigrationController, :claim,
+      private: %{relay_operation: "createDedupClaim"}
+
     # X-12
     post "/subscriber_lookups", SubscriberController, :lookup,
       private: %{relay_operation: "lookupSubscribers"}
@@ -664,6 +701,13 @@ defmodule RelayWeb.Router do
 
     post "/webhook_endpoints/:webhook_endpoint_id/archive", WebhookEndpointController, :archive,
       private: %{relay_operation: "archiveWebhookEndpoint"}
+
+    # OP-52 (1)
+    # OP-94
+    post "/webhook_endpoints/:webhook_endpoint_id/shadow",
+         MigrationController,
+         :webhook_shadow,
+         private: %{relay_operation: "setWebhookEndpointShadow"}
 
     post "/webhook_endpoints/:webhook_endpoint_id/rotate_key", WebhookEndpointController, :rotate,
       private: %{relay_operation: "rotateWebhookEndpointKey"}
@@ -1025,6 +1069,11 @@ defmodule RelayWeb.Router do
 
     post "/subscriber/push_receipts", ReceiptController, :create_mine,
       private: %{relay_operation: "recordMyPushReceipt"}
+
+    # OP-54
+    # OP-95
+    post "/subscriber/displayed_notifications", MigrationController, :displayed,
+      private: %{relay_operation: "recordMyDisplayedNotifications"}
 
     get "/subscriber/test_recipients", TesterController, :mine,
       private: %{relay_operation: "listMyTestRecipients"}

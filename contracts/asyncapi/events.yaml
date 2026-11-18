@@ -410,6 +410,20 @@ channels:
         "$ref": "#/components/messages/audit.agent.resumed"
       audit.email_reputation.closed:
         "$ref": "#/components/messages/audit.email_reputation.closed"
+      audit.shadow_key.destroyed:
+        "$ref": "#/components/messages/audit.shadow_key.destroyed"
+      audit.shadow_difference.created:
+        "$ref": "#/components/messages/audit.shadow_difference.created"
+      audit.shadow_difference.renewed:
+        "$ref": "#/components/messages/audit.shadow_difference.renewed"
+      audit.rollout.updated:
+        "$ref": "#/components/messages/audit.rollout.updated"
+      audit.rollout.emergency_stopped:
+        "$ref": "#/components/messages/audit.rollout.emergency_stopped"
+      audit.rollout.emergency_released:
+        "$ref": "#/components/messages/audit.rollout.emergency_released"
+      audit.incident.opened:
+        "$ref": "#/components/messages/audit.incident.opened"
       audit.test_recipient.added:
         "$ref": "#/components/messages/audit.test_recipient.added"
       audit.test_recipient.verified:
@@ -832,6 +846,13 @@ operations:
       - "$ref": "#/channels/auditLog/messages/audit.agent.ceiling_decided"
       - "$ref": "#/channels/auditLog/messages/audit.agent.resumed"
       - "$ref": "#/channels/auditLog/messages/audit.email_reputation.closed"
+      - "$ref": "#/channels/auditLog/messages/audit.shadow_key.destroyed"
+      - "$ref": "#/channels/auditLog/messages/audit.shadow_difference.created"
+      - "$ref": "#/channels/auditLog/messages/audit.shadow_difference.renewed"
+      - "$ref": "#/channels/auditLog/messages/audit.rollout.updated"
+      - "$ref": "#/channels/auditLog/messages/audit.rollout.emergency_stopped"
+      - "$ref": "#/channels/auditLog/messages/audit.rollout.emergency_released"
+      - "$ref": "#/channels/auditLog/messages/audit.incident.opened"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.added"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.verified"
       - "$ref": "#/channels/auditLog/messages/audit.test_recipient.removed"
@@ -2850,6 +2871,118 @@ components:
                   const: email_reputation
       x-relay-surface: audit
       x-relay-stage: 7
+    audit.shadow_key.destroyed:
+      name: shadow_key.destroyed
+      title: shadow_key.destroyed
+      summary: "Relay destroyed the day key of shadow comparison data after the shadow retention period, so that day's comparisons can no longer be read (OP-52 (5), OP-94)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: shadow_key
+      x-relay-surface: audit
+      x-relay-stage: 15
+    audit.shadow_difference.created:
+      name: shadow_difference.created
+      title: shadow_difference.created
+      summary: "An intentional difference between the existing system and Relay was recorded for shadow mode, with its owner, reason and expiry (OP-52 (3), OP-79)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: shadow_difference
+      x-relay-surface: audit
+      x-relay-stage: 15
+    audit.shadow_difference.renewed:
+      name: shadow_difference.renewed
+      title: shadow_difference.renewed
+      summary: "The expiry of an intentional shadow difference was moved, with the reason of the renewal (OP-79)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: shadow_difference
+      x-relay-surface: audit
+      x-relay-stage: 15
+    audit.rollout.updated:
+      name: rollout.updated
+      title: rollout.updated
+      summary: "The staged rollout configuration of a tenant environment was replaced (OP-53, OP-95)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: rollout
+      x-relay-surface: audit
+      x-relay-stage: 15
+    audit.rollout.emergency_stopped:
+      name: rollout.emergency_stopped
+      title: rollout.emergency_stopped
+      summary: "The staged rollout was stopped with one command: every request goes to the existing system until it is released (OP-53, OP-95)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: rollout
+      x-relay-surface: audit
+      x-relay-stage: 15
+    audit.rollout.emergency_released:
+      name: rollout.emergency_released
+      title: rollout.emergency_released
+      summary: "The emergency stop of the staged rollout was released (OP-53, OP-95)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: rollout
+      x-relay-surface: audit
+      x-relay-stage: 15
+    audit.incident.opened:
+      name: incident.opened
+      title: incident.opened
+      summary: "An incident record was opened automatically by an emergency stop of the staged rollout (OP-53, OP-95)."
+      contentType: application/json
+      payload:
+        schemaFormat: "application/schema+json;version=2020-12"
+        schema:
+          allOf:
+            - "$ref": "#/components/schemas/AuditRecord"
+            - type: object
+              properties:
+                target_type:
+                  const: rollout
+      x-relay-surface: audit
+      x-relay-stage: 15
     webhook.provider_account.settings_mismatched:
       name: provider_account.settings_mismatched
       title: provider_account.settings_mismatched
@@ -9532,6 +9665,7 @@ x-relay-event-names:
   - inbox.items_bulk_updated
   - inbox_announcement.published
   - inbox_announcement.retracted
+  - incident.opened
   - instance.terminated
   - iys.consent_expired
   - iys.copy_stale
@@ -9600,6 +9734,9 @@ x-relay-event-names:
   - relationship.updated
   - role_assignment.created
   - role_assignment.revoked
+  - rollout.emergency_released
+  - rollout.emergency_stopped
+  - rollout.updated
   - route.archived
   - route.created
   - route.replaced
@@ -9612,6 +9749,9 @@ x-relay-event-names:
   - sender_identity.suspended
   - session.revoked
   - setting.changed
+  - shadow_difference.created
+  - shadow_difference.renewed
+  - shadow_key.destroyed
   - sms.opted_out
   - sms_destination.released
   - sms_destination.stopped

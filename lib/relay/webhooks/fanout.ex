@@ -41,7 +41,7 @@ defmodule Relay.Webhooks.Fanout do
   def relay_event(%{type: type, data: data} = event) do
     with {:ok, identifiers} <- Relay.EventCatalog.identifiers(type),
          {:ok, %{version: version, explicit_only: explicit}} <- Relay.EventCatalog.fetch(type) do
-      endpoints = EngineStore.subscribers(type, not explicit)
+      endpoints = EngineStore.subscribers(type, not explicit, shadow?(data))
 
       if explicit and endpoints == [],
         do: [],
@@ -49,6 +49,27 @@ defmodule Relay.Webhooks.Fanout do
     else
       :error -> []
     end
+  end
+
+  # OP-52 (1)
+  # OP-94
+  defp shadow?(%{"delivery_id" => text}) when is_binary(text) do
+    with {:ok, id} <- Relay.ExternalId.decode(text, ["dlv"]),
+         %{"environment" => "live"} = row <- EngineStore.delivery_mode(id) do
+      row["provider"] == "fake" or mode(row) == :shadow
+    else
+      _not_shadow -> false
+    end
+  end
+
+  defp shadow?(_data), do: false
+
+  defp mode(row) do
+    category = row["category"] || ""
+    workflow = row["workflow_key"]
+    keys = Relay.Ingest.send_mode_keys(workflow, category, row["channel"])
+    settings = Relay.Ingest.settings(keys)
+    Relay.Ingest.send_mode(row["send_mode"], settings, workflow, category, row["channel"], nil)
   end
 
   defp recorded(%{id: id, type: type} = event, endpoints, data, version) do

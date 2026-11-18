@@ -391,3 +391,45 @@ Every alert rule in `alerts.yaml` links here with its `runbook_url`. Each entry 
 - **Meaning:** In the last hour Access sent `account.suspended`, `account.reactivated` or `account.deleted` naming the person only by the `usr_` id of its Access account. No Access interface maps that id to the pairwise `sub` Relay knows the person by, so the event was recorded with reason `not_applied_account_unresolved` and changed nothing: an operator of that person keeps their Relay sessions, and subscribers whose `external_id` is the person's `sub` are not suspended or reactivated.
 - **Check:** Read `relay_access_event_unresolved_total` by `kind` (`suspended`, `reactivated`, `deleted`), and the Access event receipts recorded with that reason (their tenant and SET `jti`). Find the account in the Access console of that tenant.
 - **Action:** When the account belongs to an operator of this installation, revoke the operator's roles by hand (`POST /v1/operator/role_assignments/{role_assignment_id}/revoke`); Access refuses the person's next sign-in itself. When a subscriber must be suspended or reactivated, a tenant administrator does it with `POST /v1/operator/subscribers/{subscriber_id}/suspend` or `/resume`. Ask Access to carry the person's pairwise `sub` for Relay in its account events; nothing is applied on Relay's behalf until it does.
+
+## RelayRolloutDuplicateWarn
+
+- **Meaning:** In the last hour more than 0.1 percent of the notifications the SDKs reported as displayed had already been displayed for the same subscriber within a day: during a migration both systems may be sending the same notification.
+- **Check:** Read `relay:migration_duplicate_rate:ratio_rate1h`, `relay_migration_displayed_total` and `relay_migration_displayed_duplicates_total`. Check that the existing system claims each dedup key with `POST /v1/dedup/claims` before it sends and uses the same dedup key as Relay, and that only one SDK displays notifications.
+- **Action:** Watch the trend and tell the tenant; do not raise the rollout share until the rate is back under the threshold.
+
+## RelayRolloutDuplicateFreeze
+
+- **Meaning:** More than 0.5 percent of displayed notifications were shown twice in the last hour: dual sending is happening.
+- **Check:** As for `RelayRolloutDuplicateWarn`; find the categories the duplicates come from in the rollout configuration (`GET /v1/rollout`).
+- **Action:** Freeze the rollout: make no further `PUT /v1/rollout` raise until the cause is fixed in the existing system's dedup claims.
+
+## RelayRolloutDuplicateRollback
+
+- **Meaning:** More than 1 percent of displayed notifications were shown twice in the last hour.
+- **Check:** As for `RelayRolloutDuplicateWarn`.
+- **Action:** Roll back: lower the affected categories' basis points with `PUT /v1/rollout` (a lowering is always allowed), or stop the rollout with `relay rollout emergency-stop` when the category is not known.
+
+## RelayRolloutUnpermittedSend
+
+- **Meaning:** A shadow comparison found that one system sent to a recipient whose consent the other system refused or suppressed. A single case is enough to stop.
+- **Check:** Read `relay_shadow_unpermitted_total` by channel and the shadow coverage report (`GET /v1/shadow/coverage`) for the template and channel with consent differences.
+- **Action:** Stop the rollout at once with `relay rollout emergency-stop` (or `POST /v1/rollout/emergency_stop`); it opens an incident record. Resolve the consent or suppression import before releasing the stop.
+
+## RelayRolloutQueueFreeze
+
+- **Meaning:** For ten minutes the oldest job of a lane has waited more than twice the lane's age threshold while a rollout moves traffic to Relay.
+- **Check:** Follow `RelayQueueOldestJob` for the cause; read the rollout shares with `GET /v1/rollout`.
+- **Action:** Freeze the rollout: no raise until the queue age is back under its threshold. Lower the share if the backlog keeps growing.
+
+## RelayRollout5xxFreeze
+
+- **Meaning:** More than 1 percent of API responses in the last five minutes were `5xx`.
+- **Check:** Read `relay:http_5xx:ratio_rate5m` and `relay_http_responses_total` by status class; check the node logs and the dependencies on `/readyz`.
+- **Action:** Freeze the rollout: no raise until the share is back under 1 percent.
+
+## RelayRollout5xxRollback
+
+- **Meaning:** More than 5 percent of API responses in the last five minutes were `5xx`.
+- **Check:** As for `RelayRollout5xxFreeze`.
+- **Action:** Roll back: lower the rollout shares with `PUT /v1/rollout`, or stop it with `relay rollout emergency-stop`, and fix the cause.

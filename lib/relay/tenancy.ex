@@ -353,6 +353,18 @@ defmodule Relay.Tenancy do
           | {:error, Relay.Error.t()}
   defdelegate generate_subject_key(scope, wrapping_key_id, recipient_id, class), to: Keyring
 
+  # OP-94
+  # TN-67 (5)
+  @doc "Opens a data key wrapped by `generate_subject_key/4` from its stored wrapped form; see `Relay.Tenancy.Keyring.open_subject_key/5`. Call it outside any transaction."
+  @spec open_subject_key(
+          Scope.t(),
+          Relay.Id.t(),
+          Relay.RetentionClass.t(),
+          binary(),
+          Relay.Id.t()
+        ) :: {:ok, Relay.Redacted.t()} | {:error, Relay.Error.t()}
+  defdelegate open_subject_key(scope, subject_id, class, wrapped, wrapping_key_id), to: Keyring
+
   # TN-66 (2)
   @doc "Drops every unwrapped key cached on this node."
   @spec flush_key_cache() :: :ok

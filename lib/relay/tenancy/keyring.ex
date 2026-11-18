@@ -88,6 +88,29 @@ defmodule Relay.Tenancy.Keyring do
     end
   end
 
+  # OP-94
+  # TN-67 (5)
+  @doc "Opens a data key that `generate_subject_key/4` wrapped for a subject and retention class under the tenant key `wrapping_key_id`, from its stored wrapped form; the key is kept in the node's key cache like every unwrapped key."
+  @spec open_subject_key(
+          Relay.Scope.t(),
+          Relay.Id.t(),
+          Relay.RetentionClass.t(),
+          binary(),
+          Relay.Id.t()
+        ) :: {:ok, Redacted.t()} | {:error, Error.t()}
+  def open_subject_key(scope, <<_::128>> = subject, class, wrapped, <<_::128>> = wrapping_key_id)
+      when is_binary(wrapped) do
+    with {:ok, class} <- Relay.RetentionClass.cast(class) do
+      class = Relay.RetentionClass.dump(class)
+
+      cached(scope, {:wrapped, subject, class}, fn generation ->
+        with {:ok, record} <- read(scope, fn -> Store.tenant_key(wrapping_key_id) end),
+             {:ok, wrapping_key} <- tenant_key(scope, record, "dek_wrap", generation),
+             do: unwrap_dek(scope, wrapped, subject, class, wrapping_key_id, wrapping_key)
+      end)
+    end
+  end
+
   defp macs([], _message, acc), do: {:ok, Enum.reverse(acc)}
 
   defp macs([key | keys], message, acc) do

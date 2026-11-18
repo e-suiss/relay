@@ -21,6 +21,7 @@ defmodule Relay.Application do
       Relay.Realtime,
       Relay.Webhooks,
       Relay.Iys,
+      Relay.Migration,
       RelayWeb
     ]
 
@@ -69,6 +70,7 @@ defmodule Relay.Application do
         Relay.Realtime.children() ++
         Relay.Webhooks.children() ++
         Relay.Iys.children() ++
+        Relay.Migration.children() ++
         Relay.Platform.Leadership.children(roles) ++ [RelayWeb.Endpoint.supervised()]
 
     # T-45

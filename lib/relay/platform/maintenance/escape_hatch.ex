@@ -466,6 +466,21 @@ defmodule Relay.Platform.Maintenance.EscapeHatch do
     )
   end
 
+  # OP-52 (5)
+  # OP-79
+  # OP-94
+  @doc "Lists shadow day keys of every tenant whose shadow retention period has ended and that are not destroyed yet."
+  @spec shadow_keys_due(pos_integer()) :: {:ok, [map()]} | {:error, Relay.Error.t()}
+  def shadow_keys_due(limit) do
+    select(
+      "SELECT tenant_id, environment, key_id, key_day FROM relay_ops.shadow_keys_due($1)",
+      [limit],
+      fn [tenant, environment, id, day] ->
+        %{tenant_id: tenant, environment: environment, key_id: id, key_day: day}
+      end
+    )
+  end
+
   defp select(sql, params, row) do
     case MaintRepo.query(sql, params) do
       {:ok, %{rows: rows}} -> {:ok, Enum.map(rows, row)}

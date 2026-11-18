@@ -734,3 +734,80 @@ groups:
         annotations:
           summary: "The nightly inbox reconciliation found counters that drifted from their items"
           runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayinboxcounterdrift
+  - name: relay-migration
+    rules:
+      - record: relay:migration_duplicate_rate:ratio_rate1h
+        expr: |
+          sum(rate(relay_migration_displayed_duplicates_total[1h]))
+          /
+          sum(rate(relay_migration_displayed_total[1h]))
+      - record: relay:http_5xx:ratio_rate5m
+        expr: |
+          sum(rate(relay_http_responses_total{status_class="5xx"}[5m]))
+          /
+          sum(rate(relay_http_responses_total[5m]))
+      - alert: RelayRolloutDuplicateWarn
+        expr: relay:migration_duplicate_rate:ratio_rate1h > 0.001
+        for: 10m
+        labels:
+          severity: warning
+          decision: OP-80
+        annotations:
+          summary: "More than 0.1 percent of displayed notifications were shown twice during the rollout"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutduplicatewarn
+      - alert: RelayRolloutDuplicateFreeze
+        expr: relay:migration_duplicate_rate:ratio_rate1h > 0.005
+        for: 10m
+        labels:
+          severity: page
+          decision: OP-80
+        annotations:
+          summary: "More than 0.5 percent of displayed notifications were shown twice: freeze the rollout"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutduplicatefreeze
+      - alert: RelayRolloutDuplicateRollback
+        expr: relay:migration_duplicate_rate:ratio_rate1h > 0.01
+        for: 10m
+        labels:
+          severity: page
+          decision: OP-80
+        annotations:
+          summary: "More than 1 percent of displayed notifications were shown twice: roll the rollout back"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutduplicaterollback
+      - alert: RelayRolloutUnpermittedSend
+        expr: sum(increase(relay_shadow_unpermitted_total[5m])) > 0
+        labels:
+          severity: page
+          decision: OP-80
+        annotations:
+          summary: "A send went to a recipient whose consent was refused or suppressed: stop the rollout"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutunpermittedsend
+      - alert: RelayRolloutQueueFreeze
+        expr: |
+          max by (lane) (relay_queue_oldest_job_age_seconds)
+          > on (lane) group_left ()
+          2 * relay:queue_age_threshold_seconds
+        for: 10m
+        labels:
+          severity: page
+          decision: OP-80
+        annotations:
+          summary: "The oldest job of {{ $labels.lane }} waits twice its threshold for 10 minutes: freeze the rollout"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrolloutqueuefreeze
+      - alert: RelayRollout5xxFreeze
+        expr: relay:http_5xx:ratio_rate5m > 0.01
+        for: 5m
+        labels:
+          severity: page
+          decision: OP-80
+        annotations:
+          summary: "More than 1 percent of API responses are 5xx: freeze the rollout"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrollout5xxfreeze
+      - alert: RelayRollout5xxRollback
+        expr: relay:http_5xx:ratio_rate5m > 0.05
+        for: 5m
+        labels:
+          severity: page
+          decision: OP-80
+        annotations:
+          summary: "More than 5 percent of API responses are 5xx: roll the rollout back"
+          runbook_url: https://github.com/e-suiss/relay/blob/main/deploy/observability/runbooks.md#relayrollout5xxrollback

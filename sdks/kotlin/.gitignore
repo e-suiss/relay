@@ -1,0 +1,5 @@
+/.gradle/
+/build/
+/relay/build/
+/.kotlin/
+/local.properties

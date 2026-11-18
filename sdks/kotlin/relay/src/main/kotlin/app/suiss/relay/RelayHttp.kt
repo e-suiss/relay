@@ -60,10 +60,8 @@ internal class RelayHttp(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: RelayException) {
-                val problem = (error as? RelayException.Problem)?.problem
-                if (problem != null && problem.status == 401 && !refreshed &&
-                    (problem.code == "auth_expired_token" || problem.code == "auth_invalid_token")
-                ) {
+                val expired = (error as? RelayException.Problem)?.problem?.let(::isExpiredToken) ?: false
+                if (expired && !refreshed) {
                     refreshed = true
                     tokens.refresh()
                     continue
@@ -118,6 +116,9 @@ internal class RelayHttp(
             }
         }
     }
+
+    private fun isExpiredToken(problem: RelayProblem): Boolean =
+        problem.status == 401 && (problem.code == "auth_expired_token" || problem.code == "auth_invalid_token")
 
     companion object {
         val JSON = "application/json".toMediaType()

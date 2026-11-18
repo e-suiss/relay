@@ -88,6 +88,7 @@ jobs:
           path: |
             sdks/kotlin/gradle/verification-metadata.xml
             sdks/kotlin/relay/gradle.lockfile
+            sdks/kotlin/settings-gradle.lockfile
             sdks/kotlin/relay/src
             sdks/kotlin/*.kts
             sdks/kotlin/relay/*.kts

@@ -3497,6 +3497,86 @@
   },
   {
     "acceptance": "pending",
+    "id": "X-43",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "Seven seed recipients in every test plane",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-44",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "Unified preferences screen joins two components",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-45",
+    "section": "§8",
+    "status": "engineering_assumption",
+    "title": "Why-not-received measurement protocol",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-46",
+    "section": "§8",
+    "status": "engineering_assumption",
+    "title": "Onboarding acceptance test from a fresh tenant",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-47",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "Console served same-origin with operator session",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-48",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "SDK generation and verification",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-49",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "Docs site and generated limits page",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-50",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "SDK release by tagged trusted publishing",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-51",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "Hosted preference page with signed single-purpose token",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
+    "id": "X-52",
+    "section": "§8",
+    "status": "frozen_product",
+    "title": "Test inbox keeps rendered test messages sealed",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
     "id": "API-1",
     "section": "§9",
     "status": "frozen_technical",

@@ -254,6 +254,16 @@ public sealed partial class RelayApi
         return _client.SendJsonAsync(Operations.UpdateSubscriberPreferences, [subscriberId], query, body, options, cancellationToken);
     }
 
+    /// <summary>Mint a hosted preference page link</summary>
+    public Task<JsonNode> CreatePreferencePageLinkAsync(
+        string subscriberId,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.CreatePreferencePageLink, [subscriberId], query, null, options, cancellationToken);
+    }
+
     /// <summary>List subscriber consents</summary>
     public Task<Page> ListSubscriberConsentsAsync(
         string subscriberId,
@@ -2609,6 +2619,52 @@ public sealed partial class RelayApi
     {
         var query = new QueryBuilder();
         return _client.SendJsonAsync(Operations.VerifyProviderAccount, [providerAccountId], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Get the status of a provider account</summary>
+    public Task<JsonNode> GetProviderAccountStatusAsync(
+        string providerAccountId,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetProviderAccountStatus, [providerAccountId], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Check the sending domains of an e-mail provider account</summary>
+    public Task<JsonNode> GetProviderAccountEmailDomainsAsync(
+        string providerAccountId,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetProviderAccountEmailDomains, [providerAccountId], query, null, options, cancellationToken);
+    }
+
+    /// <summary>List the e-mail warm-up plans</summary>
+    public Task<JsonNode> ListEmailWarmupPlansAsync(
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.ListEmailWarmupPlans, [], query, null, options, cancellationToken);
+    }
+
+    /// <summary>Quote the cost of a paid channel</summary>
+    public Task<JsonNode> QuoteChannelCostAsync(
+        string channel,
+        string country,
+        string? category = null,
+        int? quantity = null,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("channel", channel);
+        query.Add("country", country);
+        query.Add("category", category);
+        query.Add("quantity", quantity);
+        return _client.SendJsonAsync(Operations.QuoteChannelCost, [], query, null, options, cancellationToken);
     }
 
     /// <summary>List provider invoices</summary>

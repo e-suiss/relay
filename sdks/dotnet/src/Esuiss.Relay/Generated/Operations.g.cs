@@ -65,6 +65,9 @@ public static partial class Operations
     /// <summary>Update subscriber preferences</summary>
     public static readonly Operation UpdateSubscriberPreferences = new("updateSubscriberPreferences", "PATCH", "/v1/subscribers/{subscriber_id}/preferences", IdempotencyMode.Required, IfMatchMode.None, BodyMode.Required, "application/json", ResponseKind.Json);
 
+    /// <summary>Mint a hosted preference page link</summary>
+    public static readonly Operation CreatePreferencePageLink = new("createPreferencePageLink", "POST", "/v1/subscribers/{subscriber_id}/preference_page_links", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>List subscriber consents</summary>
     public static readonly Operation ListSubscriberConsents = new("listSubscriberConsents", "GET", "/v1/subscribers/{subscriber_id}/consents", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -656,6 +659,18 @@ public static partial class Operations
     /// <summary>Verify a provider account</summary>
     public static readonly Operation VerifyProviderAccount = new("verifyProviderAccount", "POST", "/v1/provider_accounts/{provider_account_id}/verify", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
+    /// <summary>Get the status of a provider account</summary>
+    public static readonly Operation GetProviderAccountStatus = new("getProviderAccountStatus", "GET", "/v1/provider_accounts/{provider_account_id}/status", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Check the sending domains of an e-mail provider account</summary>
+    public static readonly Operation GetProviderAccountEmailDomains = new("getProviderAccountEmailDomains", "GET", "/v1/provider_accounts/{provider_account_id}/email_domains", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>List the e-mail warm-up plans</summary>
+    public static readonly Operation ListEmailWarmupPlans = new("listEmailWarmupPlans", "GET", "/v1/email_warmup_plans", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
+    /// <summary>Quote the cost of a paid channel</summary>
+    public static readonly Operation QuoteChannelCost = new("quoteChannelCost", "GET", "/v1/channel_costs", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>List provider invoices</summary>
     public static readonly Operation ListProviderInvoices = new("listProviderInvoices", "GET", "/v1/provider_invoices", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -781,6 +796,7 @@ public static partial class Operations
         BulkUpsertSubscribers,
         GetSubscriberPreferences,
         UpdateSubscriberPreferences,
+        CreatePreferencePageLink,
         ListSubscriberConsents,
         ListSubscriberDevices,
         RegisterSubscriberDevice,
@@ -978,6 +994,10 @@ public static partial class Operations
         GetProviderAccount,
         UpdateProviderAccount,
         VerifyProviderAccount,
+        GetProviderAccountStatus,
+        GetProviderAccountEmailDomains,
+        ListEmailWarmupPlans,
+        QuoteChannelCost,
         ListProviderInvoices,
         CreateProviderInvoice,
         GetProviderInvoice,

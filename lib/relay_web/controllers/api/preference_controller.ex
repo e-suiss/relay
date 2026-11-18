@@ -3,6 +3,7 @@ defmodule RelayWeb.Api.PreferenceController do
 
   use RelayWeb, :api_controller
 
+  alias Relay.Api.PreferencePage
   alias Relay.Api.Preferences
   alias RelayWeb.Api.Response
   alias RelayWeb.Api.Work
@@ -34,6 +35,18 @@ defmodule RelayWeb.Api.PreferenceController do
   end
 
   defp tenant_write(_status, id, body, ref), do: Preferences.update(id, body, :tenant, ref)
+
+  # X-51
+  # PC-18
+  @spec link(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def link(conn, %{"subscriber_id" => external_id}) do
+    root = Relay.Channels.public_root()
+
+    case PreferencePage.link(conn.assigns.scope, external_id, root) do
+      {:ok, minted} -> Work.idempotent(conn, fn _status -> {:ok, minted} end)
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
 
   # PC-59 (1)
   # API-56

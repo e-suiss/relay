@@ -57,6 +57,14 @@ defmodule RelayWeb.Endpoint do
   plug :forward
   plug Plug.Static, at: "/", from: :relay, gzip: false, only: RelayWeb.static_paths()
 
+  # X-47
+  plug Plug.Static,
+    at: "/console",
+    from: {:relay, "priv/static/console"},
+    gzip: false,
+    only: ~w(assets favicon.svg),
+    headers: %{"x-content-type-options" => "nosniff"}
+
   if code_reloading? do
     plug Phoenix.CodeReloader
   end

@@ -44,3 +44,9 @@ regexes = ['''^0123456789abcdef$''']
 [[allowlists]]
 description = "Published dependency checksums of the Android SDK's Gradle verification metadata"
 paths = ['''^sdks/kotlin/gradle/verification-metadata\.xml$''']
+
+[[allowlists]]
+description = "Synthetic caller Idempotency-Key of the SDK conformance vectors in the Python SDK tests"
+condition = "AND"
+paths = ['''^sdks/python/tests/''']
+regexes = ['''^order-4821-shipped$''']

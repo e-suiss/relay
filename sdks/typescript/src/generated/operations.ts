@@ -301,6 +301,13 @@ export const serverOperations = {
     paginated: false,
     contentType: "application/json",
   },
+  createPreferencePageLink: {
+    method: "POST",
+    path: "/v1/subscribers/{subscriber_id}/preference_page_links",
+    idempotency: "required",
+    paginated: false,
+    contentType: null,
+  },
   createProviderInvoice: {
     method: "POST",
     path: "/v1/provider_invoices",

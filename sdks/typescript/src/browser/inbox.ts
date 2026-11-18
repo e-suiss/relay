@@ -1,5 +1,6 @@
 import { RelayApiError, RelayConnectionError } from "../core/errors.js";
 import { newIdempotencyKey } from "../core/transport.js";
+import type { components } from "../generated/subscriber.js";
 import {
   RealtimeConnection,
   type InboxCounters,
@@ -20,8 +21,17 @@ export interface InboxItem {
   readonly hidden: boolean;
   readonly expired: boolean;
   readonly snoozed_until: string | null;
+  readonly sender_type?: InboxSenderType | null;
+  readonly approval?: boolean;
+  readonly waitpoint?: InboxWaitpoint | null;
   readonly [field: string]: unknown;
 }
+
+/** Who produced a notification (C-24, AG-34). */
+export type InboxSenderType = NonNullable<components["schemas"]["InboxItem"]["sender_type"]>;
+
+/** The waitpoint of an item awaiting a response (AG-35). */
+export type InboxWaitpoint = components["schemas"]["InboxWaitpoint"];
 
 /** A state intent (IN-12). */
 export type InboxIntentOp =

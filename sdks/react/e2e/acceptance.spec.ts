@@ -64,3 +64,43 @@ test("X-16 delete is reported as hidden and can be undone", async ({ page }) => 
   await inbox.getByTestId("relay-inbox-notice").getByRole("button", { name: "Undo" }).click();
   await expect(inbox.getByTestId("relay-inbox-item")).toHaveCount(before);
 });
+
+test("C-24 AG-35 IN-6 the inbox shows the agent label, waitpoint states and approval link", async ({
+  page,
+}) => {
+  await page.goto("/demo/?view=inbox");
+  const inbox = page.locator(".relay-inbox").last();
+  const item = (id: string) => inbox.locator(`[data-item-id="${id}"]`);
+  await expect(item("inb_03")).toBeVisible();
+  await expect(item("inb_03").getByTestId("relay-agent-mark")).toHaveText(/Sent by an AI agent/);
+  await expect(item("inb_05").getByTestId("relay-agent-mark")).toHaveCount(0);
+  await expect(item("inb_03").getByTestId("relay-waitpoint")).toContainText(
+    "Waiting for your response",
+  );
+  await expect(item("inb_06").getByTestId("relay-waitpoint")).toContainText("Answered by you");
+  await expect(item("inb_07").getByTestId("relay-waitpoint")).toContainText(
+    "No longer expecting a response",
+  );
+  await expect(item("inb_04").getByTestId("relay-approval-link")).toHaveAttribute(
+    "href",
+    "https://access.example.com/approvals/77",
+  );
+  await expect(item("inb_04").getByTestId("relay-waitpoint")).toHaveCount(0);
+  await item("inb_03").getByRole("button", { name: "Morning" }).click();
+  await expect(item("inb_03").getByTestId("relay-waitpoint")).toContainText("Answered by you");
+});
+
+test("X-44 the preference center shows the consents read-only with a link to Access", async ({
+  page,
+}) => {
+  await page.goto("/demo/?view=preferences");
+  const section = page.getByTestId("relay-consents");
+  await expect(section).toContainText("E-mail: Not given");
+  await expect(section).toContainText("SMS: Given");
+  await expect(section.getByRole("switch")).toHaveCount(0);
+  await expect(section.getByRole("link")).toHaveAttribute(
+    "href",
+    "https://access.example.com/consents",
+  );
+  await expect(page.getByTestId("relay-permission-pending").first()).toBeVisible();
+});

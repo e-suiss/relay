@@ -2067,6 +2067,13 @@ export const subscriberOperations = {
     paginated: false,
     contentType: null,
   },
+  getMyPushContent: {
+    method: "GET",
+    path: "/v1/subscriber/push_content/{delivery_id}",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   getPortalWebhookEndpoint: {
     method: "GET",
     path: "/v1/portal/webhook_endpoints/{webhook_endpoint_id}",
@@ -2093,6 +2100,13 @@ export const subscriberOperations = {
     path: "/v1/portal/webhook_messages/{webhook_message_id}/attempts/{webhook_attempt_id}",
     idempotency: "none",
     paginated: false,
+    contentType: null,
+  },
+  listMyConsents: {
+    method: "GET",
+    path: "/v1/subscriber/consents",
+    idempotency: "none",
+    paginated: true,
     contentType: null,
   },
   listMyInboxChanges: {

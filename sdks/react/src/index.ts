@@ -84,6 +84,7 @@ export {
 } from "./preferences/PreferenceCenter.js";
 export { RelayRuntime, type InboxState, type RelayRuntimeOptions } from "./runtime.js";
 export {
+  apiConsents,
   isApprovalItem,
   noConsents,
   senderTypeOf,
@@ -91,6 +92,9 @@ export {
   type ConsentSource,
   type ConsentView,
   type SenderType,
+  type WaitpointOption,
+  type WaitpointResponderView,
+  type WaitpointStatus,
   type WaitpointView,
 } from "./seams.js";
 export { relayStyles } from "./styles.js";

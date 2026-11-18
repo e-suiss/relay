@@ -1,4 +1,12 @@
-import type { FetchLike, InboxItem } from "@esuiss/relay/browser";
+import type {
+  FetchLike,
+  InboxItem,
+  InboxWaitpoint,
+  SubscriberComponents,
+} from "@esuiss/relay/browser";
+
+/** A consent record as `listMyConsents` returns it. */
+export type FakeConsent = SubscriberComponents["schemas"]["Consent"];
 
 /** One request the fake received. */
 export interface FakeRequest {
@@ -18,6 +26,7 @@ export interface FakeRelayState {
   eventTypes: Record<string, unknown>[];
   messages: Record<string, unknown>[];
   attempts: Record<string, Record<string, unknown>[]>;
+  consents: FakeConsent[] | null;
 }
 
 /** Options of {@link createFakeRelay}. */
@@ -27,6 +36,8 @@ export interface FakeRelayOptions {
   readonly endpoints?: readonly Record<string, unknown>[];
   readonly eventTypes?: readonly Record<string, unknown>[];
   readonly messages?: readonly Record<string, unknown>[];
+  /** The consents `listMyConsents` answers; without them the operation fails, as a Relay without the consent copy would. */
+  readonly consents?: readonly FakeConsent[];
   /** A fixed clock for the fake's timestamps. */
   readonly now?: () => number;
 }
@@ -87,6 +98,44 @@ export function fakeItem(
     activity_count: 1,
     actor_count: 0,
     expires_at: null,
+    sender_type: null,
+    approval: false,
+    waitpoint: null,
+    ...fields,
+  };
+}
+
+/** A complete waitpoint of an inbox item with defaults for the fields a test does not care about. */
+export function fakeWaitpoint(id: string, fields: Partial<InboxWaitpoint> = {}): InboxWaitpoint {
+  return {
+    id,
+    kind: "response",
+    status: "awaiting",
+    subject_digest: null,
+    options: [],
+    responder: null,
+    responded_at: null,
+    approval_url: null,
+    ...fields,
+  };
+}
+
+/** A complete consent record with defaults for the fields a test does not care about. */
+export function fakeConsent(
+  channel: FakeConsent["channel"],
+  status: FakeConsent["status"],
+  fields: Partial<FakeConsent> = {},
+): FakeConsent {
+  return {
+    object: "consent",
+    id: `cns_${channel}`,
+    brand: null,
+    channel,
+    status,
+    consent_kind: null,
+    recipient_type: null,
+    source: "access",
+    occurred_at: "2026-11-01T09:00:00Z",
     ...fields,
   };
 }
@@ -158,6 +207,7 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
     eventTypes: [...(options.eventTypes ?? [])],
     messages: [...(options.messages ?? [])],
     attempts: {},
+    consents: options.consents === undefined ? null : [...options.consents],
   };
   const requests: FakeRequest[] = [];
   let sequence = 0;
@@ -348,6 +398,17 @@ export function createFakeRelay(options: FakeRelayOptions = {}): FakeRelay {
         status: "responded",
         responder: { recipient_id: "sub_fake", kind: "subscriber" },
         responded_at: iso(),
+      });
+    }
+    if (path === "/v1/subscriber/consents" && method === "GET") {
+      if (state.consents === null)
+        return problem(404, "not_found", "The fake has no consent copy.");
+      return json(200, {
+        object: "list",
+        data: state.consents,
+        has_more: false,
+        next_cursor: null,
+        previous_cursor: null,
       });
     }
     if (path === "/v1/subscriber/preferences" && method === "GET")

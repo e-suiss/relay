@@ -1,4 +1,11 @@
-import { createFakeRelay, demoRelay, fakeItem, fakeToken } from "@esuiss/relay-react/testing";
+import {
+  createFakeRelay,
+  demoRelay,
+  fakeConsent,
+  fakeItem,
+  fakeToken,
+  fakeWaitpoint,
+} from "@esuiss/relay-react/testing";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   configureRelay,
@@ -138,6 +145,89 @@ describe("X-32 web components", () => {
     const element = mount("relay-preference-center", null);
     await until(() => element.shadowRoot?.querySelector("[data-testid=relay-preference-matrix]"));
     expect(element.shadowRoot?.textContent).toContain("On (locked)");
+  });
+
+  it("X-44 the preference center reads consents from the subscriber API, read-only", async () => {
+    const relay = demoRelay();
+    relay.state.consents = [fakeConsent("email", "active")];
+    const element = mount(
+      "relay-preference-center",
+      configFor(relay, { links: { accessConsentUrl: "https://access.example.com/consents" } }),
+    );
+    const section = await until(() =>
+      element.shadowRoot?.querySelector<HTMLElement>("[data-testid=relay-consents]"),
+    );
+    await until(() => section.textContent?.includes("E-mail: Given"));
+    expect(section.querySelectorAll("[role=switch], button")).toHaveLength(0);
+    expect(section.querySelector("a")?.getAttribute("href")).toBe(
+      "https://access.example.com/consents",
+    );
+    expect(
+      relay.requests.some(
+        (request) => request.path === "/v1/subscriber/consents" && request.method === "GET",
+      ),
+    ).toBe(true);
+  });
+
+  it("X-44 without an Access link the consent section links nowhere", async () => {
+    const relay = demoRelay();
+    const element = mount("relay-preference-center", configFor(relay));
+    const section = await until(() =>
+      element.shadowRoot?.querySelector<HTMLElement>("[data-testid=relay-consents]"),
+    );
+    await until(() => section.textContent?.includes("E-mail: Not given"));
+    expect(section.querySelector("a")).toBeNull();
+  });
+
+  it("C-24 AG-35 IN-6 the inbox shows the agent label, waitpoint states and approval link", async () => {
+    const relay = createFakeRelay({
+      items: [
+        fakeItem("inb_1", {
+          sender_type: "agent",
+          waitpoint: fakeWaitpoint("wp_1", {
+            subject_digest: "d1",
+            options: [{ label: "Yes", value: "yes" }],
+          }),
+        }),
+        fakeItem("inb_2", {
+          waitpoint: fakeWaitpoint("wp_2", { status: "not_awaited" }),
+        }),
+        fakeItem("inb_3", {
+          approval: true,
+          waitpoint: fakeWaitpoint("wp_3", {
+            kind: "approval",
+            approval_url: "https://access.example.com/approvals/3",
+          }),
+        }),
+      ],
+    });
+    const element = mount("relay-inbox", configFor(relay));
+    const root = await until(() => element.shadowRoot);
+    const within = (id: string, selector: string) =>
+      root.querySelector<HTMLElement>(`[data-item-id="${id}"] ${selector}`);
+    await until(() => within("inb_1", "[data-testid=relay-waitpoint]"));
+    expect(within("inb_1", "[data-testid=relay-agent-mark]")?.textContent).toContain(
+      "Sent by an AI agent",
+    );
+    expect(within("inb_2", "[data-testid=relay-agent-mark]")).toBeNull();
+    expect(within("inb_2", "[data-testid=relay-waitpoint]")?.textContent).toContain(
+      "No longer expecting a response",
+    );
+    expect(within("inb_3", "[data-testid=relay-approval-link]")?.getAttribute("href")).toBe(
+      "https://access.example.com/approvals/3",
+    );
+    expect(within("inb_3", "[data-testid=relay-waitpoint]")).toBeNull();
+    const yes = [...root.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent === "Yes",
+    );
+    yes?.click();
+    await until(() =>
+      within("inb_1", "[data-testid=relay-waitpoint]")?.textContent?.includes("Answered by you"),
+    );
+    const response = relay.requests.find(
+      (request) => request.path === "/v1/subscriber/waitpoints/wp_1/response",
+    );
+    expect(response?.body).toEqual({ response: "yes", subject_digest: "d1" });
   });
 
   it("X-23 renders the webhook portal with the portal token", async () => {

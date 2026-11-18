@@ -3,12 +3,12 @@ import { createRoot } from "react-dom/client";
 import {
   Inbox,
   InboxPopover,
+  noConsents,
   PreferenceCenter,
   RelayProvider,
   Toaster,
   WebhookPortal,
   type ColorScheme,
-  type ConsentView,
 } from "../src/index.js";
 import { demoRelay } from "../src/testing/index.js";
 
@@ -17,10 +17,7 @@ const locale = params.get("locale") ?? "en";
 const scheme = (params.get("scheme") ?? "light") as ColorScheme;
 const view = params.get("view") ?? "all";
 const relay = demoRelay();
-const consents = (): Promise<readonly ConsentView[] | null> =>
-  Promise.resolve(
-    params.get("consents") === "none" ? null : [{ channel: "email", status: "none" }],
-  );
+const consents = params.get("consents") === "none" ? noConsents : undefined;
 document.documentElement.lang = locale;
 document.body.style.margin = "0";
 document.body.style.background = scheme === "dark" ? "#111418" : "#ffffff";

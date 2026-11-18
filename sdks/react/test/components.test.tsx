@@ -6,8 +6,15 @@ import { Bell } from "../src/inbox/Bell.js";
 import { Inbox } from "../src/inbox/Inbox.js";
 import { WebhookPortal } from "../src/portal/WebhookPortal.js";
 import { PreferenceCenter } from "../src/preferences/PreferenceCenter.js";
-import type { ConsentView } from "../src/seams.js";
-import { createFakeRelay, demoRelay, fakeItem, type FakeRelay } from "../src/testing/index.js";
+import { noConsents, type ConsentView } from "../src/seams.js";
+import {
+  createFakeRelay,
+  demoRelay,
+  fakeConsent,
+  fakeItem,
+  fakeWaitpoint,
+  type FakeRelay,
+} from "../src/testing/index.js";
 
 afterEach(() => {
   cleanup();
@@ -148,16 +155,39 @@ describe("X-16 X-17 inbox", () => {
     expect(screen.queryByText("Approve")).toBeNull();
   });
 
+  it("IN-6 AG-32 an approval waitpoint links to its approval_url and offers no answer", async () => {
+    const relay = createFakeRelay({
+      items: [
+        fakeItem("inb_1", {
+          approval: true,
+          sender_type: "agent",
+          waitpoint: fakeWaitpoint("wp_1", {
+            kind: "approval",
+            subject_digest: "d1",
+            options: [{ label: "Approve", value: "approve" }],
+            approval_url: "https://access.example.com/approvals/9",
+          }),
+          actions: [{ label: "Review", url: "https://access.example.com/approvals/7" }],
+        }),
+      ],
+    });
+    renderWith(relay, <Inbox />);
+    const link = await screen.findByTestId("relay-approval-link");
+    expect(link.getAttribute("href")).toBe("https://access.example.com/approvals/9");
+    expect(screen.queryByTestId("relay-waitpoint")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Approve" })).toBeNull();
+    expect(screen.getByTestId("relay-agent-mark")).toBeTruthy();
+  });
+
   it("AG-35 an awaiting response goes from processing to answered", async () => {
     const relay = createFakeRelay({
       items: [
         fakeItem("inb_1", {
-          waitpoint: {
-            id: "wp_1",
-            status: "awaiting",
+          sender_type: "agent",
+          waitpoint: fakeWaitpoint("wp_1", {
             subject_digest: "d1",
-            options: [{ label: "Yes", value: true }],
-          },
+            options: [{ label: "Yes", value: "yes" }],
+          }),
         }),
       ],
     });
@@ -173,17 +203,54 @@ describe("X-16 X-17 inbox", () => {
     const request = relay.requests.find(
       (entry) => entry.path === "/v1/subscriber/waitpoints/wp_1/response",
     );
-    expect(request?.body).toEqual({ response: true, subject_digest: "d1" });
+    expect(request?.body).toEqual({ response: "yes", subject_digest: "d1" });
   });
 
   it("AG-35 shows when a response is no longer expected", async () => {
     const relay = createFakeRelay({
-      items: [fakeItem("inb_1", { waitpoint: { id: "wp_1", status: "not_awaited" } })],
+      items: [
+        fakeItem("inb_1", {
+          waitpoint: fakeWaitpoint("wp_1", {
+            status: "not_awaited",
+            subject_digest: "d1",
+            options: [{ label: "Yes", value: "yes" }],
+          }),
+        }),
+      ],
     });
     renderWith(relay, <Inbox />);
     expect((await screen.findByTestId("relay-waitpoint")).textContent).toContain(
       "No longer expecting a response",
     );
+    expect(screen.queryByRole("button", { name: "Yes" })).toBeNull();
+  });
+
+  it("AG-35 shows who answered and that a processing response takes no second answer", async () => {
+    const relay = createFakeRelay({
+      items: [
+        fakeItem("inb_1", {
+          waitpoint: fakeWaitpoint("wp_1", {
+            status: "responded",
+            responder: { kind: "agent", recipient_id: "agt_1" },
+            responded_at: "2026-11-01T10:00:00Z",
+          }),
+        }),
+        fakeItem("inb_2", {
+          waitpoint: fakeWaitpoint("wp_2", {
+            status: "processing",
+            subject_digest: "d2",
+            options: [{ label: "No", value: "no" }],
+          }),
+        }),
+      ],
+    });
+    renderWith(relay, <Inbox />);
+    await screen.findAllByTestId("relay-waitpoint");
+    const panel = (id: string) =>
+      document.querySelector(`[data-item-id="${id}"] [data-testid="relay-waitpoint"]`);
+    expect(panel("inb_1")?.textContent).toContain("Answered by an agent");
+    expect(panel("inb_2")?.textContent).toContain("Processing your response");
+    expect(screen.queryByRole("button", { name: "No" })).toBeNull();
   });
 
   it("X-32 renders Turkish texts", async () => {
@@ -225,9 +292,54 @@ describe("§8.7 preference center", () => {
     );
   });
 
-  it("X-44 without a consent source the consent section shows a safe empty state", async () => {
-    renderWith(demoRelay(), <PreferenceCenter />);
+  it("X-44 PC-59 reads the consents from the subscriber API by default, read-only", async () => {
+    const relay = demoRelay();
+    relay.state.consents = [fakeConsent("email", "active"), fakeConsent("sms", "revoked")];
+    renderWith(relay, <PreferenceCenter />);
     await screen.findByTestId("relay-preference-matrix");
+    const section = screen.getByTestId("relay-consents");
+    await waitFor(() => expect(section.textContent).toContain("E-mail: Given"));
+    expect(section.textContent).toContain("SMS: Withdrawn");
+    expect(within(section).queryAllByRole("switch")).toHaveLength(0);
+    expect(within(section).queryAllByRole("button")).toHaveLength(0);
+    expect(screen.getByRole("switch", { name: "Offers and news by E-mail" })).toBeTruthy();
+    const consentRequests = relay.requests.filter((request) => request.path.includes("consent"));
+    expect(consentRequests.length).toBeGreaterThan(0);
+    expect(consentRequests.every((request) => request.method === "GET")).toBe(true);
+  });
+
+  it("X-44 without a configured Access link the consent section shows no link", async () => {
+    renderWith(demoRelay(), <PreferenceCenter />, {
+      links: { accessApprovalOrigin: "https://access.example.com" },
+    });
+    await screen.findByTestId("relay-preference-matrix");
+    const section = screen.getByTestId("relay-consents");
+    await waitFor(() => expect(section.textContent).toContain("E-mail: Not given"));
+    expect(within(section).queryAllByRole("link")).toHaveLength(0);
+  });
+
+  it("X-44 shows that no consent is recorded when the list is empty", async () => {
+    const relay = demoRelay();
+    relay.state.consents = [];
+    renderWith(relay, <PreferenceCenter />);
+    await screen.findByTestId("relay-preference-matrix");
+    await waitFor(() =>
+      expect(screen.getByTestId("relay-consents").textContent).toContain(
+        "No marketing permissions are recorded.",
+      ),
+    );
+  });
+
+  it("X-44 a failed consent read shows a safe empty state", async () => {
+    const relay = demoRelay();
+    relay.state.consents = null;
+    renderWith(relay, <PreferenceCenter />);
+    await screen.findByTestId("relay-preference-matrix");
+    await waitFor(() =>
+      expect(
+        relay.requests.some((request) => request.path === "/v1/subscriber/consents"),
+      ).toBe(true),
+    );
     expect(screen.getByTestId("relay-consents").textContent).toContain(
       "Permission details are not shown here.",
     );
@@ -264,7 +376,7 @@ describe("§8.7 preference center", () => {
 
   it("X-20 turning a cell off and on again takes one click each", async () => {
     const relay = demoRelay();
-    renderWith(relay, <PreferenceCenter />);
+    renderWith(relay, <PreferenceCenter consents={noConsents} />);
     await screen.findByTestId("relay-preference-matrix");
     const name = "Offers and news by E-mail";
     fireEvent.click(screen.getByRole("switch", { name }));

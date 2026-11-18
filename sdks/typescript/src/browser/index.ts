@@ -31,6 +31,8 @@ export {
   type InboxIntentOp,
   type InboxItem,
   type InboxNotice,
+  type InboxSenderType,
+  type InboxWaitpoint,
   type InboxSnapshot,
   type OnlineSource,
   type QueuedIntent,

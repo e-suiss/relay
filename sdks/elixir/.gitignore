@@ -1,0 +1,8 @@
+/_build/
+/deps/
+/doc/
+/cover/
+/priv/plts/
+/sdk-elixir.patch
+esuiss_relay-*.tar
+erl_crash.dump

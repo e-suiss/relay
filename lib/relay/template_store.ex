@@ -422,6 +422,29 @@ defmodule Relay.TemplateStore do
     )
   end
 
+  # X-52
+  # TP-40
+  @doc "The render snapshots of deliveries inside the caller's scoped transaction: per delivery its recipient, retention class, content digest, sealed content and key (both `nil` for a digest-only snapshot), digest reason, locale and render time."
+  @spec render_snapshots([Relay.Id.t()]) :: [row()]
+  def render_snapshots([]), do: []
+
+  def render_snapshots(delivery_ids) do
+    maps(
+      Repo.scoped_query!(
+        """
+        SELECT s.delivery_id, s.recipient_id, s.retention_class::text AS retention_class,
+          s.content_digest, s.content_ct, s.content_key_id, s.digest_reason, p.locale,
+          s.created_at
+        FROM relay.render_snapshots s
+        LEFT JOIN relay.delivery_render_plans p ON p.tenant_id = s.tenant_id
+          AND p.environment = s.environment AND p.delivery_id = s.delivery_id
+        WHERE s.delivery_id = ANY ($1)
+        """,
+        [delivery_ids]
+      )
+    )
+  end
+
   # TP-40
   @doc "How the render content of a delivery is kept: `digest_reason` (`security_subtype`, `retention_none` or `nil` when the content is kept), the `retention_class` and the recipient's active subject key of that class to seal it under."
   @spec render_policy(Relay.Id.t()) :: row()

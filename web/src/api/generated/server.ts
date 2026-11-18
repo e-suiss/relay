@@ -324,6 +324,26 @@ export interface paths {
         patch: operations["updateSubscriberPreferences"];
         trace?: never;
     };
+    "/v1/subscribers/{subscriber_id}/preference_page_links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint a hosted preference page link
+         * @description Mints a link to the hosted preference page of a subscriber (X-51, PC-18) for an e-mail footer or any message: a page served by Relay without JavaScript and without signing in. The link carries a signed token that opens only this page, only for this subscriber and only in the environment of the credential; it expires after x-relay-limits preference_page_link_lifetime_seconds and an expired link shows that it has expired. The page renders the same cells as getSubscriberPreferences: locked categories as a label with whom the lock serves, the administrator's and the device settings' states, the three choices Instant, Digest and Never with none preselected when a digestible cell is changed, the channel switches, muted workflows and scope keys and quiet hours. The subscriber's consents are shown read only from Relay's consent copy, with a link to Access where they are changed (X-44); the page never asks for consent. Every change on the page is written as the subscriber's own preference.
+         */
+        post: operations["createPreferencePageLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/subscribers/{subscriber_id}/consents": {
         parameters: {
             query?: never;
@@ -2052,6 +2072,66 @@ export interface paths {
          * @description The fake provider's result table: the result comes from the address only. Email <result>@sim.relay.test, phone +9905550000NN (NN is the result's two-digit code in list order), push, Web Push, WhatsApp and messaging targets sim:<result>; every other address is delivered. On the live plane these ranges are refused with recipient_invalid. Test environment only; a live client gets auth_environment_mismatch. The list is fixed and not paginated.
          */
         get: operations["listSimulatedResults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test/seed-recipients": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the seed recipients of the test plane
+         * @description The seven ready-made recipients every test plane has: seed_no_consent (no marketing consent), seed_opted_out (consent revoked on e-mail and SMS), seed_quiet_hours (quiet hours cover the whole day, e-mail included), seed_capped (global frequency cap full), seed_bounced (e-mail suppressed after a hard bounce), seed_no_device (no push device) and seed_fallback_timezone (no time zone). The external id is the seed name; the e-mail address is <seed>@seed.relay.test and the phone number +9905551000NN in seed order, both in the fake provider's table and refused on the live plane. They are set up when the tenant is created and by resetSeedRecipients; set_up is false until that job ran. Test environment only; a live client gets auth_environment_mismatch. The list is fixed and not paginated.
+         */
+        get: operations["listSeedRecipients"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test/seed-recipients/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset the seed recipients of the test plane
+         * @description Queues the setup of the test plane again: each seed recipient gets back what its profile defines (addresses, locale, time zone, delivery profile, its consent state, its suppression, its full frequency cap), so a manual change is undone; the sample workflow is created only when the plane has none. Idempotent; the answer comes before the job runs. Test environment only; a live client gets auth_environment_mismatch.
+         */
+        post: operations["resetSeedRecipients"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/test/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the test inbox
+         * @description Every notification of the test plane, newest first, with its decision chain (each delivery's status, rule_id and the rule dictionary's sentence) and, for each delivery that was rendered, the rendered output kept sealed with it for the test plane's retention. A security_subtype or retention none message was kept as its digest only: output is null and digest_only names the reason. The live plane keeps no rendered content for this purpose and has no test inbox; a live client gets auth_environment_mismatch. Rendered e-mail HTML is shown only in the sandboxed preview.
+         */
+        get: operations["listTestInboxMessages"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5352,14 +5432,26 @@ export interface components {
          * @enum {string}
          */
         PreferenceSource: "user" | "tenant" | "category_default" | "class_default" | "locked";
-        /** @description One category and channel of a subscriber. web_push follows push and voice follows sms. */
+        /** @description One category and channel of a subscriber. web_push follows push and voice follows sms. The embeddable preference component, the hosted preference page and an app's own notification settings screen render the same cell (X-18, X-51). */
         PreferenceCell: {
             category: components["schemas"]["CategoryKey"];
+            /** @description The category's name as the tenant wrote it, the label of the row. */
+            category_name: string;
             channel: components["schemas"]["Channel"];
             value: components["schemas"]["PreferenceValue"];
             /** @description Whether the channel is open for this category after every level is applied. */
             effective: boolean;
             source: components["schemas"]["PreferenceSource"];
+            /** @description Whether the category is locked (PC-6): the cell is shown as a label, not a switch, and the last open channel of the category cannot be closed. */
+            locked: boolean;
+            /** @description Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked. */
+            lock_beneficiary: ("subscriber" | "tenant") | null;
+            /** @description Whether the subscriber may receive this category as a digest: always for social, for operational when the category allows it (PC-17). Closing such a cell offers the three choices Instant, Digest and Never, none preselected. */
+            digest_allowed: boolean;
+            /** @description The tenant turned this cell off: it turned the category off or wrote opt_out on the subscriber's behalf (PC-15). Shown as "your administrator turned this off"; the subscriber cannot turn it on. */
+            disabled_by_admin: boolean;
+            /** @description For push and web_push: the subscriber has devices on the channel and the operating system permission of none of them allows this category (PC-16). Shown as "turned off in device settings"; the preference itself is kept and applies again once the permission is back. */
+            disabled_in_device_settings: boolean;
         };
         /** @description Channel-level switch across all categories. */
         ChannelPreference: {
@@ -5422,6 +5514,18 @@ export interface components {
         /** @description Preference writes of the tenant on behalf of a subscriber; the tenant may only write opt_out. */
         PreferencesPatch: {
             preferences: components["schemas"]["PreferenceWrite"][];
+        };
+        /** @description A link to the hosted preference page of one subscriber (X-51, PC-18): a page that works without JavaScript and without signing in, opened by a signed, expiring token that only opens this page for this subscriber in the environment of the credential that minted it. */
+        PreferencePageLink: {
+            /** @constant */
+            object: "preference_page_link";
+            subscriber_id: components["schemas"]["Id_sub"];
+            /**
+             * Format: uri
+             * @description The page's address on Relay's public root, on its self-explanatory path: /bildirim-tercihleri/ for a Turkish subscriber, /notification-preferences/ otherwise.
+             */
+            url: string;
+            expires_at: components["schemas"]["Timestamp"];
         };
         /**
          * @description Consent copy record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
@@ -6012,8 +6116,10 @@ export interface components {
             locale: components["schemas"]["Locale"];
             /** @description True when the render fell back to the tenant default locale. */
             locale_fallback?: boolean;
-            /** @description Rendered fields of the channel; raw HTML is returned for the sandboxed preview origin only. */
+            /** @description Rendered fields of the channel. The e-mail `html` of a `raw_html` cell or of a template that allows `| raw` is null here and is shown only through `sandbox_url`. */
             content?: Record<string, never> | null;
+            /** @description E-mail renders only: the link of the rendered HTML on the sandboxed preview origin, a host of its own that is never the API host. The page needs no credential, is readable for five minutes, forbids scripts, forms and connections in its Content-Security-Policy with the `sandbox` directive, and may be framed only by Relay's own origin; display it in an `iframe` with an empty `sandbox` attribute. Null when the installation has no preview host or the link could not be stored, with a `sandbox_unconfigured` or `sandbox_unavailable` warning when the HTML was withheld. */
+            sandbox_url?: string | null;
             failure_reason?: ("missing_variable" | "render_timeout" | "output_too_large" | "schema_violation") | null;
             warnings: components["schemas"]["PreviewWarning"][];
             measures?: {
@@ -7150,9 +7256,75 @@ export interface components {
             /** @description The push, Web Push, WhatsApp or messaging target sim:<result>. */
             token: string;
             description: string;
+            /** @description The seed recipient addresses that give this result: <seed>@seed.relay.test and +9905551000NN. */
+            seed_recipients?: string[];
         };
         SimulatedResultList: components["schemas"]["ListEnvelope"] & {
             data?: components["schemas"]["SimulatedResult"][];
+        };
+        /** @description One seed recipient of the test plane. Its external id is the seed name; its addresses are in the fake provider's table. */
+        SeedRecipient: {
+            /** @constant */
+            object: "seed_recipient";
+            /** @enum {string} */
+            external_id: "seed_no_consent" | "seed_opted_out" | "seed_quiet_hours" | "seed_capped" | "seed_bounced" | "seed_no_device" | "seed_fallback_timezone";
+            /** @description <seed>@seed.relay.test */
+            email: string;
+            phone: string;
+            /** @description The fake provider's result for the e-mail address. */
+            email_result: string;
+            description: string;
+            /** @description false until the setup job of the test plane ran. */
+            set_up: boolean;
+        };
+        SeedRecipientList: components["schemas"]["ListEnvelope"] & {
+            data?: components["schemas"]["SeedRecipient"][];
+        };
+        SeedReset: {
+            /** @constant */
+            object: "seed_reset";
+            /** @enum {string} */
+            status: "queued";
+        };
+        /** @description The rendered output of a delivery kept sealed in the test plane. A security_subtype or retention none render is kept as its digest only: output is null and digest_only names the reason. output is also null once its key is erased. */
+        TestRender: {
+            content_digest: string;
+            digest_only: ("security_subtype" | "retention_none") | null;
+            locale: components["schemas"]["Locale"] | null;
+            output: Record<string, never> | null;
+            rendered_at: components["schemas"]["Timestamp"];
+        };
+        /** @description A delivery of a test plane message: its decision chain and its render. */
+        TestInboxDelivery: {
+            delivery_id: components["schemas"]["Id_dlv"];
+            channel: components["schemas"]["Channel"];
+            status: components["schemas"]["DeliveryStatus"];
+            reason?: string | null;
+            rule_id?: components["schemas"]["RuleId"] | null;
+            /** @enum {string} */
+            gates: "passed" | "stopped" | "deferred";
+            deferred_until?: components["schemas"]["Timestamp"] | null;
+            decisions: components["schemas"]["DecisionStep"][];
+            render: components["schemas"]["TestRender"] | null;
+        };
+        /** @description One message of the test inbox: a test plane notification with its decisions and renders. */
+        TestInboxMessage: {
+            /** @constant */
+            object: "test_inbox_message";
+            notification_id: components["schemas"]["Id_ntf"];
+            event_id?: components["schemas"]["Id_evt"] | null;
+            /** @description The recipient: sub_… for a subscriber, agt_… for an agent. */
+            recipient_id: string;
+            workflow: components["schemas"]["WorkflowRef"];
+            message_class?: components["schemas"]["MessageClass"];
+            /** @enum {string} */
+            state: "active" | "cancelled" | "expired";
+            close_rule_id?: components["schemas"]["RuleId"] | null;
+            created_at: components["schemas"]["Timestamp"];
+            deliveries: components["schemas"]["TestInboxDelivery"][];
+        };
+        TestInboxMessageList: components["schemas"]["ListEnvelope"] & {
+            data?: components["schemas"]["TestInboxMessage"][];
         };
         /** @description A Security Event Token (RFC 8417) Access pushed: a compact JWS of typ secevent+jwt whose claims are iss, aud, iat, jti, sub_id, events with one member keyed urn:suiss:access:event:<type>, and access_tenant on a platform product subscription. Event types and their members are in the event catalog. */
         AccessSecurityEventToken: string;
@@ -11628,6 +11800,69 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createPreferencePageLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                /** @description The tenant's external id of the subscriber (URL-encoded). */
+                subscriber_id: components["parameters"]["SubscriberId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            201: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferencePageLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18656,6 +18891,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SimulatedResultList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listSeedRecipients: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The seed recipients in seed order. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedRecipientList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    resetSeedRecipients: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The reset is queued. */
+            202: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedReset"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    listTestInboxMessages: {
+        parameters: {
+            query?: {
+                /** @description Page size, 1 to 100. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Cursor from next_cursor. */
+                starting_after?: components["parameters"]["StartingAfter"];
+                /** @description Cursor from previous_cursor. */
+                ending_before?: components["parameters"]["EndingBefore"];
+            };
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of the test inbox. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestInboxMessageList"];
                 };
             };
             400: components["responses"]["BadRequest"];

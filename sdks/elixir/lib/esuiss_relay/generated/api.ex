@@ -227,6 +227,11 @@ defmodule EsuissRelay.Api do
   def list_channel_adapters(client, opts \\ []),
     do: Client.call(client, Operations.fetch!(:list_channel_adapters), [], nil, opts)
 
+  @doc "Quote the cost of a paid channel.\n\n`GET /v1/channel_costs`\n\nQuery: `channel`, `country`, `category`, `quantity`."
+  @spec quote_channel_cost(Client.t(), keyword()) :: Client.result()
+  def quote_channel_cost(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:quote_channel_cost), [], nil, opts)
+
   @doc "List channel identities.\n\n`GET /v1/channel_identities`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
   @spec list_channel_identities(Client.t(), keyword()) :: Client.result()
   def list_channel_identities(client, opts \\ []),
@@ -308,6 +313,11 @@ defmodule EsuissRelay.Api do
   @spec get_email_report_summary(Client.t(), keyword()) :: Client.result()
   def get_email_report_summary(client, opts \\ []),
     do: Client.call(client, Operations.fetch!(:get_email_report_summary), [], nil, opts)
+
+  @doc "List the e-mail warm-up plans.\n\n`GET /v1/email_warmup_plans`"
+  @spec list_email_warmup_plans(Client.t(), keyword()) :: Client.result()
+  def list_email_warmup_plans(client, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:list_email_warmup_plans), [], nil, opts)
 
   @doc "List escalation policies.\n\n`GET /v1/escalation_policies`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`, `state`."
   @spec list_escalation_policies(Client.t(), keyword()) :: Client.result()
@@ -775,6 +785,32 @@ defmodule EsuissRelay.Api do
         Operations.fetch!(:update_provider_account),
         [provider_account_id],
         body,
+        opts
+      )
+
+  @doc "Check the sending domains of an e-mail provider account.\n\n`GET /v1/provider_accounts/{provider_account_id}/email_domains`"
+  @spec get_provider_account_email_domains(Client.t(), String.t() | integer(), keyword()) ::
+          Client.result()
+  def get_provider_account_email_domains(client, provider_account_id, opts \\ []),
+    do:
+      Client.call(
+        client,
+        Operations.fetch!(:get_provider_account_email_domains),
+        [provider_account_id],
+        nil,
+        opts
+      )
+
+  @doc "Get the status of a provider account.\n\n`GET /v1/provider_accounts/{provider_account_id}/status`"
+  @spec get_provider_account_status(Client.t(), String.t() | integer(), keyword()) ::
+          Client.result()
+  def get_provider_account_status(client, provider_account_id, opts \\ []),
+    do:
+      Client.call(
+        client,
+        Operations.fetch!(:get_provider_account_status),
+        [provider_account_id],
+        nil,
         opts
       )
 

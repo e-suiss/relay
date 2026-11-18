@@ -101,3 +101,46 @@ export interface TestInboxMessage {
   created_at: string;
   deliveries: TestInboxDelivery[];
 }
+
+export interface ShadowCoverageRow {
+  template: string;
+  locale: string;
+  channel: Channel;
+  observed: number;
+  decision_differences: number;
+  explained: number;
+  unexplained: number;
+  content_differences: number;
+  routing_differences: number;
+  sufficient: boolean;
+}
+
+export interface ShadowCoverage {
+  object: "shadow_coverage";
+  window_days: number;
+  first_observed_at: string | null;
+  days_observed: number;
+  cycles_met: boolean;
+  unexplained_decision_differences: number;
+  active_intentional_differences: number;
+  exit_criteria_met: boolean;
+  rows: ShadowCoverageRow[];
+}
+
+export type ShadowLayer = "decision" | "content" | "routing";
+
+export interface ShadowDifference {
+  id: string;
+  object: "shadow_difference";
+  layer: ShadowLayer;
+  field: string | null;
+  template: string | null;
+  channel: Channel | null;
+  owner: string;
+  reason: string;
+  expires_at: string;
+  renewals: number;
+  state: "active" | "expired";
+  created_at: string;
+  updated_at: string;
+}

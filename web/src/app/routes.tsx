@@ -18,6 +18,7 @@ import {
 } from "../pages/operator/Operator";
 import { Reports } from "../pages/reports/Reports";
 import { Settings } from "../pages/settings/Settings";
+import { Shadow } from "../pages/shadow/Shadow";
 import { RouteSlot } from "../pages/RouteSlot";
 import { Why } from "../pages/why/Why";
 import {
@@ -75,6 +76,11 @@ export const navigation: readonly NavItem[] = [
     group: "nav.group.governance",
   },
   { to: "/audit", label: "nav.audit", group: "nav.group.governance" },
+  {
+    to: "/migration/shadow",
+    label: "nav.shadow",
+    group: "nav.group.governance",
+  },
   { to: "/settings", label: "nav.settings", group: "nav.group.governance" },
   {
     to: "/operator/tenants",
@@ -132,6 +138,7 @@ export const pages: readonly ConsoleRoute[] = [
   { pattern: "/reports", render: () => <Reports /> },
   { pattern: "/audit", render: () => <Audit /> },
   { pattern: "/kill-switches", render: () => <KillSwitches /> },
+  { pattern: "/migration/shadow", render: () => <Shadow /> },
   { pattern: "/waitpoints", render: () => <Waitpoints /> },
   { pattern: "/agent-ceiling", render: () => <AgentCeiling /> },
   { pattern: "/agents", render: () => <Agents /> },

@@ -80,7 +80,7 @@ defmodule Relay.Webhooks.Fanout do
 
     settings = EngineStore.settings(keys)
     modes = [row["send_mode"] | Enum.map(keys, &Map.get(settings, &1))]
-    if Enum.find(modes, "live", &(&1 in )) == "shadow", do: :shadow, else: :live
+    if Enum.find(modes, "live", &(&1 in @modes)) == "shadow", do: :shadow, else: :live
   end
 
   defp recorded(%{id: id, type: type} = event, endpoints, data, version) do

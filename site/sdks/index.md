@@ -9,6 +9,7 @@ For your backend. They authenticate with your Access API client and DPoP-bound t
 | Language               | Package                  | Guide                      |
 | ---------------------- | ------------------------ | -------------------------- |
 | TypeScript and Node.js | `@esuiss/relay`          | [TypeScript](./typescript) |
+| Go                     | `github.com/e-suiss/relay/sdks/go` | [Go](./go)       |
 | .NET                   | `Esuiss.Relay`           | [.NET](./dotnet)           |
 | Java                   | `app.suiss:esuiss-relay` | [Java](./java)             |
 | Elixir                 | `esuiss_relay`           | [Elixir](./elixir)         |

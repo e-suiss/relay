@@ -21,6 +21,7 @@ jobs:
       site: ${{ steps.scope.outputs.site }}
       dotnet: ${{ steps.scope.outputs.dotnet }}
       java: ${{ steps.scope.outputs.java }}
+      go: ${{ steps.scope.outputs.go }}
       elixir: ${{ steps.scope.outputs.elixir }}
       kotlin: ${{ steps.scope.outputs.kotlin }}
       swift: ${{ steps.scope.outputs.swift }}
@@ -49,6 +50,7 @@ jobs:
             echo "site=$(changed site contracts web/src/i18n sdks/typescript)"
             echo "dotnet=$(changed site/examples/dotnet sdks/dotnet)"
             echo "java=$(changed site/examples/java sdks/java)"
+            echo "go=$(changed site/examples/go sdks/go)"
             echo "elixir=$(changed site/examples/elixir sdks/elixir)"
             echo "kotlin=$(changed site/examples/kotlin sdks/kotlin)"
             echo "swift=$(changed site/examples/swift sdks/swift)"
@@ -272,6 +274,23 @@ jobs:
           cache-read-only: true
       - run: mkdir -p src/test/java/snippets && cp ../../site/examples/java/snippets/*.java src/test/java/snippets/
       - run: gradle --no-daemon --dependency-verification strict compileTestJava
+
+  examples-go:
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdks/go
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.27.3
+          cache: false
+      - run: mkdir -p internal/docsexamples && cp ../../site/examples/go/*.go internal/docsexamples/
+      - run: go vet ./internal/docsexamples/
 
   examples-elixir:
     needs: changes

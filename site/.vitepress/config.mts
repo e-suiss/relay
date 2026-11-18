@@ -14,6 +14,7 @@ const sdkItems: DefaultTheme.SidebarItem[] = [
   { text: "Overview", link: "/sdks/" },
   { text: "TypeScript and Node.js", link: "/sdks/typescript" },
   { text: ".NET", link: "/sdks/dotnet" },
+  { text: "Go", link: "/sdks/go" },
   { text: "Java", link: "/sdks/java" },
   { text: "Elixir", link: "/sdks/elixir" },
   { text: "iOS (Swift)", link: "/sdks/swift" },

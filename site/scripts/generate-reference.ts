@@ -168,7 +168,7 @@ function fieldTable(caption: string, node: unknown, file: string): string {
     const description = str(described["description"]) || str(target["description"]);
     return `<tr><td><code>${esc(name)}</code></td><td>${esc(typeName(prop, where))}</td><td>${required.has(name) ? "yes" : "no"}</td><td>${prose(description)}${enumValues(prop, where)}</td></tr>`;
   });
-  return `<table><caption>${esc(caption)}</caption><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+  return `<table tabindex="0"><caption>${esc(caption)}</caption><thead><tr><th scope="col">Field</th><th scope="col">Type</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
 }
 
 function html(block: string): string {
@@ -204,7 +204,7 @@ function parameters(pathItem: Obj, operation: Obj, file: string): string {
     const { value, file: where } = deref(raw, file);
     return `<tr><td><code>${esc(str(value["name"]))}</code></td><td>${esc(str(value["in"]))}</td><td>${esc(typeName(value["schema"], where))}</td><td>${value["required"] === true ? "yes" : "no"}</td><td>${prose(value["description"])}${enumValues(value["schema"], where)}</td></tr>`;
   });
-  return `<table><caption>Parameters</caption><thead><tr><th scope="col">Name</th><th scope="col">In</th><th scope="col">Type</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+  return `<table tabindex="0"><caption>Parameters</caption><thead><tr><th scope="col">Name</th><th scope="col">In</th><th scope="col">Type</th><th scope="col">Required</th><th scope="col">Description</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
 }
 
 function requestBody(operation: Obj, file: string): string {
@@ -236,7 +236,7 @@ function responses(operation: Obj, file: string): string {
     return `<tr><td><code>${esc(status)}</code></td><td>${prose(value["description"])}</td><td>${schemas.join(", ")}</td></tr>`;
   });
   if (rows.length === 0) return "";
-  return `<table><caption>Responses</caption><thead><tr><th scope="col">Status</th><th scope="col">Description</th><th scope="col">Body</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+  return `<table tabindex="0"><caption>Responses</caption><thead><tr><th scope="col">Status</th><th scope="col">Description</th><th scope="col">Body</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
 }
 
 function operationSection(
@@ -306,7 +306,7 @@ function generateFamily(key: string, relative: string): SidebarGroup {
   writeFileSync(
     join(dir, "index.md"),
     `# ${heading(title)}\n\n${html(
-      `<p>${prose(info["description"])}</p><p>Contract version <code>${esc(str(info["version"]))}</code>, rendered from <a href="${repo}/contracts/${relative}">contracts/${esc(relative)}</a>.</p><table><caption>Operation groups</caption><thead><tr><th scope="col">Group</th><th scope="col">Operations</th><th scope="col">Description</th></tr></thead><tbody>${rows.join("")}</tbody></table>`,
+      `<p>${prose(info["description"])}</p><p>Contract version <code>${esc(str(info["version"]))}</code>, rendered from <a href="${repo}/contracts/${relative}">contracts/${esc(relative)}</a>.</p><table tabindex="0"><caption>Operation groups</caption><thead><tr><th scope="col">Group</th><th scope="col">Operations</th><th scope="col">Description</th></tr></thead><tbody>${rows.join("")}</tbody></table>`,
     )}\n`,
   );
   return {
@@ -352,10 +352,10 @@ function profile(channel: Obj): string {
       .join("");
   const rules = Array.isArray(spec["consumer_rules"]) ? spec["consumer_rules"] : [];
   return [
-    `<table><caption>Signed delivery headers</caption><thead><tr><th scope="col">Header</th><th scope="col">Meaning</th></tr></thead><tbody>${headerRows(spec["headers"])}</tbody></table>`,
+    `<table tabindex="0"><caption>Signed delivery headers</caption><thead><tr><th scope="col">Header</th><th scope="col">Meaning</th></tr></thead><tbody>${headerRows(spec["headers"])}</tbody></table>`,
     `<p>Signed content: <code>${esc(str(spec["signed_content"]))}</code></p>`,
-    `<table><caption>Signature schemes</caption><thead><tr><th scope="col">Scheme</th><th scope="col">Meaning</th></tr></thead><tbody>${headerRows(spec["schemes"])}</tbody></table>`,
-    `<table><caption>Unsigned convenience headers</caption><thead><tr><th scope="col">Header</th><th scope="col">Meaning</th></tr></thead><tbody>${headerRows(spec["unsigned_headers"])}</tbody></table>`,
+    `<table tabindex="0"><caption>Signature schemes</caption><thead><tr><th scope="col">Scheme</th><th scope="col">Meaning</th></tr></thead><tbody>${headerRows(spec["schemes"])}</tbody></table>`,
+    `<table tabindex="0"><caption>Unsigned convenience headers</caption><thead><tr><th scope="col">Header</th><th scope="col">Meaning</th></tr></thead><tbody>${headerRows(spec["unsigned_headers"])}</tbody></table>`,
     `<p>Consumer rules:</p><ul>${rules.map((rule: unknown) => `<li>${prose(rule)}</li>`).join("")}</ul>`,
   ].join("");
 }
@@ -407,11 +407,11 @@ function generateErrors(): void {
           `<tr><td id="${esc(str(code["code"]))}"><code>${esc(str(code["code"]))}</code></td><td>${esc(String(code["status"]))}</td><td>${code["retryable"] === true ? "yes" : "no"}</td><td><strong>${esc(str(code["title"]))}.</strong> ${prose(code["description"])}</td></tr>`,
       )
       .join("");
-    return `## ${heading(family)} {#family-${slug(family)}}\n\n${html(`<table><caption>Codes of the ${esc(family)} family</caption><thead><tr><th scope="col">Code</th><th scope="col">Status</th><th scope="col">Retryable</th><th scope="col">Meaning</th></tr></thead><tbody>${rows}</tbody></table>`)}\n`;
+    return `## ${heading(family)} {#family-${slug(family)}}\n\n${html(`<table tabindex="0"><caption>Codes of the ${esc(family)} family</caption><thead><tr><th scope="col">Code</th><th scope="col">Status</th><th scope="col">Retryable</th><th scope="col">Meaning</th></tr></thead><tbody>${rows}</tbody></table>`)}\n`;
   });
   writeFileSync(
     join(out, "errors.md"),
-    `---\noutline: [2, 2]\n---\n\n# Error codes\n\n${html(`<p>Every error is an RFC 9457 problem document. Its <code>type</code> resolves to <code>/v1/errors/&#123;code&#125;</code> on the same region, and <code>retryable</code> tells a client whether to try again. Rendered from <a href="${repo}/contracts/errors.yaml">contracts/errors.yaml</a>.</p><table><caption>Retry defaults by status</caption><thead><tr><th scope="col">Status</th><th scope="col">Code</th><th scope="col">Retryable</th></tr></thead><tbody>${defaultRows}</tbody></table>`)}\n\n${sections.join("\n")}`,
+    `---\noutline: [2, 2]\n---\n\n# Error codes\n\n${html(`<p>Every error is an RFC 9457 problem document. Its <code>type</code> resolves to <code>/v1/errors/&#123;code&#125;</code> on the same region, and <code>retryable</code> tells a client whether to try again. Rendered from <a href="${repo}/contracts/errors.yaml">contracts/errors.yaml</a>.</p><table tabindex="0"><caption>Retry defaults by status</caption><thead><tr><th scope="col">Status</th><th scope="col">Code</th><th scope="col">Retryable</th></tr></thead><tbody>${defaultRows}</tbody></table>`)}\n\n${sections.join("\n")}`,
   );
 }
 

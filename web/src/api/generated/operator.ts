@@ -236,6 +236,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/operator/fault_injections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List fault injections
+         * @description Installation scope records of game days and chaos tests (OP-92), newest first: the records in force, or with include_inactive also the cleared and expired ones.
+         */
+        get: operations["listFaultInjections"];
+        put?: never;
+        /**
+         * Engage a fault injection
+         * @description Installation operator only (OP-92). Accepted for the test environment, or for live only on an installation running with RELAY_CHAOS_MODE=true; any other request answers 422 validation_failed with not_allowed at /environment. The TTL is at most one hour. Engaging the dimensions of a record in force answers that record with 200, so a repeated action changes nothing (OP-44). Audited as fault_injection.engaged; the same record can be written by the release command.
+         */
+        post: operations["engageFaultInjection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operator/fault_injections/{fault_injection_id}/clear": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Clear a fault injection
+         * @description Ends a fault injection before its TTL. Clearing a cleared record answers it unchanged (OP-44). Audited as fault_injection.cleared.
+         */
+        post: operations["clearFaultInjection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/operator/tenants": {
         parameters: {
             query?: never;
@@ -334,6 +378,94 @@ export interface paths {
          */
         put: operations["setCriticalInterruption"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operator/tenants/{tenant_id}/key_custody": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a tenant's own key
+         * @description Installation operator only. The PKCS#11 URI of the tenant's own key in the region's key store, or null when its keys are wrapped under the region key, and how many of the tenant's keys of both environments are wrapped under it and under another key; while a change is incomplete keys_under_other is above zero.
+         */
+        get: operations["getTenantKeyCustody"];
+        /**
+         * Set or change a tenant's own key
+         * @description Installation operator with step-up (OP-85). key_ref is a PKCS#11 URI that names the region's token and a key object dedicated to the tenant (pkcs11:token=...;object=...); Relay never sees the key. The key is probed first: a key the key store cannot use is 503 key_unavailable and nothing changes; a URI without a token or an object, with a PIN, of another token or naming one of the installation's own keys is 422 validation_failed at /key_ref. Then the reference is recorded, audited as tenant.key_custody_changed, and every tenant key of both environments that is not destroyed is wrapped again under the new key; repeating the same request finishes an incomplete change. A closed tenant is 409 resource_conflict. Once set, a key the key store cannot reach makes the tenant's encrypted reads fail closed with key_unavailable, and a key the tenant destroys crypto-shreds the tenant.
+         */
+        put: operations["setTenantKeyCustody"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operator/tenants/{tenant_id}/closure": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get a tenant's closure
+         * @description Installation operator only. The tenant's closure and its state: exporting while the full export is written, export_ready once every file and the manifest are in the region's object store, shredding and shredded during and after the destruction of its keys. From export_ready on, files lists every exported file with its environment, kind, format, row count, size, SHA-256 and a signed download link that expires at links_expire_at, a day after the read; reading again gives fresh links.
+         */
+        get: operations["getTenantClosure"];
+        put?: never;
+        /**
+         * Close a tenant and export its data
+         * @description Installation operator with step-up, the first step of the closure (OP-86, OP-26). The tenant is set closed at once, so every entry point refuses new work, and the full export of both environments starts: subscribers and the raw deliveries, delivery events and usage records, page by page as JSON lines, CSV and Parquet (formats, default all three) in the installation's object store in the tenant's region, then a manifest. Audited as tenant.closed, and tenant.export_ready when the export is written. A tenant has one closure: a second request is 409 resource_conflict, and the installation tenant cannot be closed.
+         */
+        post: operations["requestTenantClosure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operator/tenants/{tenant_id}/closure/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Record the tenant's confirmation
+         * @description Installation operator with step-up (OP-86). Records the tenant's explicit confirmation that its keys may be destroyed before 30 days have passed since the export was ready; confirmation_ref names the evidence, such as the Access record of the tenant owner's decision. Only an export_ready closure is confirmed (409 resource_conflict otherwise); confirming again changes nothing. Audited as tenant.closure_confirmed.
+         */
+        post: operations["confirmTenantClosure"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/operator/tenants/{tenant_id}/closure/shred": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Destroy a closed tenant's keys
+         * @description Installation operator with step-up, the second step of the closure (OP-86, OP-26). Allowed 30 days after the export was ready, or earlier once the tenant's confirmation is recorded; before that 409 resource_conflict. In both environments the tenant's data keys and the subject data keys of classes without a legal retention obligation are destroyed, and those with one are restricted and stay readable for their legal period with the key that wraps them (Access Appendix C); rows stay, unreadable. An active legal hold on the tenant is 409 resource_conflict and nothing is destroyed. Audited as tenant.shred_started and, per environment, tenant.shredded; a request that failed part way is completed by repeating it. shredded counts what this request destroyed and restricted.
+         */
+        post: operations["shredTenantClosure"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1256,6 +1388,68 @@ export interface components {
         TenantOverviewList: components["schemas"]["ListEnvelope"] & {
             data?: components["schemas"]["TenantOverview"][];
         };
+        /** @description A tenant's own key in the region's key store (OP-85). */
+        TenantKeyCustody: {
+            /** @constant */
+            object: "tenant_key_custody";
+            tenant_id: components["schemas"]["Id_ten"];
+            /** @description The PKCS#11 URI of the tenant's own key; null while its keys are wrapped under the region key. */
+            key_ref: string | null;
+            keys_under_key: number;
+            keys_under_other: number;
+        };
+        TenantKeyCustodyWrite: {
+            /** @example pkcs11:token=relay-tr;object=tenant-acme */
+            key_ref: string;
+        };
+        /** @description The closure of a tenant (OP-86): the full export, then the destruction of its keys. */
+        TenantClosure: {
+            /** @constant */
+            object: "tenant_closure";
+            tenant_id: components["schemas"]["Id_ten"];
+            /** @enum {string} */
+            state: "exporting" | "export_ready" | "shredding" | "shredded";
+            reason: string;
+            formats: components["schemas"]["TenantExportFormat"][];
+            export_ready_at: components["schemas"]["Timestamp"] | null;
+            /** @description The earliest time the keys may be destroyed: 30 days after the export was ready, or the confirmation time. */
+            shred_after: components["schemas"]["Timestamp"] | null;
+            confirmed_at: components["schemas"]["Timestamp"] | null;
+            confirmation_ref: string | null;
+            shred_started_at: components["schemas"]["Timestamp"] | null;
+            shredded_at: components["schemas"]["Timestamp"] | null;
+            files: components["schemas"]["TenantExportFile"][];
+            links_expire_at: components["schemas"]["Timestamp"] | null;
+            shredded?: components["schemas"]["TenantShredCounts"];
+            created_at: components["schemas"]["Timestamp"];
+        };
+        /** @enum {string} */
+        TenantExportFormat: "jsonl" | "csv" | "parquet";
+        TenantExportFile: {
+            /** @enum {string} */
+            environment: "live" | "test";
+            /** @enum {string} */
+            kind: "subscribers" | "deliveries" | "delivery_events" | "usage_records";
+            format: components["schemas"]["TenantExportFormat"];
+            key: string;
+            rows: number;
+            bytes: number;
+            sha256: string;
+            /** Format: uri */
+            url: string;
+        };
+        TenantShredCounts: {
+            keys: number;
+            deks: number;
+            restricted: number;
+        };
+        TenantClosureRequest: {
+            reason: string;
+            formats?: components["schemas"]["TenantExportFormat"][];
+        };
+        TenantClosureConfirm: {
+            confirmation_ref: string;
+        };
         /** @description A tenant's opening of the critical interruption level (CH-20, TN-23). Closed by default. */
         CriticalInterruption: {
             /** @constant */
@@ -1891,6 +2085,65 @@ export interface components {
         };
         /** @description Release is a relaxation: operator session with step-up only. PAUSED deliveries are not resumed automatically. */
         KillSwitchRelease: {
+            reason: string;
+        };
+        /**
+         * @description Fault injection identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+         * @example fij_01j9zq3k4m5n6p7q8r9s0t1v2w
+         */
+        Id_fij: string;
+        /**
+         * @description provider_auth_error, rate_limited_429, concurrency_exhausted, bounce_spike and template_paused answer the provider call with that failure; added_latency waits delay_ms before the real call; delayed_delivery_report holds provider delivery reports for delay_ms; iys_pull_stalled skips the İYS pull.
+         * @enum {string}
+         */
+        FaultInjectionKind: "provider_auth_error" | "rate_limited_429" | "concurrency_exhausted" | "bounce_spike" | "template_paused" | "delayed_delivery_report" | "iys_pull_stalled" | "added_latency";
+        /** @description A fault injection for game days and chaos tests. It acts only in the test environment, or in live on an installation running in chaos mode, and stops by itself at expires_at. */
+        FaultInjection: {
+            /** @constant */
+            object: "fault_injection";
+            id: components["schemas"]["Id_fij"];
+            /** @enum {string} */
+            scope_kind: "installation" | "tenant";
+            tenant_id: components["schemas"]["Id_ten"] | null;
+            /** @enum {string} */
+            environment: "live" | "test";
+            channel: components["schemas"]["Channel"] | null;
+            provider: string | null;
+            kind: components["schemas"]["FaultInjectionKind"];
+            rate_percent: number;
+            delay_ms: number | null;
+            reason: string;
+            created_by: string;
+            expires_at: components["schemas"]["Timestamp"];
+            /**
+             * @description active until cleared; an active record past expires_at no longer acts.
+             * @enum {string}
+             */
+            status: "active" | "cleared";
+            cleared_at: components["schemas"]["Timestamp"] | null;
+            created_at: components["schemas"]["Timestamp"];
+        };
+        FaultInjectionList: components["schemas"]["ListEnvelope"] & {
+            data?: components["schemas"]["FaultInjection"][];
+        };
+        /** @description Accepted only for the test environment, or for live on an installation running with RELAY_CHAOS_MODE=true. Engaging the dimensions of a record in force answers that record. */
+        FaultInjectionEngage: {
+            /** @description Narrows the record to one tenant; omit for the whole installation. */
+            tenant_id?: components["schemas"]["Id_ten"];
+            /** @enum {string} */
+            environment: "live" | "test";
+            channel?: components["schemas"]["Channel"];
+            /** @description Provider adapter name, such as apns or fake. */
+            provider?: string;
+            kind: components["schemas"]["FaultInjectionKind"];
+            rate_percent: number;
+            /** @description Required for added_latency (at most 10000) and delayed_delivery_report; not allowed otherwise. */
+            delay_ms?: number;
+            /** @description Time to live, at most PT1H. */
+            ttl: components["schemas"]["Duration"];
+            reason: string;
+        };
+        FaultInjectionClear: {
             reason: string;
         };
         /**
@@ -2768,6 +3021,8 @@ export interface components {
         RoleAssignmentId: string;
         /** @description Kill switch identifier. */
         KillSwitchId: string;
+        /** @description Fault injection identifier. */
+        FaultInjectionId: string;
         /** @description Tenant identifier. */
         TenantId: string;
         /** @description Support delegation identifier. */
@@ -3595,6 +3850,200 @@ export interface operations {
             503: components["responses"]["ServiceUnavailable"];
         };
     };
+    listFaultInjections: {
+        parameters: {
+            query?: {
+                /** @description Page size, 1 to 100. */
+                limit?: components["parameters"]["Limit"];
+                /** @description Cursor from next_cursor. */
+                starting_after?: components["parameters"]["StartingAfter"];
+                /** @description Cursor from previous_cursor. */
+                ending_before?: components["parameters"]["EndingBefore"];
+                /** @description Include cleared and expired records. */
+                include_inactive?: boolean;
+            };
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of fault injections. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaultInjectionList"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    engageFaultInjection: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FaultInjectionEngage"];
+            };
+        };
+        responses: {
+            /** @description A record of the same dimensions is already in force. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaultInjection"];
+                };
+            };
+            /** @description Engaged. */
+            201: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    Location: components["headers"]["Location"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaultInjection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    clearFaultInjection: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                /** @description Fault injection identifier. */
+                fault_injection_id: components["parameters"]["FaultInjectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FaultInjectionClear"];
+            };
+        };
+        responses: {
+            /** @description Cleared. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaultInjection"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
     listTenants: {
         parameters: {
             query?: {
@@ -3932,6 +4381,359 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getTenantKeyCustody: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+            };
+            path: {
+                /** @description Tenant identifier. */
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The key reference. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantKeyCustody"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    setTenantKeyCustody: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                /** @description Tenant identifier. */
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantKeyCustodyWrite"];
+            };
+        };
+        responses: {
+            /** @description The key reference after the change. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantKeyCustody"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getTenantClosure: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+            };
+            path: {
+                /** @description Tenant identifier. */
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The closure. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantClosure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    requestTenantClosure: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                /** @description Tenant identifier. */
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantClosureRequest"];
+            };
+        };
+        responses: {
+            /** @description The closure recorded. */
+            201: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    Location: components["headers"]["Location"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantClosure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    confirmTenantClosure: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                /** @description Tenant identifier. */
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TenantClosureConfirm"];
+            };
+        };
+        responses: {
+            /** @description The closure after the confirmation. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantClosure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    shredTenantClosure: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                /** @description Tenant identifier. */
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The closure after the destruction. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantClosure"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
             422: components["responses"]["UnprocessableContent"];

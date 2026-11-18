@@ -50,11 +50,14 @@ defmodule EsuissRelay.Generated.ErrorCatalog do
     "event_type_mapping_not_found" => %{family: "resource", status: 404, retryable: false},
     "event_type_not_mapped" => %{family: "workflow", status: 422, retryable: false},
     "export_not_found" => %{family: "resource", status: 404, retryable: false},
+    "fault_injection_not_found" => %{family: "resource", status: 404, retryable: false},
     "first_contact_token_required" => %{family: "agent", status: 403, retryable: false},
     "idempotency_key_in_progress" => %{family: "idempotency", status: 409, retryable: true},
     "idempotency_key_invalid" => %{family: "idempotency", status: 400, retryable: false},
     "idempotency_key_missing" => %{family: "idempotency", status: 400, retryable: false},
     "idempotency_key_reuse" => %{family: "idempotency", status: 422, retryable: false},
+    "import_not_found" => %{family: "resource", status: 404, retryable: false},
+    "import_order_violation" => %{family: "resource", status: 409, retryable: false},
     "inbox_announcement_not_found" => %{family: "resource", status: 404, retryable: false},
     "inbox_bulk_operation_not_found" => %{family: "resource", status: 404, retryable: false},
     "inbox_item_conflict" => %{family: "resource", status: 409, retryable: false},
@@ -62,6 +65,7 @@ defmodule EsuissRelay.Generated.ErrorCatalog do
     "internal_error" => %{family: "platform", status: 500, retryable: true},
     "iys_not_configured" => %{family: "resource", status: 404, retryable: false},
     "iys_upload_not_found" => %{family: "resource", status: 404, retryable: false},
+    "key_unavailable" => %{family: "platform", status: 503, retryable: true},
     "kill_switch_not_found" => %{family: "resource", status: 404, retryable: false},
     "layout_archived" => %{family: "template", status: 409, retryable: false},
     "layout_in_use" => %{family: "template", status: 409, retryable: false},
@@ -102,6 +106,7 @@ defmodule EsuissRelay.Generated.ErrorCatalog do
     "recipient_invalid" => %{family: "recipient", status: 422, retryable: false},
     "recipient_not_found" => %{family: "recipient", status: 422, retryable: false},
     "recurrence_closed" => %{family: "workflow", status: 409, retryable: false},
+    "recurrence_handoff_mismatch" => %{family: "workflow", status: 422, retryable: false},
     "recurrence_limit_reached" => %{family: "workflow", status: 422, retryable: false},
     "recurrence_not_found" => %{family: "resource", status: 404, retryable: false},
     "resource_conflict" => %{family: "resource", status: 409, retryable: false},
@@ -136,6 +141,7 @@ defmodule EsuissRelay.Generated.ErrorCatalog do
     "template_version_immutable" => %{family: "template", status: 409, retryable: false},
     "template_version_not_found" => %{family: "resource", status: 404, retryable: false},
     "template_warnings_unacknowledged" => %{family: "template", status: 422, retryable: false},
+    "tenant_closure_not_found" => %{family: "resource", status: 404, retryable: false},
     "tenant_not_found" => %{family: "resource", status: 404, retryable: false},
     "test_recipient_limit_reached" => %{family: "resource", status: 422, retryable: false},
     "test_recipient_not_found" => %{family: "resource", status: 404, retryable: false},
@@ -174,7 +180,8 @@ defmodule EsuissRelay.Generated.ErrorCatalog do
     "whatsapp_template_not_found" => %{family: "resource", status: 404, retryable: false},
     "workflow_not_found" => %{family: "workflow", status: 404, retryable: false},
     "workflow_not_published" => %{family: "workflow", status: 422, retryable: false},
-    "workflow_version_not_found" => %{family: "workflow", status: 404, retryable: false}
+    "workflow_version_not_found" => %{family: "workflow", status: 404, retryable: false},
+    "wrong_region" => %{family: "request", status: 421, retryable: false}
   }
 
   @defaults [

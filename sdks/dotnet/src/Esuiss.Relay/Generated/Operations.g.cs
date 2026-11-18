@@ -56,6 +56,9 @@ public static partial class Operations
     /// <summary>Request deletion of a subscriber</summary>
     public static readonly Operation DeleteSubscriber = new("deleteSubscriber", "DELETE", "/v1/subscribers/{subscriber_id}", IdempotencyMode.Required, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
+    /// <summary>Export one subscriber's data</summary>
+    public static readonly Operation ExportSubscriber = new("exportSubscriber", "GET", "/v1/subscribers/{subscriber_id}/export", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>Bulk upsert subscribers</summary>
     public static readonly Operation BulkUpsertSubscribers = new("bulkUpsertSubscribers", "POST", "/v1/subscribers/bulk", IdempotencyMode.Required, IfMatchMode.None, BodyMode.Required, "application/json", ResponseKind.Json);
 
@@ -701,6 +704,12 @@ public static partial class Operations
     /// <summary>Get a raw data export</summary>
     public static readonly Operation GetExport = new("getExport", "GET", "/v1/exports/{export_id}", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
+    /// <summary>Start an import</summary>
+    public static readonly Operation CreateImport = new("createImport", "POST", "/v1/imports", IdempotencyMode.Required, IfMatchMode.None, BodyMode.Required, "application/x-ndjson", ResponseKind.Json);
+
+    /// <summary>Get an import</summary>
+    public static readonly Operation GetImport = new("getImport", "GET", "/v1/imports/{import_id}", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
+
     /// <summary>List campaigns</summary>
     public static readonly Operation ListCampaigns = new("listCampaigns", "GET", "/v1/campaigns", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -776,6 +785,9 @@ public static partial class Operations
     /// <summary>Define a recurrence rule</summary>
     public static readonly Operation CreateRecurrence = new("createRecurrence", "POST", "/v1/recurrences", IdempotencyMode.Required, IfMatchMode.None, BodyMode.Required, "application/json", ResponseKind.Json);
 
+    /// <summary>Hand a cron job over</summary>
+    public static readonly Operation CreateRecurrenceHandoff = new("createRecurrenceHandoff", "POST", "/v1/recurrence_handoffs", IdempotencyMode.Required, IfMatchMode.None, BodyMode.Required, "application/json", ResponseKind.Json);
+
     /// <summary>Get a recurrence rule</summary>
     public static readonly Operation GetRecurrence = new("getRecurrence", "GET", "/v1/recurrences/{recurrence_id}", IdempotencyMode.None, IfMatchMode.None, BodyMode.None, null, ResponseKind.Json);
 
@@ -838,6 +850,7 @@ public static partial class Operations
         ReplaceSubscriber,
         UpdateSubscriber,
         DeleteSubscriber,
+        ExportSubscriber,
         BulkUpsertSubscribers,
         GetSubscriberPreferences,
         UpdateSubscriberPreferences,
@@ -1053,6 +1066,8 @@ public static partial class Operations
         ListExports,
         CreateExport,
         GetExport,
+        CreateImport,
+        GetImport,
         ListCampaigns,
         CreateCampaign,
         GetCampaign,
@@ -1078,6 +1093,7 @@ public static partial class Operations
         GetEmailReportSummary,
         ListRecurrences,
         CreateRecurrence,
+        CreateRecurrenceHandoff,
         GetRecurrence,
         CancelRecurrence,
         ResetThrottle,

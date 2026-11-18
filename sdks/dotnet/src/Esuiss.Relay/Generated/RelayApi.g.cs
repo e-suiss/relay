@@ -223,6 +223,16 @@ public sealed partial class RelayApi
         return _client.SendJsonAsync(Operations.DeleteSubscriber, [subscriberId], query, null, options, cancellationToken);
     }
 
+    /// <summary>Export one subscriber's data</summary>
+    public Task<JsonNode> ExportSubscriberAsync(
+        string subscriberId,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.ExportSubscriber, [subscriberId], query, null, options, cancellationToken);
+    }
+
     /// <summary>Bulk upsert subscribers</summary>
     public Task<JsonNode> BulkUpsertSubscribersAsync(
         JsonNode body,
@@ -2785,6 +2795,30 @@ public sealed partial class RelayApi
         return _client.SendJsonAsync(Operations.GetExport, [exportId], query, null, options, cancellationToken);
     }
 
+    /// <summary>Start an import</summary>
+    public Task<JsonNode> CreateImportAsync(
+        JsonNode body,
+        string type,
+        string batch,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        query.Add("type", type);
+        query.Add("batch", batch);
+        return _client.SendJsonAsync(Operations.CreateImport, [], query, body, options, cancellationToken);
+    }
+
+    /// <summary>Get an import</summary>
+    public Task<JsonNode> GetImportAsync(
+        string importId,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.GetImport, [importId], query, null, options, cancellationToken);
+    }
+
     /// <summary>List campaigns</summary>
     public Task<Page> ListCampaignsAsync(
         int? limit = null,
@@ -3072,6 +3106,16 @@ public sealed partial class RelayApi
     {
         var query = new QueryBuilder();
         return _client.SendJsonAsync(Operations.CreateRecurrence, [], query, body, options, cancellationToken);
+    }
+
+    /// <summary>Hand a cron job over</summary>
+    public Task<JsonNode> CreateRecurrenceHandoffAsync(
+        JsonNode body,
+        RequestOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryBuilder();
+        return _client.SendJsonAsync(Operations.CreateRecurrenceHandoff, [], query, body, options, cancellationToken);
     }
 
     /// <summary>Get a recurrence rule</summary>

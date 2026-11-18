@@ -287,6 +287,13 @@ export const serverOperations = {
     paginated: false,
     contentType: "application/json",
   },
+  createImport: {
+    method: "POST",
+    path: "/v1/imports",
+    idempotency: "required",
+    paginated: false,
+    contentType: "application/x-ndjson",
+  },
   createInboxAnnouncement: {
     method: "POST",
     path: "/v1/inbox/announcements",
@@ -332,6 +339,13 @@ export const serverOperations = {
   createRecurrence: {
     method: "POST",
     path: "/v1/recurrences",
+    idempotency: "required",
+    paginated: false,
+    contentType: "application/json",
+  },
+  createRecurrenceHandoff: {
+    method: "POST",
+    path: "/v1/recurrence_handoffs",
     idempotency: "required",
     paginated: false,
     contentType: "application/json",
@@ -483,6 +497,13 @@ export const serverOperations = {
     paginated: false,
     contentType: "application/json",
   },
+  exportSubscriber: {
+    method: "GET",
+    path: "/v1/subscribers/{subscriber_id}/export",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
   getAgent: {
     method: "GET",
     path: "/v1/agents/{agent_id}",
@@ -626,6 +647,13 @@ export const serverOperations = {
   getFallbackTimezoneReport: {
     method: "GET",
     path: "/v1/reports/fallback_timezones",
+    idempotency: "none",
+    paginated: false,
+    contentType: null,
+  },
+  getImport: {
+    method: "GET",
+    path: "/v1/imports/{import_id}",
     idempotency: "none",
     paginated: false,
     contentType: null,

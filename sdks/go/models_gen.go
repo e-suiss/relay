@@ -1522,6 +1522,9 @@ type IDEvt = string
 // IDExp: Raw data export identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
 type IDExp = string
 
+// IDImp: Import identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+type IDImp = string
+
 // IDIyu: İYS upload identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
 type IDIyu = string
 
@@ -1638,6 +1641,136 @@ type IDWpr = string
 
 // IDWtp: WhatsApp template identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
 type IDWtp = string
+
+// Import: An import job (OP-96).
+type Import struct {
+	Object      string        `json:"object"`
+	ID          IDImp         `json:"id"`
+	Type        ImportType    `json:"type"`
+	Batch       ImportBatch   `json:"batch"`
+	State       string        `json:"state"`
+	Failure     *string       `json:"failure"`
+	LineCount   int64         `json:"line_count"`
+	ByteSize    int64         `json:"byte_size"`
+	Sha256      string        `json:"sha256"`
+	Report      *ImportReport `json:"report"`
+	CompletedAt *Timestamp    `json:"completed_at"`
+	CreatedAt   Timestamp     `json:"created_at"`
+}
+
+// ImportAlias is generated from the Relay API contract.
+type ImportAlias struct {
+	Name      string    `json:"name"`
+	Target    string    `json:"target"`
+	ExpiresAt Timestamp `json:"expires_at"`
+}
+
+// ImportBatch: A migration batch chosen by the tenant; the OP-55 order is enforced within a batch.
+type ImportBatch = string
+
+// ImportConfirmation: A scheduled send Relay recorded; the legacy system cancels its own job named legacy_ref only after it holds this confirmation (OP-97).
+type ImportConfirmation struct {
+	Line      int64  `json:"line"`
+	LegacyRef string `json:"legacy_ref"`
+	EventID   IDEvt  `json:"event_id"`
+}
+
+// ImportConflict: Lines that name the same e-mail address or phone number with different external ids; nothing is merged (OP-55).
+type ImportConflict struct {
+	Field string  `json:"field"`
+	Lines []int64 `json:"lines"`
+}
+
+// ImportFinding is generated from the Relay API contract.
+type ImportFinding struct {
+	Code   string `json:"code"`
+	Line   *int64 `json:"line"`
+	Detail string `json:"detail"`
+}
+
+// ImportLineCode: A line of the upload (1-based) and the code of what happened to it.
+type ImportLineCode struct {
+	Line int64  `json:"line"`
+	Code string `json:"code"`
+}
+
+// ImportProvider: Data residency metadata of a provider account of the environment (TN-58).
+type ImportProvider struct {
+	Channel             string   `json:"channel"`
+	Provider            string   `json:"provider"`
+	InInstallation      *bool    `json:"in_installation"`
+	ProcessingCountries []string `json:"processing_countries"`
+	TransferBasis       *string  `json:"transfer_basis"`
+	SccNotifiedOn       *string  `json:"scc_notified_on"`
+}
+
+// ImportReport: The result of an import (OP-96): counts, the invalid lines with their codes, identity conflicts (never merged), skipped lines, and the sections of its type.
+type ImportReport struct {
+	Counts           ImportReportCounts            `json:"counts"`
+	Invalid          []ImportLineCode              `json:"invalid"`
+	Conflicts        []ImportConflict              `json:"conflicts"`
+	Skipped          []ImportLineCode              `json:"skipped"`
+	Truncated        bool                          `json:"truncated"`
+	Consents         *ImportReportConsents         `json:"consents"`
+	SuppressionCheck *ImportReportSuppressionCheck `json:"suppression_check"`
+	Devices          *ImportReportDevices          `json:"devices"`
+	Templates        []ImportTemplateResult        `json:"templates"`
+	Confirmations    []ImportConfirmation          `json:"confirmations"`
+	DataResidency    ImportReportDataResidency     `json:"data_residency"`
+}
+
+// ImportReportConsents: Asymmetric mapping (OP-55): any refusal is a refusal; a consent only when it can be verified (in Turkey for commercial messages: present in the local İYS copy); anything else is recorded with the ...
+type ImportReportConsents struct {
+	Refused         int64 `json:"refused"`
+	Granted         int64 `json:"granted"`
+	IysVerified     int64 `json:"iys_verified"`
+	ImportedUnknown int64 `json:"imported_unknown"`
+}
+
+// ImportReportCounts is generated from the Relay API contract.
+type ImportReportCounts struct {
+	Lines     int64 `json:"lines"`
+	Written   int64 `json:"written"`
+	Unchanged int64 `json:"unchanged"`
+	Skipped   int64 `json:"skipped"`
+	Invalid   int64 `json:"invalid"`
+	Conflicts int64 `json:"conflicts"`
+}
+
+// ImportReportDataResidency is generated from the Relay API contract.
+type ImportReportDataResidency struct {
+	Providers []ImportProvider `json:"providers"`
+}
+
+// ImportReportDevices is generated from the Relay API contract.
+type ImportReportDevices struct {
+	DeadDropped            int64 `json:"dead_dropped"`
+	OlderDuplicatesDropped int64 `json:"older_duplicates_dropped"`
+	AnonymousSubscribers   int64 `json:"anonymous_subscribers"`
+	LastSeenMissing        int64 `json:"last_seen_missing"`
+}
+
+// ImportReportSuppressionCheck: Suppression applied to the imported addresses and counted (OP-55): expected is how many of them the suppressions imports of the batch name, suppressed how many are suppressed now; verified when every ...
+type ImportReportSuppressionCheck struct {
+	Addresses  int64 `json:"addresses"`
+	Suppressed int64 `json:"suppressed"`
+	Expected   int64 `json:"expected"`
+	Verified   bool  `json:"verified"`
+}
+
+// ImportTemplateResult: The conversion of one template line to Relay's Liquid subset (OP-96, OP-55): AUTO_OK converts without a known difference, NEEDS_REVIEW converts with differences named in findings, CANNOT names what ...
+type ImportTemplateResult struct {
+	Line     int64           `json:"line"`
+	Key      string          `json:"key"`
+	Language string          `json:"language"`
+	Status   string          `json:"status"`
+	Output   *string         `json:"output"`
+	Findings []ImportFinding `json:"findings"`
+	Aliases  []ImportAlias   `json:"aliases"`
+}
+
+// ImportType: What the lines of an import hold (OP-96).
+type ImportType = string
 
 // InboxAnnouncement is generated from the Relay API contract.
 type InboxAnnouncement struct {
@@ -2712,6 +2845,7 @@ type Recurrence struct {
 	CompletedAt            *Timestamp            `json:"completed_at"`
 	CreatedAt              Timestamp             `json:"created_at"`
 	UpdatedAt              Timestamp             `json:"updated_at"`
+	Handoff                *RecurrenceHandoff    `json:"handoff"`
 }
 
 // RecurrenceCreate: A recurrence rule (C-52, WF-48, WF-61): a published workflow sent to one subscriber (subscriber_id, the tenant's external id) or to one topic (topic) on the occurrences of rrule counted from the ...
@@ -2723,6 +2857,22 @@ type RecurrenceCreate struct {
 	Dtstart      LocalDateTime  `json:"dtstart"`
 	Timezone     *TimeZone      `json:"timezone,omitempty"`
 	Data         map[string]any `json:"data,omitempty"`
+}
+
+// RecurrenceHandoff: The state a legacy scheduler handed over with the rule (OP-97, OP-56).
+type RecurrenceHandoff struct {
+	HandedOverAt  Timestamp  `json:"handed_over_at"`
+	LastRunAt     *Timestamp `json:"last_run_at"`
+	Cursor        *string    `json:"cursor"`
+	DryRunPending bool       `json:"dry_run_pending"`
+}
+
+// RecurrenceHandoffCreate: A cron job of a legacy scheduler handed over in one call (OP-97, OP-56): the rule, the last run the legacy scheduler made, the next run it would make and its cursor.
+type RecurrenceHandoffCreate struct {
+	Recurrence RecurrenceCreate `json:"recurrence"`
+	LastRunAt  *Timestamp       `json:"last_run_at,omitempty"`
+	NextRunAt  Timestamp        `json:"next_run_at"`
+	Cursor     *string          `json:"cursor,omitempty"`
 }
 
 // RecurrenceOccurrence: A recorded occurrence of a rule: sent with its event; missed (rule_id recurrence.missed) when it was due during an outage and was not the last due one or was more than PT1H late (WF-61); skipped with ...
@@ -2764,6 +2914,7 @@ type RelayConfiguration struct {
 	EscalationPoliciesEndpoint *string           `json:"escalation_policies_endpoint,omitempty"`
 	AgentsEndpoint             *string           `json:"agents_endpoint,omitempty"`
 	WebhookEndpointsEndpoint   *string           `json:"webhook_endpoints_endpoint,omitempty"`
+	EgressIps                  []string          `json:"egress_ips,omitempty"`
 }
 
 // RenderProblemReport: The render and locale problem report of a period of the tenant environment.
@@ -3171,6 +3322,37 @@ type SubscriberDeletion struct {
 	Status       string     `json:"status"`
 	CreatedAt    Timestamp  `json:"created_at"`
 	CompletedAt  *Timestamp `json:"completed_at,omitempty"`
+}
+
+// SubscriberExport: The data of one subscriber (OP-26): the subscriber and its newest deliveries.
+type SubscriberExport struct {
+	Object     string                     `json:"object"`
+	Subscriber Subscriber                 `json:"subscriber"`
+	Deliveries []SubscriberExportDelivery `json:"deliveries"`
+	Truncated  bool                       `json:"truncated"`
+	ExportedAt Timestamp                  `json:"exported_at"`
+}
+
+// SubscriberExportDelivery: One delivery of the subscriber, with the columns of the deliveries export.
+type SubscriberExportDelivery struct {
+	ID                 IDDlv      `json:"id"`
+	CreatedAt          Timestamp  `json:"created_at"`
+	NotificationID     IDNtf      `json:"notification_id"`
+	Channel            *string    `json:"channel"`
+	Provider           *string    `json:"provider"`
+	Decision           *string    `json:"decision"`
+	DecisionReason     *string    `json:"decision_reason"`
+	DecisionRuleID     *string    `json:"decision_rule_id"`
+	FailureKind        *string    `json:"failure_kind"`
+	FailureClass       *string    `json:"failure_class"`
+	FailureRuleID      *string    `json:"failure_rule_id"`
+	IsTest             bool       `json:"is_test"`
+	DeliveryRank       string     `json:"delivery_rank"`
+	AttemptCount       int64      `json:"attempt_count"`
+	DuplicateDelivered *bool      `json:"duplicate_delivered"`
+	HasConflict        *bool      `json:"has_conflict"`
+	AcceptedAt         *Timestamp `json:"accepted_at"`
+	DeliveredAt        *Timestamp `json:"delivered_at"`
 }
 
 // SubscriberLookup: The subscribers whose active address is the one sent, with masked personal fields; at most x-relay-limits subscriber_lookup.max_matches.

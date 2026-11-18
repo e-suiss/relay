@@ -59,6 +59,7 @@ final class ErrorCatalog {
           Map.entry("internal_error", new Entry("platform", 500, true)),
           Map.entry("service_unavailable", new Entry("platform", 503, true)),
           Map.entry("upstream_timeout", new Entry("platform", 504, true)),
+          Map.entry("wrong_region", new Entry("request", 421, false)),
           Map.entry("event_not_found", new Entry("resource", 404, false)),
           Map.entry("notification_not_found", new Entry("resource", 404, false)),
           Map.entry("delivery_not_found", new Entry("resource", 404, false)),
@@ -68,6 +69,7 @@ final class ErrorCatalog {
           Map.entry("channel_identity_not_found", new Entry("resource", 404, false)),
           Map.entry("event_type_mapping_not_found", new Entry("resource", 404, false)),
           Map.entry("kill_switch_not_found", new Entry("resource", 404, false)),
+          Map.entry("fault_injection_not_found", new Entry("resource", 404, false)),
           Map.entry("api_client_not_found", new Entry("resource", 404, false)),
           Map.entry("operator_not_found", new Entry("resource", 404, false)),
           Map.entry("role_assignment_not_found", new Entry("resource", 404, false)),
@@ -165,6 +167,9 @@ final class ErrorCatalog {
           Map.entry("recurrence_not_found", new Entry("resource", 404, false)),
           Map.entry("recurrence_closed", new Entry("workflow", 409, false)),
           Map.entry("recurrence_limit_reached", new Entry("workflow", 422, false)),
+          Map.entry("import_not_found", new Entry("resource", 404, false)),
+          Map.entry("import_order_violation", new Entry("resource", 409, false)),
+          Map.entry("recurrence_handoff_mismatch", new Entry("workflow", 422, false)),
           Map.entry("campaign_not_found", new Entry("resource", 404, false)),
           Map.entry("campaign_samples_changed", new Entry("workflow", 409, false)),
           Map.entry("campaign_approval_required", new Entry("workflow", 409, false)),
@@ -183,7 +188,9 @@ final class ErrorCatalog {
           Map.entry("inbox_item_conflict", new Entry("resource", 409, false)),
           Map.entry("realtime_origin_not_allowed", new Entry("auth", 403, false)),
           Map.entry("inbox_bulk_operation_not_found", new Entry("resource", 404, false)),
-          Map.entry("inbox_announcement_not_found", new Entry("resource", 404, false)));
+          Map.entry("inbox_announcement_not_found", new Entry("resource", 404, false)),
+          Map.entry("key_unavailable", new Entry("platform", 503, true)),
+          Map.entry("tenant_closure_not_found", new Entry("resource", 404, false)));
 
   static final List<Default> DEFAULTS =
       List.of(

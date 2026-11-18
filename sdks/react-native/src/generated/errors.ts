@@ -315,6 +315,11 @@ export const ERROR_CODES: Readonly<
     "status": 404,
     "retryable": false
   },
+  "fault_injection_not_found": {
+    "family": "resource",
+    "status": 404,
+    "retryable": false
+  },
   "first_contact_token_required": {
     "family": "agent",
     "status": 403,
@@ -338,6 +343,16 @@ export const ERROR_CODES: Readonly<
   "idempotency_key_reuse": {
     "family": "idempotency",
     "status": 422,
+    "retryable": false
+  },
+  "import_not_found": {
+    "family": "resource",
+    "status": 404,
+    "retryable": false
+  },
+  "import_order_violation": {
+    "family": "resource",
+    "status": 409,
     "retryable": false
   },
   "inbox_announcement_not_found": {
@@ -374,6 +389,11 @@ export const ERROR_CODES: Readonly<
     "family": "resource",
     "status": 404,
     "retryable": false
+  },
+  "key_unavailable": {
+    "family": "platform",
+    "status": 503,
+    "retryable": true
   },
   "kill_switch_not_found": {
     "family": "resource",
@@ -575,6 +595,11 @@ export const ERROR_CODES: Readonly<
     "status": 409,
     "retryable": false
   },
+  "recurrence_handoff_mismatch": {
+    "family": "workflow",
+    "status": 422,
+    "retryable": false
+  },
   "recurrence_limit_reached": {
     "family": "workflow",
     "status": 422,
@@ -743,6 +768,11 @@ export const ERROR_CODES: Readonly<
   "template_warnings_unacknowledged": {
     "family": "template",
     "status": 422,
+    "retryable": false
+  },
+  "tenant_closure_not_found": {
+    "family": "resource",
+    "status": 404,
     "retryable": false
   },
   "tenant_not_found": {
@@ -938,6 +968,11 @@ export const ERROR_CODES: Readonly<
   "workflow_version_not_found": {
     "family": "workflow",
     "status": 404,
+    "retryable": false
+  },
+  "wrong_region": {
+    "family": "request",
+    "status": 421,
     "retryable": false
   }
 };

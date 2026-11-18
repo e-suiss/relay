@@ -250,6 +250,20 @@ module Esuiss
           )
         end
 
+        # Export one subscriber's data
+        def export_subscriber(subscriber_id, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/subscribers/#{segment(subscriber_id)}/export",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
         # Bulk upsert subscribers
         def bulk_upsert_subscribers(body, idempotency_key: nil, request_options: {})
           perform(
@@ -3349,6 +3363,20 @@ module Esuiss
           )
         end
 
+        # Get an import
+        def get_import(import_id, request_options: {})
+          perform(
+            method: :get,
+            path: "/v1/imports/#{segment(import_id)}",
+            query: {},
+            headers: {},
+            body: nil,
+            idempotent: false,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
         # List campaigns
         def list_campaigns(limit: nil, starting_after: nil, ending_before: nil, request_options: {})
           paginate(
@@ -3698,6 +3726,22 @@ module Esuiss
           perform(
             method: :post,
             path: "/v1/recurrences",
+            query: {},
+            headers: {},
+            body: body,
+            content_type: "application/json",
+            idempotent: true,
+            idempotency_key: idempotency_key,
+            response: :json,
+            request_options: request_options
+          )
+        end
+
+        # Hand a cron job over
+        def create_recurrence_handoff(body, idempotency_key: nil, request_options: {})
+          perform(
+            method: :post,
+            path: "/v1/recurrence_handoffs",
             query: {},
             headers: {},
             body: body,

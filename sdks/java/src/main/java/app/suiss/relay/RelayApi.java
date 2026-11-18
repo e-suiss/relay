@@ -177,6 +177,16 @@ public final class RelayApi {
           Operation.Presence.NONE,
           "application/json",
           Operation.Response.JSON);
+  private static final Operation EXPORT_SUBSCRIBER =
+      new Operation(
+          "exportSubscriber",
+          "GET",
+          "/v1/subscribers/{subscriber_id}/export",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
   private static final Operation BULK_UPSERT_SUBSCRIBERS =
       new Operation(
           "bulkUpsertSubscribers",
@@ -2327,6 +2337,26 @@ public final class RelayApi {
           Operation.Presence.NONE,
           "application/json",
           Operation.Response.JSON);
+  private static final Operation CREATE_IMPORT =
+      new Operation(
+          "createImport",
+          "POST",
+          "/v1/imports",
+          Operation.Presence.REQUIRED,
+          Operation.Presence.NONE,
+          Operation.Presence.REQUIRED,
+          "application/x-ndjson",
+          Operation.Response.JSON);
+  private static final Operation GET_IMPORT =
+      new Operation(
+          "getImport",
+          "GET",
+          "/v1/imports/{import_id}",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
   private static final Operation LIST_CAMPAIGNS =
       new Operation(
           "listCampaigns",
@@ -2572,6 +2602,16 @@ public final class RelayApi {
           "createRecurrence",
           "POST",
           "/v1/recurrences",
+          Operation.Presence.REQUIRED,
+          Operation.Presence.NONE,
+          Operation.Presence.REQUIRED,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation CREATE_RECURRENCE_HANDOFF =
+      new Operation(
+          "createRecurrenceHandoff",
+          "POST",
+          "/v1/recurrence_handoffs",
           Operation.Presence.REQUIRED,
           Operation.Presence.NONE,
           Operation.Presence.REQUIRED,
@@ -3157,6 +3197,31 @@ public final class RelayApi {
    */
   public JsonNode deleteSubscriber(String subscriberId) {
     return deleteSubscriber(subscriberId, RequestOptions.none());
+  }
+
+  /**
+   * Export one subscriber's data.
+   *
+   * <p>{@code GET /v1/subscribers/{subscriber_id}/export}
+   *
+   * @param subscriberId the {@code subscriber_id} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode exportSubscriber(String subscriberId, RequestOptions options) {
+    return requester.json(EXPORT_SUBSCRIBER, List.of(subscriberId), null, null, options);
+  }
+
+  /**
+   * Export one subscriber's data.
+   *
+   * <p>{@code GET /v1/subscribers/{subscriber_id}/export}
+   *
+   * @param subscriberId the {@code subscriber_id} path parameter
+   * @return the response body
+   */
+  public JsonNode exportSubscriber(String subscriberId) {
+    return exportSubscriber(subscriberId, RequestOptions.none());
   }
 
   /**
@@ -8735,6 +8800,58 @@ public final class RelayApi {
   }
 
   /**
+   * Start an import.
+   *
+   * <p>{@code POST /v1/imports}
+   *
+   * @param params the query parameters
+   * @param body the request body
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode createImport(CreateImportParams params, JsonNode body, RequestOptions options) {
+    return requester.json(CREATE_IMPORT, List.of(), params, body, options);
+  }
+
+  /**
+   * Start an import.
+   *
+   * <p>{@code POST /v1/imports}
+   *
+   * @param params the query parameters
+   * @param body the request body
+   * @return the response body
+   */
+  public JsonNode createImport(CreateImportParams params, JsonNode body) {
+    return createImport(params, body, RequestOptions.none());
+  }
+
+  /**
+   * Get an import.
+   *
+   * <p>{@code GET /v1/imports/{import_id}}
+   *
+   * @param importId the {@code import_id} path parameter
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode getImport(String importId, RequestOptions options) {
+    return requester.json(GET_IMPORT, List.of(importId), null, null, options);
+  }
+
+  /**
+   * Get an import.
+   *
+   * <p>{@code GET /v1/imports/{import_id}}
+   *
+   * @param importId the {@code import_id} path parameter
+   * @return the response body
+   */
+  public JsonNode getImport(String importId) {
+    return getImport(importId, RequestOptions.none());
+  }
+
+  /**
    * List campaigns.
    *
    * <p>{@code GET /v1/campaigns}
@@ -9367,6 +9484,31 @@ public final class RelayApi {
    */
   public JsonNode createRecurrence(JsonNode body) {
     return createRecurrence(body, RequestOptions.none());
+  }
+
+  /**
+   * Hand a cron job over.
+   *
+   * <p>{@code POST /v1/recurrence_handoffs}
+   *
+   * @param body the request body
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode createRecurrenceHandoff(JsonNode body, RequestOptions options) {
+    return requester.json(CREATE_RECURRENCE_HANDOFF, List.of(), null, body, options);
+  }
+
+  /**
+   * Hand a cron job over.
+   *
+   * <p>{@code POST /v1/recurrence_handoffs}
+   *
+   * @param body the request body
+   * @return the response body
+   */
+  public JsonNode createRecurrenceHandoff(JsonNode body) {
+    return createRecurrenceHandoff(body, RequestOptions.none());
   }
 
   /**

@@ -54,6 +54,7 @@ internal static partial class ErrorCatalog
         ["internal_error"] = new("internal_error", "platform", 500, true),
         ["service_unavailable"] = new("service_unavailable", "platform", 503, true),
         ["upstream_timeout"] = new("upstream_timeout", "platform", 504, true),
+        ["wrong_region"] = new("wrong_region", "request", 421, false),
         ["event_not_found"] = new("event_not_found", "resource", 404, false),
         ["notification_not_found"] = new("notification_not_found", "resource", 404, false),
         ["delivery_not_found"] = new("delivery_not_found", "resource", 404, false),
@@ -63,6 +64,7 @@ internal static partial class ErrorCatalog
         ["channel_identity_not_found"] = new("channel_identity_not_found", "resource", 404, false),
         ["event_type_mapping_not_found"] = new("event_type_mapping_not_found", "resource", 404, false),
         ["kill_switch_not_found"] = new("kill_switch_not_found", "resource", 404, false),
+        ["fault_injection_not_found"] = new("fault_injection_not_found", "resource", 404, false),
         ["api_client_not_found"] = new("api_client_not_found", "resource", 404, false),
         ["operator_not_found"] = new("operator_not_found", "resource", 404, false),
         ["role_assignment_not_found"] = new("role_assignment_not_found", "resource", 404, false),
@@ -160,6 +162,9 @@ internal static partial class ErrorCatalog
         ["recurrence_not_found"] = new("recurrence_not_found", "resource", 404, false),
         ["recurrence_closed"] = new("recurrence_closed", "workflow", 409, false),
         ["recurrence_limit_reached"] = new("recurrence_limit_reached", "workflow", 422, false),
+        ["import_not_found"] = new("import_not_found", "resource", 404, false),
+        ["import_order_violation"] = new("import_order_violation", "resource", 409, false),
+        ["recurrence_handoff_mismatch"] = new("recurrence_handoff_mismatch", "workflow", 422, false),
         ["campaign_not_found"] = new("campaign_not_found", "resource", 404, false),
         ["campaign_samples_changed"] = new("campaign_samples_changed", "workflow", 409, false),
         ["campaign_approval_required"] = new("campaign_approval_required", "workflow", 409, false),
@@ -179,6 +184,8 @@ internal static partial class ErrorCatalog
         ["realtime_origin_not_allowed"] = new("realtime_origin_not_allowed", "auth", 403, false),
         ["inbox_bulk_operation_not_found"] = new("inbox_bulk_operation_not_found", "resource", 404, false),
         ["inbox_announcement_not_found"] = new("inbox_announcement_not_found", "resource", 404, false),
+        ["key_unavailable"] = new("key_unavailable", "platform", 503, true),
+        ["tenant_closure_not_found"] = new("tenant_closure_not_found", "resource", 404, false),
     };
 
     internal static readonly IReadOnlyList<RetryableDefault> Defaults =

@@ -3212,6 +3212,7 @@ RelayConfiguration = _t.TypedDict(
         "escalation_policies_endpoint": _t.NotRequired[str],
         "agents_endpoint": _t.NotRequired[str],
         "webhook_endpoints_endpoint": _t.NotRequired[str],
+        "egress_ips": _t.NotRequired[list[str]],
     },
 )
 
@@ -5444,6 +5445,43 @@ CostReport = _t.TypedDict(
 Id_exp: _t.TypeAlias = str
 
 
+SubscriberExport = _t.TypedDict(
+    "SubscriberExport",
+    {
+        "object": _t.Literal["subscriber_export"],
+        "subscriber": "Subscriber",
+        "deliveries": list["SubscriberExportDelivery"],
+        "truncated": bool,
+        "exported_at": "Timestamp",
+    },
+)
+
+
+SubscriberExportDelivery = _t.TypedDict(
+    "SubscriberExportDelivery",
+    {
+        "id": "Id_dlv",
+        "created_at": "Timestamp",
+        "notification_id": "Id_ntf",
+        "channel": _t.Union[str, None],
+        "provider": _t.Union[str, None],
+        "decision": _t.Union[str, None],
+        "decision_reason": _t.Union[str, None],
+        "decision_rule_id": _t.Union[str, None],
+        "failure_kind": _t.Union[str, None],
+        "failure_class": _t.Union[str, None],
+        "failure_rule_id": _t.Union[str, None],
+        "is_test": bool,
+        "delivery_rank": _t.Literal["none", "accepted", "delivered"],
+        "attempt_count": int,
+        "duplicate_delivered": _t.Union[bool, None],
+        "has_conflict": _t.Union[bool, None],
+        "accepted_at": _t.Union["Timestamp", None],
+        "delivered_at": _t.Union["Timestamp", None],
+    },
+)
+
+
 ExportKind: _t.TypeAlias = _t.Literal["deliveries", "delivery_events", "usage_records"]
 
 
@@ -5772,6 +5810,152 @@ RecurrenceOccurrence = _t.TypedDict(
 )
 
 
+Id_imp: _t.TypeAlias = str
+
+
+ImportType: _t.TypeAlias = _t.Literal["suppressions", "consents", "subscribers", "devices", "templates", "scheduled"]
+
+
+ImportBatch: _t.TypeAlias = str
+
+
+ImportLineCode = _t.TypedDict(
+    "ImportLineCode",
+    {
+        "line": int,
+        "code": str,
+    },
+)
+
+
+ImportConflict = _t.TypedDict(
+    "ImportConflict",
+    {
+        "field": _t.Literal["email", "phone"],
+        "lines": list[int],
+    },
+)
+
+
+ImportFinding = _t.TypedDict(
+    "ImportFinding",
+    {
+        "code": str,
+        "line": _t.Union[int, None],
+        "detail": str,
+    },
+)
+
+
+ImportAlias = _t.TypedDict(
+    "ImportAlias",
+    {
+        "name": str,
+        "target": str,
+        "expires_at": "Timestamp",
+    },
+)
+
+
+ImportTemplateResult = _t.TypedDict(
+    "ImportTemplateResult",
+    {
+        "line": int,
+        "key": str,
+        "language": _t.Literal["liquid", "handlebars"],
+        "status": _t.Literal["AUTO_OK", "NEEDS_REVIEW", "CANNOT"],
+        "output": _t.Union[str, None],
+        "findings": list["ImportFinding"],
+        "aliases": list["ImportAlias"],
+    },
+)
+
+
+ImportConfirmation = _t.TypedDict(
+    "ImportConfirmation",
+    {
+        "line": int,
+        "legacy_ref": str,
+        "event_id": "Id_evt",
+    },
+)
+
+
+ImportProvider = _t.TypedDict(
+    "ImportProvider",
+    {
+        "channel": str,
+        "provider": str,
+        "in_installation": _t.Union[bool, None],
+        "processing_countries": _t.Union[list[str], None],
+        "transfer_basis": _t.Union[str, None],
+        "scc_notified_on": _t.Union[str, None],
+    },
+)
+
+
+ImportReport = _t.TypedDict(
+    "ImportReport",
+    {
+        "counts": "ImportReport_Counts",
+        "invalid": list["ImportLineCode"],
+        "conflicts": list["ImportConflict"],
+        "skipped": list["ImportLineCode"],
+        "truncated": bool,
+        "consents": _t.Union["ImportReport_ConsentsOption1", None],
+        "suppression_check": _t.Union["ImportReport_SuppressionCheckOption1", None],
+        "devices": _t.Union["ImportReport_DevicesOption1", None],
+        "templates": _t.Union[list["ImportTemplateResult"], None],
+        "confirmations": _t.Union[list["ImportConfirmation"], None],
+        "data_residency": "ImportReport_DataResidency",
+    },
+)
+
+
+Import = _t.TypedDict(
+    "Import",
+    {
+        "object": _t.Literal["import"],
+        "id": "Id_imp",
+        "type": "ImportType",
+        "batch": "ImportBatch",
+        "state": _t.Literal["pending", "completed", "failed"],
+        "failure": _t.Union[_t.Literal["unavailable", "content_unreadable"], None],
+        "line_count": int,
+        "byte_size": int,
+        "sha256": str,
+        "report": _t.Union["ImportReport", None],
+        "completed_at": _t.Union["Timestamp", None],
+        "created_at": "Timestamp",
+    },
+)
+
+
+ImportUpload: _t.TypeAlias = str
+
+
+RecurrenceHandoff = _t.TypedDict(
+    "RecurrenceHandoff",
+    {
+        "handed_over_at": "Timestamp",
+        "last_run_at": _t.Union["Timestamp", None],
+        "cursor": _t.Union[str, None],
+        "dry_run_pending": bool,
+    },
+)
+
+
+RecurrenceHandoffCreate = _t.TypedDict(
+    "RecurrenceHandoffCreate",
+    {
+        "recurrence": "RecurrenceCreate",
+        "last_run_at": _t.NotRequired[_t.Union["Timestamp", None]],
+        "next_run_at": "Timestamp",
+        "cursor": _t.NotRequired[_t.Union[str, None]],
+    },
+)
+
+
 Recurrence = _t.TypedDict(
     "Recurrence",
     {
@@ -5793,6 +5977,7 @@ Recurrence = _t.TypedDict(
         "completed_at": _t.Union["Timestamp", None],
         "created_at": "Timestamp",
         "updated_at": "Timestamp",
+        "handoff": _t.Union["RecurrenceHandoff", None],
     },
 )
 
@@ -6357,6 +6542,71 @@ TenantSettingsUpdate = _t.TypedDict(
 )
 
 
+Id_fij: _t.TypeAlias = str
+
+
+FaultInjectionKind: _t.TypeAlias = _t.Literal["provider_auth_error", "rate_limited_429", "concurrency_exhausted", "bounce_spike", "template_paused", "delayed_delivery_report", "iys_pull_stalled", "added_latency"]
+
+
+FaultInjection = _t.TypedDict(
+    "FaultInjection",
+    {
+        "object": _t.Literal["fault_injection"],
+        "id": "Id_fij",
+        "scope_kind": _t.Literal["installation", "tenant"],
+        "tenant_id": _t.Union["Id_ten", None],
+        "environment": _t.Literal["live", "test"],
+        "channel": _t.Union["Channel", None],
+        "provider": _t.Union[str, None],
+        "kind": "FaultInjectionKind",
+        "rate_percent": int,
+        "delay_ms": _t.Union[int, None],
+        "reason": str,
+        "created_by": str,
+        "expires_at": "Timestamp",
+        "status": _t.Literal["active", "cleared"],
+        "cleared_at": _t.Union["Timestamp", None],
+        "created_at": "Timestamp",
+    },
+)
+
+
+FaultInjectionList = _t.TypedDict(
+    "FaultInjectionList",
+    {
+        "object": _t.Literal["list"],
+        "data": list["FaultInjection"],
+        "has_more": bool,
+        "next_cursor": _t.Union["Cursor", None],
+        "previous_cursor": _t.NotRequired[_t.Union["Cursor", None]],
+    },
+)
+
+
+FaultInjectionEngage = _t.TypedDict(
+    "FaultInjectionEngage",
+    {
+        "tenant_id": _t.NotRequired["Id_ten"],
+        "environment": _t.Literal["live", "test"],
+        "channel": _t.NotRequired["Channel"],
+        "provider": _t.NotRequired[str],
+        "kind": "FaultInjectionKind",
+        "rate_percent": int,
+        "delay_ms": _t.NotRequired[int],
+        "ttl": "Duration",
+        "reason": str,
+    },
+)
+
+
+FaultInjectionClear = _t.TypedDict(
+    "FaultInjectionClear",
+    {
+        "reason": str,
+    },
+)
+
+
 Problem = _t.TypedDict(
     "Problem",
     {
@@ -6867,6 +7117,60 @@ EmailReportSummary_Tls = _t.TypedDict(
         "successful_sessions": int,
         "failed_sessions": int,
         "failures": dict[str, int],
+    },
+)
+
+
+ImportReport_Counts = _t.TypedDict(
+    "ImportReport_Counts",
+    {
+        "lines": int,
+        "written": int,
+        "unchanged": int,
+        "skipped": int,
+        "invalid": int,
+        "conflicts": int,
+    },
+)
+
+
+ImportReport_ConsentsOption1 = _t.TypedDict(
+    "ImportReport_ConsentsOption1",
+    {
+        "refused": int,
+        "granted": int,
+        "iys_verified": int,
+        "imported_unknown": int,
+    },
+)
+
+
+ImportReport_SuppressionCheckOption1 = _t.TypedDict(
+    "ImportReport_SuppressionCheckOption1",
+    {
+        "addresses": int,
+        "suppressed": int,
+        "expected": int,
+        "verified": bool,
+    },
+)
+
+
+ImportReport_DevicesOption1 = _t.TypedDict(
+    "ImportReport_DevicesOption1",
+    {
+        "dead_dropped": int,
+        "older_duplicates_dropped": int,
+        "anonymous_subscribers": int,
+        "last_seen_missing": int,
+    },
+)
+
+
+ImportReport_DataResidency = _t.TypedDict(
+    "ImportReport_DataResidency",
+    {
+        "providers": list["ImportProvider"],
     },
 )
 

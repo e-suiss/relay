@@ -867,6 +867,32 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :create_import,
+      method: :post,
+      path: "/v1/imports",
+      path_params: [],
+      query: [{:type, :string, true}, {:batch, :string, true}],
+      idempotency: :required,
+      if_match: :none,
+      body: :required,
+      content_type: "application/x-ndjson",
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :get_import,
+      method: :get,
+      path: "/v1/imports/{import_id}",
+      path_params: [:import_id],
+      query: [],
+      idempotency: :none,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :create_inbox_announcement,
       method: :post,
       path: "/v1/inbox/announcements",
@@ -1721,6 +1747,19 @@ defmodule EsuissRelay.Generated.Operations do
       response: :json
     },
     %Operation{
+      id: :create_recurrence_handoff,
+      method: :post,
+      path: "/v1/recurrence_handoffs",
+      path_params: [],
+      query: [],
+      idempotency: :required,
+      if_match: :none,
+      body: :required,
+      content_type: "application/json",
+      paginated: false,
+      response: :json
+    },
+    %Operation{
       id: :list_recurrences,
       method: :get,
       path: "/v1/recurrences",
@@ -2270,6 +2309,19 @@ defmodule EsuissRelay.Generated.Operations do
       path_params: [:subscriber_id, :device_id],
       query: [],
       idempotency: :required,
+      if_match: :none,
+      body: :none,
+      content_type: nil,
+      paginated: false,
+      response: :json
+    },
+    %Operation{
+      id: :export_subscriber,
+      method: :get,
+      path: "/v1/subscribers/{subscriber_id}/export",
+      path_params: [:subscriber_id],
+      query: [],
+      idempotency: :none,
       if_match: :none,
       body: :none,
       content_type: nil,

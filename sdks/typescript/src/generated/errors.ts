@@ -50,6 +50,7 @@ export const errorCatalog: Readonly<
   internal_error: { family: "platform", status: 500, retryable: true },
   service_unavailable: { family: "platform", status: 503, retryable: true },
   upstream_timeout: { family: "platform", status: 504, retryable: true },
+  wrong_region: { family: "request", status: 421, retryable: false },
   event_not_found: { family: "resource", status: 404, retryable: false },
   notification_not_found: { family: "resource", status: 404, retryable: false },
   delivery_not_found: { family: "resource", status: 404, retryable: false },
@@ -59,6 +60,7 @@ export const errorCatalog: Readonly<
   channel_identity_not_found: { family: "resource", status: 404, retryable: false },
   event_type_mapping_not_found: { family: "resource", status: 404, retryable: false },
   kill_switch_not_found: { family: "resource", status: 404, retryable: false },
+  fault_injection_not_found: { family: "resource", status: 404, retryable: false },
   api_client_not_found: { family: "resource", status: 404, retryable: false },
   operator_not_found: { family: "resource", status: 404, retryable: false },
   role_assignment_not_found: { family: "resource", status: 404, retryable: false },
@@ -156,6 +158,9 @@ export const errorCatalog: Readonly<
   recurrence_not_found: { family: "resource", status: 404, retryable: false },
   recurrence_closed: { family: "workflow", status: 409, retryable: false },
   recurrence_limit_reached: { family: "workflow", status: 422, retryable: false },
+  import_not_found: { family: "resource", status: 404, retryable: false },
+  import_order_violation: { family: "resource", status: 409, retryable: false },
+  recurrence_handoff_mismatch: { family: "workflow", status: 422, retryable: false },
   campaign_not_found: { family: "resource", status: 404, retryable: false },
   campaign_samples_changed: { family: "workflow", status: 409, retryable: false },
   campaign_approval_required: { family: "workflow", status: 409, retryable: false },
@@ -175,6 +180,8 @@ export const errorCatalog: Readonly<
   realtime_origin_not_allowed: { family: "auth", status: 403, retryable: false },
   inbox_bulk_operation_not_found: { family: "resource", status: 404, retryable: false },
   inbox_announcement_not_found: { family: "resource", status: 404, retryable: false },
+  key_unavailable: { family: "platform", status: 503, retryable: true },
+  tenant_closure_not_found: { family: "resource", status: 404, retryable: false },
 };
 export const retryableDefaults: ReadonlyArray<{
   readonly status: number;

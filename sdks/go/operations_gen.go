@@ -444,6 +444,20 @@ func (c *Client) UpdateSubscriber(ctx context.Context, subscriberID ExternalID, 
 	return out, nil
 }
 
+// ExportSubscriber calls GET /v1/subscribers/{subscriber_id}/export: Export one subscriber's data
+func (c *Client) ExportSubscriber(ctx context.Context, subscriberID ExternalID, opts ...RequestOption) (*SubscriberExport, error) {
+	r := newRequest("GET", "/v1/subscribers/"+pathSegment(subscriberID)+"/export", false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(SubscriberExport)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BulkUpsertSubscribers calls POST /v1/subscribers/bulk: Bulk upsert subscribers
 func (c *Client) BulkUpsertSubscribers(ctx context.Context, body *SubscriberBulkRequest, opts ...RequestOption) (*SubscriberBulkResult, error) {
 	r := newRequest("POST", "/v1/subscribers/bulk", true)
@@ -5099,6 +5113,20 @@ func (c *Client) GetExport(ctx context.Context, exportID IDExp, opts ...RequestO
 	return out, nil
 }
 
+// GetImport calls GET /v1/imports/{import_id}: Get an import
+func (c *Client) GetImport(ctx context.Context, importID IDImp, opts ...RequestOption) (*Import, error) {
+	r := newRequest("GET", "/v1/imports/"+pathSegment(importID), false)
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(Import)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ListCampaignsParams holds the query and header parameters of ListCampaigns.
 type ListCampaignsParams struct {
 	Limit         *int64
@@ -5620,6 +5648,23 @@ func (c *Client) ListRecurrencesIter(ctx context.Context, params *ListRecurrence
 // CreateRecurrence calls POST /v1/recurrences: Define a recurrence rule
 func (c *Client) CreateRecurrence(ctx context.Context, body *RecurrenceCreate, opts ...RequestOption) (*Recurrence, error) {
 	r := newRequest("POST", "/v1/recurrences", true)
+	if body != nil {
+		r.setBody(body, "application/json")
+	}
+	resp, err := c.send(ctx, r, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := new(Recurrence)
+	if err := decodeJSON(resp, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// CreateRecurrenceHandoff calls POST /v1/recurrence_handoffs: Hand a cron job over
+func (c *Client) CreateRecurrenceHandoff(ctx context.Context, body *RecurrenceHandoffCreate, opts ...RequestOption) (*Recurrence, error) {
+	r := newRequest("POST", "/v1/recurrence_handoffs", true)
 	if body != nil {
 		r.setBody(body, "application/json")
 	}

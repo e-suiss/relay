@@ -447,6 +447,16 @@ defmodule EsuissRelay.Api do
   def get_export(client, export_id, opts \\ []),
     do: Client.call(client, Operations.fetch!(:get_export), [export_id], nil, opts)
 
+  @doc "Start an import.\n\n`POST /v1/imports`\n\nQuery: `type`, `batch`."
+  @spec create_import(Client.t(), map() | binary(), keyword()) :: Client.result()
+  def create_import(client, body, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:create_import), [], body, opts)
+
+  @doc "Get an import.\n\n`GET /v1/imports/{import_id}`"
+  @spec get_import(Client.t(), String.t() | integer(), keyword()) :: Client.result()
+  def get_import(client, import_id, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:get_import), [import_id], nil, opts)
+
   @doc "Publish an inbox announcement.\n\n`POST /v1/inbox/announcements`"
   @spec create_inbox_announcement(Client.t(), map() | binary(), keyword()) :: Client.result()
   def create_inbox_announcement(client, body, opts \\ []),
@@ -871,6 +881,11 @@ defmodule EsuissRelay.Api do
   def set_realtime_origins(client, body, opts \\ []),
     do: Client.call(client, Operations.fetch!(:set_realtime_origins), [], body, opts)
 
+  @doc "Hand a cron job over.\n\n`POST /v1/recurrence_handoffs`"
+  @spec create_recurrence_handoff(Client.t(), map() | binary(), keyword()) :: Client.result()
+  def create_recurrence_handoff(client, body, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:create_recurrence_handoff), [], body, opts)
+
   @doc "List recurrence rules.\n\n`GET /v1/recurrences`, returns a page.\n\nQuery: `limit`, `starting_after`, `ending_before`."
   @spec list_recurrences(Client.t(), keyword()) :: Client.result()
   def list_recurrences(client, opts \\ []),
@@ -1143,6 +1158,11 @@ defmodule EsuissRelay.Api do
         nil,
         opts
       )
+
+  @doc "Export one subscriber's data.\n\n`GET /v1/subscribers/{subscriber_id}/export`"
+  @spec export_subscriber(Client.t(), String.t() | integer(), keyword()) :: Client.result()
+  def export_subscriber(client, subscriber_id, opts \\ []),
+    do: Client.call(client, Operations.fetch!(:export_subscriber), [subscriber_id], nil, opts)
 
   @doc "Put a subscriber's messaging conversation.\n\n`PUT /v1/subscribers/{subscriber_id}/messaging_targets/{channel}`"
   @spec replace_subscriber_messaging_target(

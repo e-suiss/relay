@@ -280,6 +280,26 @@ export interface paths {
         patch: operations["updateSubscriber"];
         trace?: never;
     };
+    "/v1/subscribers/{subscriber_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export one subscriber's data
+         * @description The data of one person as JSON (OP-26, OP-86): the subscriber as getSubscriber shows it and its deliveries, newest first, with their channel, decision and outcome; identifiers, codes and times only, no address or content. At most x-relay-limits subject_export.max_deliveries deliveries are returned and truncated is true when older ones exist; the full history is in the raw data exports. A tenant administrator's request; every export is audited as subject.exported before any delivery is read.
+         */
+        get: operations["exportSubscriber"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/subscribers/bulk": {
         parameters: {
             query?: never;
@@ -4036,6 +4056,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start an import
+         * @description Starts an import job from an NDJSON upload (OP-96, OP-55): suppressions, consents, subscribers, devices, templates or scheduled sends of a migration batch. The order of OP-55 is enforced here: a subscribers, devices or scheduled import of a batch is 409 import_order_violation until the batch has a completed suppressions import and a completed consents import and none of them is still pending. The upload is kept encrypted until its job has processed it, then cleared; the request is audited as import.requested and answered 202. The report gives counts, the invalid lines with their codes, identity conflicts (same e-mail or phone under two external ids: reported, never merged; the same external id is merged), skipped lines and the sections of the type: the asymmetric consent mapping, the suppression check of the imported addresses, dead and older duplicate tokens dropped and devices without an external id written as anonymous subscribers, the template conversion status of each template (AUTO_OK, NEEDS_REVIEW, CANNOT), the confirmations of scheduled sends the legacy system cancels only after it holds them (OP-97), and the data residency metadata of the environment's provider accounts (TN-58). Phone numbers are normalised to E.164 and languages to BCP 47; a recipient with an open digest window in the legacy system is not imported while it is open.
+         */
+        post: operations["createImport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/imports/{import_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get an import
+         * @description An import with its state and, once completed, its report (OP-96).
+         */
+        get: operations["getImport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/campaigns": {
         parameters: {
             query?: never;
@@ -4474,6 +4534,26 @@ export interface paths {
          * @description Defines a recurrence rule (C-52, WF-48, WF-61): the published workflow is sent to one subscriber or one topic on the occurrences of an RRULE subset counted from a local dtstart. A subscriber rule runs in the subscriber's time zone (WF-45); a topic rule in its timezone, else the tenant's default_timezone. The rule is a definition with its next occurrence and a timer; no message waits for it (WF-43). Each occurrence is sent through the same path as POST /v1/events with the workflow version published at that moment (WF-49), once per occurrence (the idempotency and dedup keys derive from the rule and the occurrence instant), with a deterministic jitter of at most 60 seconds so rules due at the same minute spread (WF-42, WF-58). After an outage only the last due occurrence is sent, and only when it is at most PT1H late; the others are recorded missed with recurrence.missed (WF-61). A topic rule's occurrence is sent to the topic's audience frozen at that moment (WF-52); an audience without subscribers is recorded with audience.no_subscribers (WF-53) and one above an event's recipient limit is recorded skipped with recurrence.audience_too_large. A tenant environment holds at most 100000 active rules (PD): 422 recurrence_limit_reached. Audited as recurrence.created.
          */
         post: operations["createRecurrence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/recurrence_handoffs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Hand a cron job over
+         * @description Hands a cron job of a legacy scheduler over to a recurrence rule in one atomic call (OP-97, OP-56): the rule, its handover state (the legacy scheduler's last run, its next run and its cursor) and the timer of its first occurrence commit together, so there is no moment with two active schedules for the same job. next_run_at must be the first occurrence of the rule after now (422 recurrence_handoff_mismatch with the expected instant otherwise) and last_run_at must be before it. The first occurrence is a supervised dry run: it goes through the checks of the send path and is recorded skipped with recurrence.handoff_dry_run without sending; the occurrences after it are sent. The legacy job is disabled once this call answered 201. Audited as recurrence.created.
+         */
+        post: operations["createRecurrenceHandoff"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5624,6 +5704,37 @@ export interface components {
             attributes?: {
                 [key: string]: string | number | boolean;
             } | null;
+        };
+        /** @description One delivery of the subscriber, with the columns of the deliveries export. */
+        SubscriberExportDelivery: {
+            id: components["schemas"]["Id_dlv"];
+            created_at: components["schemas"]["Timestamp"];
+            notification_id: components["schemas"]["Id_ntf"];
+            channel: string | null;
+            provider: string | null;
+            decision: string | null;
+            decision_reason: string | null;
+            decision_rule_id: string | null;
+            failure_kind: string | null;
+            failure_class: string | null;
+            failure_rule_id: string | null;
+            is_test: boolean;
+            /** @enum {string} */
+            delivery_rank: "none" | "accepted" | "delivered";
+            attempt_count: number;
+            duplicate_delivered: boolean | null;
+            has_conflict: boolean | null;
+            accepted_at: components["schemas"]["Timestamp"] | null;
+            delivered_at: components["schemas"]["Timestamp"] | null;
+        };
+        /** @description The data of one subscriber (OP-26): the subscriber and its newest deliveries. */
+        SubscriberExport: {
+            /** @constant */
+            object: "subscriber_export";
+            subscriber: components["schemas"]["Subscriber"];
+            deliveries: components["schemas"]["SubscriberExportDelivery"][];
+            truncated: boolean;
+            exported_at: components["schemas"]["Timestamp"];
         };
         SubscriberBulkRow: {
             ref?: string;
@@ -7676,6 +7787,8 @@ export interface components {
              * @description Present with urn:suiss:relay:webhook_endpoints:1.
              */
             webhook_endpoints_endpoint?: string;
+            /** @description The fixed egress addresses (single addresses or CIDR ranges) this installation's region sends from: webhook deliveries and calls to providers that admit only listed addresses. They never leave the region. Empty when the installation publishes none. */
+            egress_ips?: string[];
         };
         /** @description Public Ed25519 key of the product event signature. */
         JsonWebKey: {
@@ -9871,6 +9984,126 @@ export interface components {
             to: string;
         };
         /**
+         * @description What the lines of an import hold (OP-96).
+         * @enum {string}
+         */
+        ImportType: "suppressions" | "consents" | "subscribers" | "devices" | "templates" | "scheduled";
+        /**
+         * @description A migration batch chosen by the tenant; the OP-55 order is enforced within a batch.
+         * @example cutover-2027-01
+         */
+        ImportBatch: string;
+        /** @description UTF-8 NDJSON: one JSON object per line, at most x-relay-limits import.max_lines lines of import.max_line_bytes bytes. A line that is not a JSON object, that is not valid UTF-8, that shows encoding damage or that has a field its type does not take goes to the invalid bucket of the report, not the whole upload. Lines by type: suppressions {channel (email, sms, voice, whatsapp), address, reason (invalid, anything else is manual), country}; consents {external_id, channel, status (granted, refused, unknown), address, country, commercial (default true), occurred_at, consent_kind, recipient_type, text_version, evidence}; subscribers {external_id, email, phone, name, locale, timezone, country, attributes, provider_ref, digest_open_until}; devices {external_id (none: an anonymous subscriber), platform, token, app, apns_environment, permission (default not_determined), locale, timezone, last_seen_at, state (dead is dropped), provider_ref}; templates {key, language (liquid, handlebars), source, aliases (old path to Relay path), aliases_expire_at (at most import.max_alias_lifetime ahead)}; scheduled {legacy_ref, workflow, subscriber_id, data, send_at, digest_open_until}. A phone without a country code is normalised only from a Turkish national number with country TR. provider_ref is kept only for traceability, sealed under the subscriber's key. */
+        ImportUpload: string;
+        /**
+         * @description Import identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
+         * @example imp_01j9zq3k4m5n6p7q8r9s0t1v2w
+         */
+        Id_imp: string;
+        /** @description A line of the upload (1-based) and the code of what happened to it. */
+        ImportLineCode: {
+            line: number;
+            code: string;
+        };
+        /** @description Lines that name the same e-mail address or phone number with different external ids; nothing is merged (OP-55). line 0 stands for a subscriber that already exists. */
+        ImportConflict: {
+            /** @enum {string} */
+            field: "email" | "phone";
+            lines: number[];
+        };
+        ImportFinding: {
+            code: string;
+            line: number | null;
+            detail: string;
+        };
+        ImportAlias: {
+            name: string;
+            target: string;
+            expires_at: components["schemas"]["Timestamp"];
+        };
+        /** @description The conversion of one template line to Relay's Liquid subset (OP-96, OP-55): AUTO_OK converts without a known difference, NEEDS_REVIEW converts with differences named in findings, CANNOT names what has no equivalent and gives no output. */
+        ImportTemplateResult: {
+            line: number;
+            key: string;
+            /** @enum {string} */
+            language: "liquid" | "handlebars";
+            /** @enum {string} */
+            status: "AUTO_OK" | "NEEDS_REVIEW" | "CANNOT";
+            output: string | null;
+            findings: components["schemas"]["ImportFinding"][];
+            aliases: components["schemas"]["ImportAlias"][];
+        };
+        /** @description A scheduled send Relay recorded; the legacy system cancels its own job named legacy_ref only after it holds this confirmation (OP-97). */
+        ImportConfirmation: {
+            line: number;
+            legacy_ref: string;
+            event_id: components["schemas"]["Id_evt"];
+        };
+        /** @description Data residency metadata of a provider account of the environment (TN-58). */
+        ImportProvider: {
+            channel: string;
+            provider: string;
+            in_installation: boolean | null;
+            processing_countries: string[] | null;
+            transfer_basis: string | null;
+            scc_notified_on: string | null;
+        };
+        /** @description The result of an import (OP-96): counts, the invalid lines with their codes, identity conflicts (never merged), skipped lines, and the sections of its type. Lists hold at most x-relay-limits import.max_report_items entries; truncated says that more were left out. Values of personal fields are never shown, only line numbers and codes. */
+        ImportReport: {
+            counts: {
+                lines: number;
+                written: number;
+                unchanged: number;
+                skipped: number;
+                invalid: number;
+                conflicts: number;
+            };
+            invalid: components["schemas"]["ImportLineCode"][];
+            conflicts: components["schemas"]["ImportConflict"][];
+            skipped: components["schemas"]["ImportLineCode"][];
+            truncated: boolean;
+            consents: {
+                refused: number;
+                granted: number;
+                iys_verified: number;
+                imported_unknown: number;
+            } | null;
+            suppression_check: {
+                addresses: number;
+                suppressed: number;
+                expected: number;
+                verified: boolean;
+            } | null;
+            devices: {
+                dead_dropped: number;
+                older_duplicates_dropped: number;
+                anonymous_subscribers: number;
+                last_seen_missing: number;
+            } | null;
+            templates: components["schemas"]["ImportTemplateResult"][] | null;
+            confirmations: components["schemas"]["ImportConfirmation"][] | null;
+            data_residency: {
+                providers: components["schemas"]["ImportProvider"][];
+            };
+        };
+        /** @description An import job (OP-96). pending until its job processed every line; completed with its report; failed as unavailable or content_unreadable. The uploaded content is kept encrypted only while the import is pending. */
+        Import: {
+            /** @constant */
+            object: "import";
+            id: components["schemas"]["Id_imp"];
+            type: components["schemas"]["ImportType"];
+            batch: components["schemas"]["ImportBatch"];
+            /** @enum {string} */
+            state: "pending" | "completed" | "failed";
+            failure: ("unavailable" | "content_unreadable") | null;
+            line_count: number;
+            byte_size: number;
+            sha256: string;
+            report: components["schemas"]["ImportReport"] | null;
+            completed_at: components["schemas"]["Timestamp"] | null;
+            created_at: components["schemas"]["Timestamp"];
+        };
+        /**
          * @description Campaign identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
          * @example cmp_01j9zq3k4m5n6p7q8r9s0t1v2w
          */
@@ -10259,6 +10492,14 @@ export interface components {
             error_code: string | null;
             event_id: components["schemas"]["Id_evt"] | null;
         };
+        /** @description The state a legacy scheduler handed over with the rule (OP-97, OP-56). */
+        RecurrenceHandoff: {
+            handed_over_at: components["schemas"]["Timestamp"];
+            last_run_at: components["schemas"]["Timestamp"] | null;
+            cursor: string | null;
+            /** @description true until the first occurrence ran; that occurrence is a supervised dry run, recorded skipped with recurrence.handoff_dry_run, and sends nothing. */
+            dry_run_pending: boolean;
+        };
         /** @description A recurrence rule (C-52, WF-48, WF-49). active while it has a next occurrence; completed after its COUNT or UNTIL; cancelled by request or because its subscriber was erased (subject_erasure). next_occurrence_at is the UTC instant of the next occurrence, computed in next_occurrence_timezone; its timer fires within 60 seconds after it (deterministic jitter, WF-58). Each occurrence is sent with the workflow version published at that moment. data is not shown. */
         Recurrence: {
             /** @constant */
@@ -10283,6 +10524,7 @@ export interface components {
             completed_at: components["schemas"]["Timestamp"] | null;
             created_at: components["schemas"]["Timestamp"];
             updated_at: components["schemas"]["Timestamp"];
+            handoff: components["schemas"]["RecurrenceHandoff"] | null;
         };
         RecurrenceList: components["schemas"]["ListEnvelope"] & {
             data?: components["schemas"]["Recurrence"][];
@@ -10302,6 +10544,13 @@ export interface components {
             timezone?: components["schemas"]["TimeZone"];
             /** @description Event data of every occurrence, at most event.max_data_bytes. */
             data?: Record<string, never>;
+        };
+        /** @description A cron job of a legacy scheduler handed over in one call (OP-97, OP-56): the rule, the last run the legacy scheduler made, the next run it would make and its cursor. next_run_at must be the rule's first occurrence after now, so no run is lost or made twice; the legacy job is disabled after the answer. */
+        RecurrenceHandoffCreate: {
+            recurrence: components["schemas"]["RecurrenceCreate"];
+            last_run_at?: components["schemas"]["Timestamp"] | null;
+            next_run_at: components["schemas"]["Timestamp"];
+            cursor?: string | null;
         };
         /** @description A tenant-wide throttle key as the throttle step renders it (WF-32); stored as a digest only. */
         ThrottleKey: string;
@@ -10575,6 +10824,17 @@ export interface components {
                 "application/problem+json": components["schemas"]["Problem"];
             };
         };
+        /** @description The token or request belongs to a tenant of another data region (wrong_region). Relay never forwards between regions; send the request to the base URL of the tenant's region. */
+        MisdirectedRequest: {
+            headers: {
+                "Request-Id": components["headers"]["Request-Id"];
+                "Relay-Version": components["headers"]["Relay-Version"];
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
         /** @description Rate limited (retryable, with Retry-After) or quota exhausted (not retryable). */
         TooManyRequests: {
             headers: {
@@ -10779,6 +11039,12 @@ export interface components {
         ProviderInvoiceId: components["schemas"]["Id_piv"];
         /** @description Raw data export identifier. */
         ExportId: components["schemas"]["Id_exp"];
+        /** @description What the NDJSON lines hold (OP-96). */
+        ImportTypeQuery: components["schemas"]["ImportType"];
+        /** @description The migration batch the import belongs to. Addresses, tokens, devices and scheduled sends of a batch are accepted only after its suppressions and consents imports completed (OP-55). */
+        ImportBatchQuery: components["schemas"]["ImportBatch"];
+        /** @description Import identifier. */
+        ImportId: components["schemas"]["Id_imp"];
         /** @description Campaign identifier. */
         CampaignId: components["schemas"]["Id_cmp"];
         /** @description First UTC day of the report. */
@@ -10960,6 +11226,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             /** @description A single event or the envelope failed validation (problem), or no batch row was accepted: a batch result whose rows each carry a problem. A complete failure is never 2xx. */
             422: {
                 headers: {
@@ -11059,6 +11326,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             /** @description A single event or the envelope failed validation (problem), or no batch row was accepted: a batch result whose rows each carry a problem. A complete failure is never 2xx. */
             422: {
                 headers: {
@@ -11125,6 +11393,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11194,6 +11463,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11259,6 +11529,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11327,6 +11598,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11383,6 +11655,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11452,6 +11725,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11512,6 +11786,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11565,6 +11840,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11631,6 +11907,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11687,6 +11964,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11754,6 +12032,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11808,6 +12087,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11903,6 +12183,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -11967,6 +12248,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12040,8 +12322,62 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    exportSubscriber: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+            };
+            path: {
+                /** @description The tenant's external id of the subscriber (URL-encoded). */
+                subscriber_id: components["parameters"]["SubscriberId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The subscriber's data. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubscriberExport"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ServiceUnavailable"];
@@ -12127,6 +12463,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             /** @description A single event or the envelope failed validation (problem), or no batch row was accepted: a batch result whose rows each carry a problem. A complete failure is never 2xx. */
             422: {
                 headers: {
@@ -12193,6 +12530,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12261,6 +12599,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12324,6 +12663,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12384,6 +12724,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12444,6 +12785,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12533,6 +12875,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12597,6 +12940,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12662,6 +13006,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12712,6 +13057,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12778,6 +13124,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12828,6 +13175,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12894,6 +13242,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -12950,6 +13299,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13017,6 +13367,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13071,6 +13422,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13144,6 +13496,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -13209,6 +13562,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13265,6 +13619,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13332,6 +13687,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13386,6 +13742,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13459,6 +13816,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -13533,6 +13891,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -13607,6 +13966,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -13668,6 +14028,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13723,6 +14084,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13778,6 +14140,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13844,6 +14207,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13905,6 +14269,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -13976,6 +14341,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14034,6 +14400,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14104,6 +14471,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14161,6 +14529,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14237,6 +14606,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -14313,6 +14683,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -14385,6 +14756,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -14448,6 +14820,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14506,6 +14879,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14579,6 +14953,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -14638,6 +15013,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14702,6 +15078,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14771,6 +15148,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14829,6 +15207,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14899,6 +15278,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -14956,6 +15336,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -15032,6 +15413,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -15108,6 +15490,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -15180,6 +15563,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -15243,6 +15627,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -15301,6 +15686,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -15374,6 +15760,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -15433,6 +15820,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -15503,6 +15891,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -15560,6 +15949,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -15636,6 +16026,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -15712,6 +16103,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -15784,6 +16176,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -15847,6 +16240,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -15905,6 +16299,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -15978,6 +16373,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -16033,6 +16429,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16105,6 +16502,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16155,6 +16553,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16220,6 +16619,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16270,6 +16670,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16335,6 +16736,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16391,6 +16793,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16459,6 +16862,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16513,6 +16917,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16586,6 +16991,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -16654,6 +17060,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             412: components["responses"]["PreconditionFailed"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -16711,6 +17118,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16778,6 +17186,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16832,6 +17241,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -16905,6 +17315,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -16970,6 +17381,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17026,6 +17438,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17081,6 +17494,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17173,6 +17587,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17226,6 +17641,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17295,6 +17711,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17348,6 +17765,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17417,6 +17835,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17479,6 +17898,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17565,6 +17985,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17633,6 +18054,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17683,6 +18105,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17749,6 +18172,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17807,6 +18231,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17875,6 +18300,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -17924,6 +18350,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18010,6 +18437,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18072,6 +18500,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18138,6 +18567,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18191,6 +18621,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18256,6 +18687,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18312,6 +18744,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18378,6 +18811,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18431,6 +18865,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18494,6 +18929,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18554,6 +18990,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18623,6 +19060,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18692,6 +19130,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18752,6 +19191,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18810,6 +19250,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18877,6 +19318,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -18930,6 +19372,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19000,6 +19443,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19069,6 +19513,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19138,6 +19583,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19207,6 +19653,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19299,6 +19746,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19364,6 +19812,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19413,6 +19862,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19462,6 +19912,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19521,6 +19972,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19577,6 +20029,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19758,6 +20211,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19819,6 +20273,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19872,6 +20327,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -19941,6 +20397,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20000,6 +20457,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20050,6 +20508,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20110,6 +20569,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20170,6 +20630,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20223,6 +20684,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20282,6 +20744,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20337,6 +20800,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20393,6 +20857,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20452,6 +20917,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20512,6 +20978,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20565,6 +21032,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20614,6 +21082,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20674,6 +21143,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20734,6 +21204,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20792,6 +21263,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20846,6 +21318,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -20940,6 +21413,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -21001,6 +21475,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21069,6 +21544,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21125,6 +21601,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21192,6 +21669,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21246,6 +21724,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21310,6 +21789,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21383,6 +21863,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -21447,6 +21928,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21509,6 +21991,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21578,6 +22061,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21636,6 +22120,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21703,6 +22188,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21757,6 +22243,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21830,6 +22317,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21895,6 +22383,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -21953,6 +22442,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22019,6 +22509,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22072,6 +22563,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22137,6 +22629,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22202,6 +22695,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22260,6 +22754,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22326,6 +22821,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22379,6 +22875,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22444,6 +22941,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22504,6 +23002,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22594,6 +23093,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22649,6 +23149,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22705,6 +23206,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22767,6 +23269,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22834,6 +23337,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22888,6 +23392,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -22961,6 +23466,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23026,6 +23532,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23095,6 +23602,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23155,6 +23663,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23210,6 +23719,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23275,6 +23785,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23340,6 +23851,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23393,6 +23905,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23462,6 +23975,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23531,6 +24045,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23600,6 +24115,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23669,6 +24185,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23738,6 +24255,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23804,6 +24322,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23864,6 +24383,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23932,6 +24452,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -23985,6 +24506,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24045,6 +24567,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24100,6 +24623,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24165,6 +24689,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24230,6 +24755,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24279,6 +24805,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24344,6 +24871,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24394,6 +24922,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24459,6 +24988,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24508,6 +25038,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24558,6 +25089,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24616,6 +25148,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24707,6 +25240,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24771,6 +25305,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24836,6 +25371,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -24930,6 +25466,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -25296,6 +25833,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -25382,6 +25920,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -25435,6 +25974,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -25491,6 +26031,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -25545,6 +26086,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -25618,6 +26160,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -25683,6 +26226,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -25736,6 +26280,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ServiceUnavailable"];
@@ -25788,6 +26333,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ServiceUnavailable"];
@@ -25836,6 +26382,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ServiceUnavailable"];
@@ -25889,6 +26436,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -25945,6 +26493,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26032,6 +26581,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26085,6 +26635,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26141,6 +26692,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26206,6 +26758,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26253,6 +26806,131 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Export"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createImport: {
+        parameters: {
+            query: {
+                /** @description What the NDJSON lines hold (OP-96). */
+                type: components["parameters"]["ImportTypeQuery"];
+                /** @description The migration batch the import belongs to. Addresses, tokens, devices and scheduled sends of a batch are accepted only after its suppressions and consents imports completed (OP-55). */
+                batch: components["parameters"]["ImportBatchQuery"];
+            };
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-ndjson": components["schemas"]["ImportUpload"];
+            };
+        };
+        responses: {
+            /** @description Started. */
+            202: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    Location: components["headers"]["Location"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Import"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    getImport: {
+        parameters: {
+            query?: never;
+            header?: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+            };
+            path: {
+                /** @description Import identifier. */
+                import_id: components["parameters"]["ImportId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The import. */
+            200: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Import"];
                 };
             };
             400: components["responses"]["BadRequest"];
@@ -26315,6 +26993,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26380,6 +27059,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26433,6 +27113,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26502,6 +27183,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26565,6 +27247,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26619,6 +27302,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26688,6 +27372,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26751,6 +27436,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26820,6 +27506,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26874,6 +27561,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26928,6 +27616,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -26982,6 +27671,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27038,6 +27728,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27106,6 +27797,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27160,6 +27852,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27233,6 +27926,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -27297,6 +27991,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27353,6 +28048,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27407,6 +28103,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27480,6 +28177,7 @@ export interface operations {
             412: components["responses"]["PreconditionFailed"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             428: components["responses"]["PreconditionRequired"];
             429: components["responses"]["TooManyRequests"];
@@ -27544,6 +28242,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27587,6 +28286,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ServiceUnavailable"];
@@ -27629,6 +28329,7 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ServiceUnavailable"];
@@ -27714,6 +28415,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27770,6 +28472,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27826,6 +28529,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -27865,6 +28569,73 @@ export interface operations {
         };
         responses: {
             /** @description Defined. */
+            201: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    Location: components["headers"]["Location"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Recurrence"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            413: components["responses"]["PayloadTooLarge"];
+            415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createRecurrenceHandoff: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurrenceHandoffCreate"];
+            };
+        };
+        responses: {
+            /** @description Handed over. */
             201: {
                 headers: {
                     "Request-Id": components["headers"]["Request-Id"];
@@ -27945,6 +28716,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28010,6 +28782,7 @@ export interface operations {
             409: components["responses"]["Conflict"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28072,6 +28845,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28129,6 +28903,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28178,6 +28953,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28227,6 +29003,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28280,6 +29057,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28333,6 +29111,7 @@ export interface operations {
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28387,6 +29166,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28444,6 +29224,7 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28493,6 +29274,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28547,6 +29329,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28601,6 +29384,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];
@@ -28655,6 +29439,7 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+            421: components["responses"]["MisdirectedRequest"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];

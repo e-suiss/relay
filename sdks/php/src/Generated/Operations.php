@@ -409,6 +409,23 @@ trait Operations
     }
 
     /**
+     * Export one subscriber's data.
+     *
+     * @return array<string, mixed>
+     */
+    public function exportSubscriber(
+        string $subscriberId,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/subscribers/{subscriber_id}/export',
+            pathParams: ['subscriber_id' => $subscriberId],
+            options: $options,
+        ));
+    }
+
+    /**
      * Bulk upsert subscribers.
      *
      * @param array<string, mixed> $body
@@ -4913,6 +4930,23 @@ trait Operations
     }
 
     /**
+     * Get an import.
+     *
+     * @return array<string, mixed>
+     */
+    public function getImport(
+        string $importId,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'GET',
+            path: '/v1/imports/{import_id}',
+            pathParams: ['import_id' => $importId],
+            options: $options,
+        ));
+    }
+
+    /**
      * List campaigns.
      *
      * @return Page<array<string, mixed>>
@@ -5413,6 +5447,28 @@ trait Operations
         return $this->callJson(new Call(
             method: 'POST',
             path: '/v1/recurrences',
+            body: $body,
+            contentType: 'application/json',
+            idempotent: true,
+            idempotencyKey: $idempotencyKey,
+            options: $options,
+        ));
+    }
+
+    /**
+     * Hand a cron job over.
+     *
+     * @param array<string, mixed> $body
+     * @return array<string, mixed>
+     */
+    public function createRecurrenceHandoff(
+        array $body,
+        ?string $idempotencyKey = null,
+        ?RequestOptions $options = null,
+    ): array {
+        return $this->callJson(new Call(
+            method: 'POST',
+            path: '/v1/recurrence_handoffs',
             body: $body,
             contentType: 'application/json',
             idempotent: true,

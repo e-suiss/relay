@@ -410,6 +410,27 @@ class Operations(OperationsBase):
             response="json",
         ))
 
+    def export_subscriber(
+        self,
+        subscriber_id: m.ExternalId,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.SubscriberExport:
+        """Export one subscriber's data."""
+        return _t.cast("m.SubscriberExport", self._call(
+            "GET",
+            "/v1/subscribers/{subscriber_id}/export",
+            path={"subscriber_id": subscriber_id},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
     def bulk_upsert_subscribers(
         self,
         body: m.SubscriberBulkRequest,
@@ -5292,6 +5313,27 @@ class Operations(OperationsBase):
             response="json",
         ))
 
+    def get_import(
+        self,
+        import_id: m.Id_imp,
+        *,
+        options: RequestOptions | None = None,
+    ) -> m.Import:
+        """Get an import."""
+        return _t.cast("m.Import", self._call(
+            "GET",
+            "/v1/imports/{import_id}",
+            path={"import_id": import_id},
+            query={},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))
+
     def list_campaigns(
         self,
         *,
@@ -5859,6 +5901,28 @@ class Operations(OperationsBase):
         return _t.cast("m.Recurrence", self._call(
             "POST",
             "/v1/recurrences",
+            path={},
+            query={},
+            headers={},
+            body=body,
+            content_type="application/json",
+            idempotent=True,
+            idempotency_key=idempotency_key,
+            options=options,
+            response="json",
+        ))
+
+    def create_recurrence_handoff(
+        self,
+        body: m.RecurrenceHandoffCreate,
+        *,
+        idempotency_key: str | None = None,
+        options: RequestOptions | None = None,
+    ) -> m.Recurrence:
+        """Hand a cron job over."""
+        return _t.cast("m.Recurrence", self._call(
+            "POST",
+            "/v1/recurrence_handoffs",
             path={},
             query={},
             headers={},

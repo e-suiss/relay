@@ -123,6 +123,11 @@ const Map<String, RelayErrorSpec> relayErrorCatalog = <String, RelayErrorSpec>{
   ),
   'event_type_not_mapped': RelayErrorSpec(422, 'workflow', retryable: false),
   'export_not_found': RelayErrorSpec(404, 'resource', retryable: false),
+  'fault_injection_not_found': RelayErrorSpec(
+    404,
+    'resource',
+    retryable: false,
+  ),
   'first_contact_token_required': RelayErrorSpec(
     403,
     'agent',
@@ -144,6 +149,8 @@ const Map<String, RelayErrorSpec> relayErrorCatalog = <String, RelayErrorSpec>{
     retryable: false,
   ),
   'idempotency_key_reuse': RelayErrorSpec(422, 'idempotency', retryable: false),
+  'import_not_found': RelayErrorSpec(404, 'resource', retryable: false),
+  'import_order_violation': RelayErrorSpec(409, 'resource', retryable: false),
   'inbox_announcement_not_found': RelayErrorSpec(
     404,
     'resource',
@@ -159,6 +166,7 @@ const Map<String, RelayErrorSpec> relayErrorCatalog = <String, RelayErrorSpec>{
   'internal_error': RelayErrorSpec(500, 'platform', retryable: true),
   'iys_not_configured': RelayErrorSpec(404, 'resource', retryable: false),
   'iys_upload_not_found': RelayErrorSpec(404, 'resource', retryable: false),
+  'key_unavailable': RelayErrorSpec(503, 'platform', retryable: true),
   'kill_switch_not_found': RelayErrorSpec(404, 'resource', retryable: false),
   'layout_archived': RelayErrorSpec(409, 'template', retryable: false),
   'layout_in_use': RelayErrorSpec(409, 'template', retryable: false),
@@ -239,6 +247,11 @@ const Map<String, RelayErrorSpec> relayErrorCatalog = <String, RelayErrorSpec>{
   'recipient_invalid': RelayErrorSpec(422, 'recipient', retryable: false),
   'recipient_not_found': RelayErrorSpec(422, 'recipient', retryable: false),
   'recurrence_closed': RelayErrorSpec(409, 'workflow', retryable: false),
+  'recurrence_handoff_mismatch': RelayErrorSpec(
+    422,
+    'workflow',
+    retryable: false,
+  ),
   'recurrence_limit_reached': RelayErrorSpec(422, 'workflow', retryable: false),
   'recurrence_not_found': RelayErrorSpec(404, 'resource', retryable: false),
   'resource_conflict': RelayErrorSpec(409, 'resource', retryable: false),
@@ -325,6 +338,7 @@ const Map<String, RelayErrorSpec> relayErrorCatalog = <String, RelayErrorSpec>{
     'template',
     retryable: false,
   ),
+  'tenant_closure_not_found': RelayErrorSpec(404, 'resource', retryable: false),
   'tenant_not_found': RelayErrorSpec(404, 'resource', retryable: false),
   'test_recipient_limit_reached': RelayErrorSpec(
     422,
@@ -424,4 +438,5 @@ const Map<String, RelayErrorSpec> relayErrorCatalog = <String, RelayErrorSpec>{
     'workflow',
     retryable: false,
   ),
+  'wrong_region': RelayErrorSpec(421, 'request', retryable: false),
 };

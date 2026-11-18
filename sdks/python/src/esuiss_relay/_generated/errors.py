@@ -63,6 +63,7 @@ ERRORS: dict[str, ErrorInfo] = {
     "internal_error": ErrorInfo("platform", 500, True),
     "service_unavailable": ErrorInfo("platform", 503, True),
     "upstream_timeout": ErrorInfo("platform", 504, True),
+    "wrong_region": ErrorInfo("request", 421, False),
     "event_not_found": ErrorInfo("resource", 404, False),
     "notification_not_found": ErrorInfo("resource", 404, False),
     "delivery_not_found": ErrorInfo("resource", 404, False),
@@ -72,6 +73,7 @@ ERRORS: dict[str, ErrorInfo] = {
     "channel_identity_not_found": ErrorInfo("resource", 404, False),
     "event_type_mapping_not_found": ErrorInfo("resource", 404, False),
     "kill_switch_not_found": ErrorInfo("resource", 404, False),
+    "fault_injection_not_found": ErrorInfo("resource", 404, False),
     "api_client_not_found": ErrorInfo("resource", 404, False),
     "operator_not_found": ErrorInfo("resource", 404, False),
     "role_assignment_not_found": ErrorInfo("resource", 404, False),
@@ -169,6 +171,9 @@ ERRORS: dict[str, ErrorInfo] = {
     "recurrence_not_found": ErrorInfo("resource", 404, False),
     "recurrence_closed": ErrorInfo("workflow", 409, False),
     "recurrence_limit_reached": ErrorInfo("workflow", 422, False),
+    "import_not_found": ErrorInfo("resource", 404, False),
+    "import_order_violation": ErrorInfo("resource", 409, False),
+    "recurrence_handoff_mismatch": ErrorInfo("workflow", 422, False),
     "campaign_not_found": ErrorInfo("resource", 404, False),
     "campaign_samples_changed": ErrorInfo("workflow", 409, False),
     "campaign_approval_required": ErrorInfo("workflow", 409, False),
@@ -188,6 +193,8 @@ ERRORS: dict[str, ErrorInfo] = {
     "realtime_origin_not_allowed": ErrorInfo("auth", 403, False),
     "inbox_bulk_operation_not_found": ErrorInfo("resource", 404, False),
     "inbox_announcement_not_found": ErrorInfo("resource", 404, False),
+    "key_unavailable": ErrorInfo("platform", 503, True),
+    "tenant_closure_not_found": ErrorInfo("resource", 404, False),
 }
 
 RETRYABLE_DEFAULTS: tuple[tuple[int, str | None, bool], ...] = (

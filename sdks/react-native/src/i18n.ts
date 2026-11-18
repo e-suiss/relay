@@ -23,6 +23,19 @@ export const MESSAGES = {
     'inbox.hidden': 'Gizlendi',
     'inbox.updatedElsewhere': 'Başka bir cihazda güncellendi.',
     'inbox.item': '{title}, {state}',
+    'inbox.itemAgent': '{title}, {state}, bir yapay zekâ ajanı gönderdi',
+    'inbox.senderAgent': 'Bir yapay zekâ ajanı gönderdi',
+    'inbox.awaiting': 'Yanıtınız bekleniyor',
+    'inbox.respond': 'Yanıt ver: {option}',
+    'inbox.processing': 'Yanıtınız işleniyor…',
+    'inbox.answeredBy': '{who} yanıtladı, {when}',
+    'inbox.whoYou': 'Siz',
+    'inbox.whoAgent': 'Bir ajan',
+    'inbox.whoSomeone': 'Başka bir alıcı',
+    'inbox.notAwaited': 'Artık yanıt beklenmiyor',
+    'inbox.approvalOpen': 'Hesabınızda inceleyin',
+    'inbox.approvalNote': 'Onay burada değil, hesabınızda verilir.',
+    'inbox.actionFailed': 'Değişiklik kaydedilemedi.',
     'prefs.title': 'Bildirim tercihleri',
     'prefs.on': 'Açık',
     'prefs.off': 'Kapalı',
@@ -40,6 +53,19 @@ export const MESSAGES = {
     'prefs.lastChannel': 'Bu kategori için en az bir kanal açık kalmalı.',
     'prefs.digestNotAllowed': 'Bu kategori için özet seçilemiyor.',
     'prefs.saveFailed': 'Tercih kaydedilemedi. Lütfen tekrar deneyin.',
+    'prefs.consents': 'Pazarlama izinleri',
+    'prefs.consentsHint': 'Pazarlama izinleriniz hesabınızda tutulur ve orada değiştirilir.',
+    'prefs.consentsUnavailable': 'İzin ayrıntıları burada gösterilmiyor.',
+    'prefs.consentsEmpty': 'Kayıtlı pazarlama izniniz yok.',
+    'prefs.manageConsents': 'İzinleri hesabınızda yönetin',
+    'prefs.consentStatus': '{channel}: {status}',
+    'prefs.consentStatusBrand': '{brand}, {channel}: {status}',
+    'consent.none': 'Verilmedi',
+    'consent.pending': 'Onay bekleniyor',
+    'consent.pending_iys': 'İYS bekleniyor',
+    'consent.active': 'Verildi',
+    'consent.revoked': 'Geri alındı',
+    'consent.expired': 'Süresi doldu',
     'channel.push': 'Push',
     'channel.web_push': 'Web push',
     'channel.email': 'E-posta',
@@ -75,6 +101,19 @@ export const MESSAGES = {
     'inbox.hidden': 'Hidden',
     'inbox.updatedElsewhere': 'Updated on another device.',
     'inbox.item': '{title}, {state}',
+    'inbox.itemAgent': '{title}, {state}, sent by an AI agent',
+    'inbox.senderAgent': 'Sent by an AI agent',
+    'inbox.awaiting': 'Waiting for your response',
+    'inbox.respond': 'Respond: {option}',
+    'inbox.processing': 'Processing your response…',
+    'inbox.answeredBy': 'Answered by {who} on {when}',
+    'inbox.whoYou': 'you',
+    'inbox.whoAgent': 'an agent',
+    'inbox.whoSomeone': 'another recipient',
+    'inbox.notAwaited': 'No longer expecting a response',
+    'inbox.approvalOpen': 'Review in your account',
+    'inbox.approvalNote': 'Approvals are given in your account, not here.',
+    'inbox.actionFailed': 'The change could not be saved.',
     'prefs.title': 'Notification preferences',
     'prefs.on': 'On',
     'prefs.off': 'Off',
@@ -94,6 +133,19 @@ export const MESSAGES = {
     'prefs.lastChannel': 'At least one channel must stay on for this category.',
     'prefs.digestNotAllowed': 'A digest is not available for this category.',
     'prefs.saveFailed': 'The preference could not be saved. Please try again.',
+    'prefs.consents': 'Marketing permissions',
+    'prefs.consentsHint': 'Your marketing permissions are kept in your account and changed there.',
+    'prefs.consentsUnavailable': 'Permission details are not shown here.',
+    'prefs.consentsEmpty': 'You have no marketing permissions on record.',
+    'prefs.manageConsents': 'Manage permissions in your account',
+    'prefs.consentStatus': '{channel}: {status}',
+    'prefs.consentStatusBrand': '{brand}, {channel}: {status}',
+    'consent.none': 'Not given',
+    'consent.pending': 'Waiting for confirmation',
+    'consent.pending_iys': 'Waiting for İYS',
+    'consent.active': 'Given',
+    'consent.revoked': 'Withdrawn',
+    'consent.expired': 'Expired',
     'channel.push': 'Push',
     'channel.web_push': 'Web push',
     'channel.email': 'Email',
@@ -128,6 +180,16 @@ export function translate(
     const value = values[name];
     return value === undefined ? match : String(value);
   });
+}
+
+/** A date and time in the locale's medium date and short time style, or the input when it is not a timestamp. */
+export function formatDateTime(locale: RelayLocale, iso: string): string {
+  const time = Date.parse(iso);
+  if (Number.isNaN(time)) return iso;
+  return new Intl.DateTimeFormat(locale === 'tr' ? 'tr-TR' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(time);
 }
 
 /** The placeholders of a message, for parity checks. */

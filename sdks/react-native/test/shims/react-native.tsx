@@ -109,6 +109,14 @@ export const AppState = {
   },
 };
 
+export const Linking = {
+  opened: [] as string[],
+  openURL: (url: string): Promise<void> => {
+    Linking.opened.push(url);
+    return Promise.resolve();
+  },
+};
+
 export const Platform = {
   OS: 'ios',
   select: <T,>(options: { ios?: T; android?: T; default?: T }): T | undefined =>

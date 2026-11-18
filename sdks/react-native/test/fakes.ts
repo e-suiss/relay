@@ -41,6 +41,11 @@ export class FakePushAdapter implements PushAdapter {
   displayed: (LocalNotification & { platformId: string })[] = [];
   removed: string[] = [];
   requested: { provisional: boolean }[] = [];
+  interruption: InterruptionCapabilities | Error = {
+    dndAccess: 'denied',
+    criticalAlerts: 'unsupported',
+    timeSensitive: 'unsupported',
+  };
   private listeners: ((token: string) => void)[] = [];
 
   constructor(
@@ -87,11 +92,9 @@ export class FakePushAdapter implements PushAdapter {
   }
 
   getInterruptionCapabilities(): Promise<InterruptionCapabilities> {
-    return Promise.resolve({
-      dndAccess: 'denied',
-      criticalAlerts: 'unsupported',
-      timeSensitive: 'unsupported',
-    });
+    return this.interruption instanceof Error
+      ? Promise.reject(this.interruption)
+      : Promise.resolve(this.interruption);
   }
 
   displayNotification(notification: LocalNotification) {

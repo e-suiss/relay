@@ -1,8 +1,14 @@
 import type { RelayHttp } from '../http';
 import type { KeyValueStore, Logger } from '../ports';
-import type { Device, DeviceRegistration } from '../types';
-import type { InterruptionCapabilities, PushAdapter } from './adapter';
+import type {
+  Device,
+  DeviceInterruptionPermission,
+  DeviceInterruptionPermissions,
+  DeviceRegistration,
+} from '../types';
+import type { InterruptionCapabilities, InterruptionCapability, PushAdapter } from './adapter';
 import { androidChannels, provisionalAllowed, type CategoryDefinition } from './channels';
+import type { PushPlatform } from './payload';
 
 const KEY_DEVICE = 'relay.device.id';
 const KEY_TOKEN = 'relay.device.token';
@@ -22,7 +28,29 @@ const UNSUPPORTED: InterruptionCapabilities = {
   timeSensitive: 'unsupported',
 };
 
-/** Registers and refreshes the push token of this device with `devices:write`, and reports the OS permission and Android channels on every start. */
+const reported = (value: InterruptionCapability): DeviceInterruptionPermission | undefined =>
+  value === 'unsupported' ? undefined : value;
+
+// CH-65
+/** The interruption permissions a registration reports: Critical Alerts and time-sensitive on iOS, Do Not Disturb access on Android; `null` when there is nothing to report, which keeps the level Relay holds. */
+export function interruptionPermissions(
+  platform: PushPlatform,
+  capabilities: InterruptionCapabilities,
+): DeviceInterruptionPermissions | null {
+  const fields =
+    platform === 'apns'
+      ? {
+          critical_alerts: reported(capabilities.criticalAlerts),
+          time_sensitive: reported(capabilities.timeSensitive),
+        }
+      : { dnd_access: reported(capabilities.dndAccess) };
+  const permissions = Object.fromEntries(
+    Object.entries(fields).filter((entry) => entry[1] !== undefined),
+  ) as DeviceInterruptionPermissions;
+  return Object.keys(permissions).length > 0 ? permissions : null;
+}
+
+/** Registers and refreshes the push token of this device with `devices:write`, and reports the OS permission, the interruption permissions and Android channels on every start. */
 export class DeviceRegistrar {
   private unsubscribe: (() => void) | null = null;
   private deviceId: string | null = null;
@@ -75,7 +103,8 @@ export class DeviceRegistrar {
 
   // CH-28
   // CH-31
-  /** Sends the token, permission and channels; on `foreground` only when one of them changed since the last registration. */
+  // CH-65
+  /** Sends the token, permission, interruption permissions and channels; on `foreground` only when one of them changed since the last registration. */
   async register(reason: RegistrationReason, refreshedToken?: string): Promise<Device | null> {
     const token = refreshedToken ?? (await this.adapter.getToken());
     if (token === null || token === '') return null;
@@ -84,7 +113,11 @@ export class DeviceRegistrar {
       this.isAndroid() && this.adapter.getAndroidChannels
         ? await this.adapter.getAndroidChannels()
         : undefined;
-    const signature = JSON.stringify([token, permission, channels ?? null]);
+    const interruption = interruptionPermissions(
+      this.adapter.platform,
+      await this.interruptionCapabilities(),
+    );
+    const signature = JSON.stringify([token, permission, channels ?? null, interruption]);
     if (reason === 'foreground' && (await this.store.getItem(KEY_SIGNATURE)) === signature) {
       return null;
     }
@@ -102,6 +135,7 @@ export class DeviceRegistrar {
       ...(channels ? { android_channels: [...channels] } : {}),
       ...(locale ? { locale } : {}),
       ...(timezone ? { timezone } : {}),
+      ...(interruption ? { interruption_permissions: interruption } : {}),
       ...(previous !== null && previous !== token ? { previous_token: previous } : {}),
     };
     const { body: device } = await this.http.request<Device>({
@@ -139,11 +173,15 @@ export class DeviceRegistrar {
   }
 
   // CH-65
-  /** The DND access, Critical Alerts and time-sensitive permissions, read locally; the contract has no field to report them yet. */
-  interruptionCapabilities(): Promise<InterruptionCapabilities> {
-    return this.adapter.getInterruptionCapabilities
-      ? this.adapter.getInterruptionCapabilities()
-      : Promise.resolve(UNSUPPORTED);
+  /** The DND access, Critical Alerts and time-sensitive permissions read through the adapter; everything is `unsupported` when the adapter cannot read them. */
+  async interruptionCapabilities(): Promise<InterruptionCapabilities> {
+    if (!this.adapter.getInterruptionCapabilities) return UNSUPPORTED;
+    try {
+      return await this.adapter.getInterruptionCapabilities();
+    } catch {
+      this.logger.debug('relay.device.interruption_unreadable');
+      return UNSUPPORTED;
+    }
   }
 
   private isAndroid(): boolean {

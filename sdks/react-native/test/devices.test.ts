@@ -114,6 +114,75 @@ describe('CH-28 CH-30 CH-31 device registration', () => {
     });
   });
 
+  it('CH-65 an Android device reports its Do Not Disturb access with the registration', async () => {
+    const { registrar, requests } = setup();
+    await registrar.start();
+    expect((requests[0]?.body as Record<string, unknown>).interruption_permissions).toEqual({
+      dnd_access: 'denied',
+    });
+  });
+
+  it('CH-65 an iOS device reports Critical Alerts and time-sensitive, never DND access', async () => {
+    const adapter = new FakePushAdapter('apns', 'com.example.shop', 'production');
+    adapter.interruption = {
+      dndAccess: 'granted',
+      criticalAlerts: 'granted',
+      timeSensitive: 'not_determined',
+    };
+    const { registrar, requests } = setup(adapter);
+    await registrar.start();
+    expect((requests[0]?.body as Record<string, unknown>).interruption_permissions).toEqual({
+      critical_alerts: 'granted',
+      time_sensitive: 'not_determined',
+    });
+  });
+
+  it('CH-65 reports nothing when the platform cannot tell, which keeps the level', async () => {
+    const unsupported = new FakePushAdapter();
+    unsupported.interruption = {
+      dndAccess: 'unsupported',
+      criticalAlerts: 'unsupported',
+      timeSensitive: 'unsupported',
+    };
+    const failing = new FakePushAdapter();
+    failing.interruption = new Error('not readable');
+    for (const adapter of [unsupported, failing]) {
+      const { registrar, requests } = setup(adapter);
+      await registrar.start();
+      expect(requests[0]?.body).not.toHaveProperty('interruption_permissions');
+    }
+  });
+
+  it('CH-65 an adapter without the interruption port registers without the field', async () => {
+    const adapter = new FakePushAdapter();
+    Object.assign(adapter, { getInterruptionCapabilities: undefined });
+    const { registrar, requests } = setup(adapter);
+    await registrar.start();
+    expect(requests[0]?.body).not.toHaveProperty('interruption_permissions');
+    expect(await registrar.interruptionCapabilities()).toEqual({
+      dndAccess: 'unsupported',
+      criticalAlerts: 'unsupported',
+      timeSensitive: 'unsupported',
+    });
+  });
+
+  it('CH-65 a changed interruption permission re-registers on foreground', async () => {
+    const { registrar, requests, adapter } = setup();
+    await registrar.start();
+    await registrar.register('foreground');
+    expect(requests).toHaveLength(1);
+    adapter.interruption = {
+      dndAccess: 'granted',
+      criticalAlerts: 'unsupported',
+      timeSensitive: 'unsupported',
+    };
+    await registrar.register('foreground');
+    expect(requests).toHaveLength(2);
+    expect(requests[1]?.body).toMatchObject({
+      interruption_permissions: { dnd_access: 'granted' },
+    });
+  });
+
   it('CH-31 the registration log carries no push token', async () => {
     const { registrar, logger } = setup();
     await registrar.start();

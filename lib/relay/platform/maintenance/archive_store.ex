@@ -3,6 +3,7 @@ defmodule Relay.Platform.Maintenance.ArchiveStore do
   Database side of the cold archive, on `Relay.Platform.ArchiveRepo` as `relay_archive`: the detached leaves waiting for archive, their columns, a key-ordered read of one leaf, the archive manifests and the restore of an archived leaf into a read-only `restore_…` schema. Every write goes through a `relay_private` function that only `relay_archive` may call; the hot copy of a leaf is removed only by `relay_private.archive_drop` after the manifest is verified and the leaf still holds the verified number of rows.
   """
 
+  alias Ecto.Adapters.SQL
   alias Relay.Platform.ArchiveRepo
 
   @ident ~r/^[a-z_][a-z0-9_]{0,62}$/
@@ -70,7 +71,7 @@ defmodule Relay.Platform.Maintenance.ArchiveStore do
         Enum.each(text_settings(), &ArchiveRepo.query!(&1, []))
 
         ArchiveRepo
-        |> Ecto.Adapters.SQL.stream(select_sql(leaf, columns), [], max_rows: @fetch_rows)
+        |> SQL.stream(select_sql(leaf, columns), [], max_rows: @fetch_rows)
         |> Stream.flat_map(& &1.rows)
         |> fun.()
       end)
@@ -252,7 +253,7 @@ defmodule Relay.Platform.Maintenance.ArchiveStore do
     sql = "COPY #{schema}.#{leaf} (#{names}) FROM STDIN"
 
     transaction(fn ->
-      {acc, collector} = Collectable.into(Ecto.Adapters.SQL.stream(ArchiveRepo, sql, []))
+      {acc, collector} = Collectable.into(SQL.stream(ArchiveRepo, sql, []))
 
       push = fn rows, state -> collector.(state, {:cont, Enum.map(rows, &copy_line/1)}) end
 
@@ -320,8 +321,10 @@ defmodule Relay.Platform.Maintenance.ArchiveStore do
     end
   end
 
-  defp error({:error, %Postgrex.Error{postgres: %{code: code}}}),
-    do: {:error, Relay.Error.new(code_of(code), "archive query failed", %{sqlstate: code})}
+  defp error({:error, %Postgrex.Error{postgres: %{code: code} = postgres}}) do
+    details = %{sqlstate: code, reason: Map.get(postgres, :message)}
+    {:error, Relay.Error.new(code_of(code), "archive query failed", details)}
+  end
 
   defp error({:error, %DBConnection.ConnectionError{}}),
     do: {:error, Relay.Error.new(:database_unreachable, "archive database unreachable")}

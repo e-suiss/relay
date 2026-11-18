@@ -139,14 +139,16 @@ defmodule Relay.ObjectStore.S3 do
          {:ok, %File.Stat{size: size}} <- stat(path) do
       headers = lock(mode, until) ++ [{"content-type", "application/octet-stream"}]
 
-      if size <= @part_bytes do
-        case put(opts, key, read!(path), headers) do
-          :exists -> error(:publication_conflict, "object exists")
-          result -> result
-        end
-      else
-        multipart(opts, key, path, headers)
-      end
+      if size <= @part_bytes,
+        do: put_new(opts, key, read!(path), headers),
+        else: multipart(opts, key, path, headers)
+    end
+  end
+
+  defp put_new(opts, key, body, headers) do
+    case put(opts, key, body, headers) do
+      :exists -> error(:publication_conflict, "object exists")
+      result -> result
     end
   end
 

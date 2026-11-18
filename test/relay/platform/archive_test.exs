@@ -4,12 +4,12 @@ defmodule Relay.Platform.ArchiveTest do
   alias Ecto.Adapters.SQL.Sandbox
   alias Relay.ObjectStore.S3
   alias Relay.Platform.ArchiveRepo
-  alias Relay.Platform.MaintRepo
   alias Relay.Platform.Maintenance.Archive
   alias Relay.Platform.Maintenance.ArchiveStore
   alias Relay.Platform.Maintenance.ArchiveTask
   alias Relay.Platform.Maintenance.EscapeHatch
   alias Relay.Platform.Maintenance.Restore
+  alias Relay.Platform.MaintRepo
   alias RelayDev.ObjectStore
 
   @table "usage_records"
@@ -38,7 +38,7 @@ defmodule Relay.Platform.ArchiveTest do
     [[_result, token]] =
       rows!(
         "SELECT * FROM relay_ops.singleton_acquire('partition_archive', $1, interval '10 minutes')",
-        ["archive-test-" <> Base.encode16(:crypto.strong_rand_bytes(4))]
+        ["archive-test"]
       )
 
     token

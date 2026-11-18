@@ -203,7 +203,10 @@ defmodule Relay.Inbox.Item do
       "dir" => row["dir"],
       "activity_count" => row["activity_count"],
       "actor_count" => row["actor_count"],
-      "expires_at" => row["expires_at"]
+      "expires_at" => row["expires_at"],
+      "sender_type" => content["sender_type"],
+      "approval" => content["approval"] == true,
+      "waitpoint" => content["waitpoint"]
     })
   end
 

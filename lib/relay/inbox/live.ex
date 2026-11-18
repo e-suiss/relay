@@ -238,9 +238,99 @@ defmodule Relay.Inbox.Live do
     do: Relay.Workflow.digest_read_in_scope(scope, recipient_id, notification_id)
 
   # IN-44
-  @doc "Unseals the content of item rows, in order; a row whose content no longer opens gives `nil`. Runs outside any transaction."
+  # C-24
+  # AG-34
+  # AG-35
+  # IN-6
+  @doc "Unseals the content of item rows, in order, and adds what the item shows of its notification: `sender_type`, `approval` and, for an item about a waitpoint, `waitpoint` (identifier, kind, status, subject digest, options, responder, response time and the Access approval link). A row whose content no longer opens keeps only these. Runs outside any transaction."
   @spec open(Scope.t(), [map()]) :: [map() | nil]
-  def open(%Scope{} = scope, rows), do: Enum.map(rows, &open_row(scope, &1))
+  def open(%Scope{} = scope, rows) do
+    notes = annotations(scope, rows)
+
+    Enum.map(rows, fn row ->
+      content = open_row(scope, row)
+
+      case Map.get(notes, row["notification_id"]) do
+        nil -> content
+        note -> Map.merge(content || %{}, note)
+      end
+    end)
+  end
+
+  defp annotations(_scope, []), do: %{}
+
+  defp annotations(scope, rows) do
+    ids = rows |> Enum.map(& &1["notification_id"]) |> Enum.reject(&is_nil/1)
+
+    case Store.in_scope(scope, fn _status -> Store.annotations(ids) end) do
+      {:ok, found} -> Map.new(found, &{&1["notification_id"], note(scope, &1)})
+      {:error, _reason} -> %{}
+    end
+  end
+
+  defp note(_scope, %{"waitpoint_id" => nil} = n),
+    do: %{"sender_type" => n["sender_type"], "approval" => false, "waitpoint" => nil}
+
+  defp note(scope, n) do
+    envelope = envelope(scope, n)
+    link = envelope["access_link"]
+    approval = n["profile"] == "guardian_approval" or is_binary(link)
+
+    waitpoint = %{
+      "id" => Relay.ExternalId.encode("wp", n["waitpoint_id"]),
+      "kind" => if(approval, do: "approval", else: "response"),
+      "status" => waitpoint_status(n["state"]),
+      "subject_digest" => digest(n["subject_digest"]),
+      "options" => options(envelope["actions"]),
+      "responder" => responder(n),
+      "responded_at" => if(n["state"] == "resolved", do: n["resolved_at"]),
+      "approval_url" => if(approval and is_binary(link), do: link)
+    }
+
+    %{"sender_type" => n["sender_type"], "approval" => approval, "waitpoint" => waitpoint}
+  end
+
+  defp envelope(_scope, %{"content_ct" => nil}), do: %{}
+
+  defp envelope(scope, n) do
+    field = %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      subject_id: nil,
+      retention_class: :notification_content,
+      table: "waitpoints",
+      column: "content_ct",
+      key_id: n["field_key_id"]
+    }
+
+    with {:ok, plain} <- Relay.Tenancy.decrypt_field(field, n["content_ct"]),
+         {:ok, %{} = envelope} <- Jason.decode(Relay.Redacted.expose(plain)) do
+      envelope
+    else
+      _unreadable -> %{}
+    end
+  end
+
+  defp waitpoint_status(state) when state in ["open", "stalled"], do: "awaiting"
+  defp waitpoint_status("resolved"), do: "responded"
+  defp waitpoint_status(_closed), do: "not_awaited"
+
+  defp digest(<<_::256>> = digest), do: Base.encode16(digest, case: :lower)
+  defp digest(_none), do: nil
+
+  defp options(actions) when is_list(actions) do
+    for %{"id" => id, "label" => label} <- actions, do: %{"label" => label, "value" => id}
+  end
+
+  defp options(_none), do: []
+
+  defp responder(%{"responder_recipient_id" => <<_::128>> = id, "responder_kind" => "agent"}),
+    do: %{"kind" => "agent", "recipient_id" => Relay.ExternalId.encode("agt", id)}
+
+  defp responder(%{"responder_recipient_id" => <<_::128>> = id}),
+    do: %{"kind" => "subscriber", "recipient_id" => Relay.ExternalId.encode("sub", id)}
+
+  defp responder(_n), do: nil
 
   defp open_row(_scope, %{"content_ct" => nil}), do: nil
 

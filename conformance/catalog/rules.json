@@ -3577,6 +3577,14 @@
   },
   {
     "acceptance": "pending",
+    "id": "X-53",
+    "section": "§8",
+    "status": "frozen_technical",
+    "title": "SDKs regenerated on main after a contract change",
+    "verify_stage": 14
+  },
+  {
+    "acceptance": "pending",
     "id": "API-1",
     "section": "§9",
     "status": "frozen_technical",

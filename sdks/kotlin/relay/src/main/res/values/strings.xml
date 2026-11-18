@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="relay_inbox_title">Notifications</string>
+    <string name="relay_inbox_empty">No notifications yet</string>
+    <string name="relay_inbox_mark_all_read">Mark all as read</string>
+    <string name="relay_inbox_unread">Unread</string>
+    <string name="relay_inbox_mark_read">Mark as read</string>
+    <string name="relay_inbox_mark_unread">Mark as unread</string>
+    <string name="relay_inbox_archive">Archive</string>
+    <string name="relay_inbox_hide">Hide</string>
+    <string name="relay_inbox_undo">Undo</string>
+    <string name="relay_inbox_updated_elsewhere">Updated on another device</string>
+    <string name="relay_inbox_load_more">Load more</string>
+    <string name="relay_bell_label">Notifications, %1$d new</string>
+    <string name="relay_bell_label_none">Notifications</string>
+    <string name="relay_prefs_title">Notification preferences</string>
+    <string name="relay_prefs_on">On</string>
+    <string name="relay_prefs_off">Off</string>
+    <string name="relay_prefs_locked_on">On (locked)</string>
+    <string name="relay_prefs_admin_disabled">Turned off by your administrator</string>
+    <string name="relay_prefs_device_disabled">Turned off in device settings</string>
+    <string name="relay_prefs_open_settings">Open settings</string>
+    <string name="relay_prefs_permission_pending">Permission pending</string>
+    <string name="relay_prefs_allow">Allow</string>
+    <string name="relay_prefs_off_prompt">How do you want these notifications?</string>
+    <string name="relay_prefs_instant">Get them instantly</string>
+    <string name="relay_prefs_digest">Get a digest</string>
+    <string name="relay_prefs_never">Never</string>
+    <string name="relay_prefs_cancel">Cancel</string>
+    <string name="relay_level_passive">Quiet</string>
+    <string name="relay_level_active">Standard</string>
+    <string name="relay_level_time_sensitive">Time-sensitive</string>
+    <string name="relay_level_critical">Critical</string>
+    <string name="relay_channel_push">Push</string>
+    <string name="relay_channel_web_push">Web push</string>
+    <string name="relay_channel_email">Email</string>
+    <string name="relay_channel_sms">SMS</string>
+    <string name="relay_channel_voice">Voice call</string>
+    <string name="relay_channel_whatsapp">WhatsApp</string>
+    <string name="relay_channel_slack">Slack</string>
+    <string name="relay_channel_teams">Microsoft Teams</string>
+    <string name="relay_channel_telegram">Telegram</string>
+    <string name="relay_channel_discord">Discord</string>
+    <string name="relay_channel_in_app">In-app</string>
+    <string name="relay_channel_webhook">Webhook</string>
+</resources>

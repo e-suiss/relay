@@ -28,9 +28,9 @@ public sealed class RelayClient : IDisposable
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(options.BaseUrl);
         ArgumentNullException.ThrowIfNull(options.Credentials);
-        if (options.BaseUrl.Scheme != Uri.UriSchemeHttps)
+        if (options.BaseUrl.Scheme != Uri.UriSchemeHttps && !(options.BaseUrl.Scheme == Uri.UriSchemeHttp && options.BaseUrl.IsLoopback))
         {
-            throw new ArgumentException("Relay is reached over https only", nameof(options));
+            throw new ArgumentException("Relay is reached over https only, or over http on the local machine", nameof(options));
         }
 
         if (options.MaxRetries < 0)

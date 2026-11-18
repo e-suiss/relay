@@ -1,0 +1,114 @@
+name: sdk-live
+
+on:
+  schedule:
+    - cron: "43 3 * * *"
+  pull_request:
+    paths:
+      - ".github/workflows/sdk-live.yml"
+      - "sdks/*/live-smoke.sh"
+      - "lib_dev/relay_dev/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-live
+  cancel-in-progress: false
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      MIX_ENV: dev
+      SOFTHSM2_CONF: ${{ github.workspace }}/deploy/softhsm/softhsm2.conf
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+      RELAY_LIVE_BASE_URL: http://localhost:4000
+      RELAY_LIVE_WORKFLOW: welcome
+      RELAY_LIVE_RECIPIENT: dev-sample-recipient
+      RELAY_LIVE_WEBHOOK_VECTORS: ${{ github.workspace }}/conformance/webhooks/vectors/1/signature.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - run: docker compose -f deploy/compose.yaml up -d --wait postgres valkey minio
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends softhsm2 opensc
+      - run: rustup toolchain install
+        working-directory: native/pkcs11_port
+      - run: rustup toolchain install
+        working-directory: native/mjml_port
+      - name: relay port
+        run: |
+          native/build.sh
+          mkdir -p priv/native
+          cp native/pkcs11_port/target/release/pkcs11_port priv/native/pkcs11_port
+          cp native/pkcs11_port/target/release/pkcs11_port.sha256 priv/native/pkcs11_port.sha256
+      - name: relay keys
+        run: |
+          mkdir -p deploy/softhsm/tokens
+          softhsm2-util --init-token --free --label relay-dev --pin 1234 --so-pin 12345678
+          printf 1234 > deploy/softhsm/pin
+          PKCS11_MODULE=/usr/lib/softhsm/libsofthsm2.so PKCS11_TOKEN=relay-dev PKCS11_PIN_FILE=deploy/softhsm/pin \
+            KEY_STORE_KEK_LABEL=kek-dev KEY_STORE_FINGERPRINT_LABEL=fingerprint-dev KEY_STORE_CURSOR_LABEL=cursor-dev \
+            KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
+      - name: relay test plane
+        run: |
+          mix deps.get --check-locked
+          mix ecto.setup
+          mix relay.audit.store
+          mix relay.dev.seed
+          nohup mix phx.server > "$RUNNER_TEMP/relay.log" 2>&1 &
+          for i in $(seq 1 120); do
+            curl -fsS "$RELAY_LIVE_BASE_URL/livez" > /dev/null 2>&1 && break
+            [ "$i" -lt 120 ] || { cat "$RUNNER_TEMP/relay.log"; exit 1; }
+            sleep 2
+          done
+      - name: sdk credentials
+        run: |
+          openssl genpkey -algorithm ed25519 -outform DER -out "$RUNNER_TEMP/dpop.der"
+          seed=$(tail -c 32 "$RUNNER_TEMP/dpop.der" | base64 -w0)
+          x=$(openssl pkey -inform DER -in "$RUNNER_TEMP/dpop.der" -pubout -outform DER | tail -c 32 | base64 -w0 | tr '+/' '-_' | tr -d '=')
+          token=$(mix relay.dev.token --okp-x "$x" | tail -n 1)
+          echo "::add-mask::$token"
+          echo "::add-mask::$seed"
+          {
+            echo "RELAY_LIVE_DPOP_SEED=$seed"
+            echo "RELAY_LIVE_DPOP_X=$x"
+            echo "RELAY_LIVE_TOKEN=$token"
+          } >> "$GITHUB_ENV"
+      - name: toolchain java
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - name: toolchain gradle
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: "9.8.2"
+          cache-read-only: true
+      - name: toolchain dotnet
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: sdks/dotnet/global.json
+      - name: run every sdks/*/live-smoke.sh
+        run: |
+          failed=""
+          for script in sdks/*/live-smoke.sh; do
+            [ -f "$script" ] || continue
+            echo "::group::$script"
+            if ! sh "$script"; then
+              echo "::error::$script failed"
+              failed="$failed $script"
+            fi
+            echo "::endgroup::"
+          done
+          if [ -n "$failed" ]; then
+            tail -n 200 "$RUNNER_TEMP/relay.log"
+            exit 1
+          fi

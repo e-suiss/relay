@@ -116,7 +116,8 @@ defmodule Relay.Policy.Live do
     [%{limit: limit}] = keys = Relay.Policy.frequency_keys(:marketing, :email, seed, nil, nil)
 
     Enum.reduce_while(1..limit, :ok, fn n, :ok ->
-      <<member::binary-16, _rest::binary>> = :crypto.hash(:sha256, seed <> ":#{n}")
+      <<ms::48, _::4, a::12, _::2, b::62, _rest::binary>> = :crypto.hash(:sha256, seed <> ":#{n}")
+      member = <<ms::48, 7::4, a::12, 2::2, b::62>>
 
       case FrequencyCounter.record(scope, recipient_id, member, keys, counter_options()) do
         :ok -> {:cont, :ok}

@@ -308,9 +308,7 @@ export function InboxItemView(props: InboxItemViewProps): ReactNode {
           )}
         </Heading>
         {body === null ? null : <p className="relay-item-body">{body}</p>}
-        {waitpoint === null || approval ? null : (
-          <WaitpointPanel waitpoint={waitpoint} />
-        )}
+        {waitpoint === null || approval ? null : <WaitpointPanel waitpoint={waitpoint} />}
         {approval ? (
           <ApprovalLink item={item} waitpoint={waitpoint} />
         ) : actions.length === 0 ? null : (

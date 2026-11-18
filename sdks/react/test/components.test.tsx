@@ -336,9 +336,9 @@ describe("§8.7 preference center", () => {
     renderWith(relay, <PreferenceCenter />);
     await screen.findByTestId("relay-preference-matrix");
     await waitFor(() =>
-      expect(
-        relay.requests.some((request) => request.path === "/v1/subscriber/consents"),
-      ).toBe(true),
+      expect(relay.requests.some((request) => request.path === "/v1/subscriber/consents")).toBe(
+        true,
+      ),
     );
     expect(screen.getByTestId("relay-consents").textContent).toContain(
       "Permission details are not shown here.",

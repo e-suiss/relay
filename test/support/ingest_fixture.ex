@@ -22,6 +22,14 @@ defmodule RelayTest.IngestFixture do
   @spec key() :: {String.t(), String.t()}
   def key, do: {"idempotency-key", "key-" <> Base.encode16(:crypto.strong_rand_bytes(8))}
 
+  # OP-96
+  @doc "Sends an NDJSON upload through `RelayWeb.Router` with a fresh idempotency key."
+  @spec ndjson(String.t(), String.t(), binary()) :: Plug.Conn.t()
+  def ndjson(path, token, body) do
+    headers = [{"content-type", "application/x-ndjson"}, key() | Api.auth(token, :post, path)]
+    :post |> Api.conn(path, body, headers) |> Api.call(RelayWeb.Router)
+  end
+
   @doc "Sends a JSON request through `RelayWeb.Router`; writes get a fresh idempotency key unless `headers` names one."
   @spec request(atom(), String.t(), String.t(), term(), [{String.t(), String.t()}]) ::
           Plug.Conn.t()

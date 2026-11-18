@@ -2297,6 +2297,42 @@
       "class": "validation"
     },
     {
+      "code": "import_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "import_order_violation",
+      "family": "resource",
+      "status": 409,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
+      "code": "recurrence_handoff_mismatch",
+      "family": "workflow",
+      "status": 422,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
       "code": "campaign_not_found",
       "family": "resource",
       "status": 404,

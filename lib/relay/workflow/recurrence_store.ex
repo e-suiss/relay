@@ -12,7 +12,8 @@ defmodule Relay.Workflow.RecurrenceStore do
   r.id, r.workflow_id, r.workflow_key, r.target_kind, r.recipient_id, r.topic_key, r.rrule,
   r.dtstart, r.timezone, r.data_ct, r.data_key_id, r.state, r.next_at, r.next_ordinal,
   r.next_zone, r.fire_at, r.occurrence_count, r.last_occurrence_at, r.cancel_reason,
-  r.cancelled_at, r.completed_at, r.created_by, r.version, r.created_at, r.updated_at
+  r.cancelled_at, r.completed_at, r.created_by, r.version, r.created_at, r.updated_at,
+  r.handoff_at, r.handoff_last_run_at, r.handoff_cursor, r.handoff_dry_run
   """
 
   @last """
@@ -67,6 +68,16 @@ defmodule Relay.Workflow.RecurrenceStore do
 
     [row] = Repo.call!("relay_fn.recurrence_create", params)
     Repo.code!(row["recurrence_create"], [:created, :limit_reached])
+  end
+
+  # OP-97
+  # OP-56
+  @doc "Records the handover state of a rule that has not run yet: the legacy scheduler's last run and cursor, and a first occurrence that runs as a dry run; `:not_new` for a rule that ran, was handed over or is over, or whose last run is not before its next occurrence."
+  @spec handoff(Relay.Id.t(), DateTime.t() | nil, String.t() | nil) ::
+          :handed_over | :not_new | :not_found
+  def handoff(id, last_run_at, cursor) do
+    [row] = Repo.call!("relay_fn.recurrence_handoff", [id, last_run_at, cursor])
+    Repo.code!(row["recurrence_handoff"], [:handed_over, :not_new, :not_found])
   end
 
   # WF-49

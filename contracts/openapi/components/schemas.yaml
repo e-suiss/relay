@@ -13575,6 +13575,449 @@ RecurrenceOccurrence:
         - "$ref": "#/Id_evt"
         - type: "null"
   additionalProperties: false
+Id_imp:
+  type: string
+  description: "Import identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^imp_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - imp_01j9zq3k4m5n6p7q8r9s0t1v2w
+ImportType:
+  type: string
+  description: "What the lines of an import hold (OP-96)."
+  enum:
+    - suppressions
+    - consents
+    - subscribers
+    - devices
+    - templates
+    - scheduled
+ImportBatch:
+  type: string
+  description: "A migration batch chosen by the tenant; the OP-55 order is enforced within a batch."
+  pattern: "^[A-Za-z0-9._-]{1,64}$"
+  examples:
+    - cutover-2027-01
+ImportLineCode:
+  type: object
+  description: "A line of the upload (1-based) and the code of what happened to it."
+  required:
+    - line
+    - code
+  properties:
+    line:
+      type: integer
+      minimum: 1
+    code:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+  additionalProperties: false
+ImportConflict:
+  type: object
+  description: "Lines that name the same e-mail address or phone number with different external ids; nothing is merged (OP-55). line 0 stands for a subscriber that already exists."
+  required:
+    - field
+    - lines
+  properties:
+    field:
+      type: string
+      enum:
+        - email
+        - phone
+    lines:
+      type: array
+      items:
+        type: integer
+        minimum: 0
+  additionalProperties: false
+ImportFinding:
+  type: object
+  required:
+    - code
+    - line
+    - detail
+  properties:
+    code:
+      type: string
+      pattern: "^[a-z][a-z0-9_]{0,63}$"
+    line:
+      oneOf:
+        - type: integer
+          minimum: 1
+        - type: "null"
+    detail:
+      type: string
+      maxLength: 512
+  additionalProperties: false
+ImportAlias:
+  type: object
+  required:
+    - name
+    - target
+    - expires_at
+  properties:
+    name:
+      type: string
+      maxLength: 128
+    target:
+      type: string
+      maxLength: 128
+    expires_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ImportTemplateResult:
+  type: object
+  description: "The conversion of one template line to Relay's Liquid subset (OP-96, OP-55): AUTO_OK converts without a known difference, NEEDS_REVIEW converts with differences named in findings, CANNOT names what has no equivalent and gives no output."
+  required:
+    - line
+    - key
+    - language
+    - status
+    - output
+    - findings
+    - aliases
+  properties:
+    line:
+      type: integer
+      minimum: 1
+    key:
+      type: string
+      maxLength: 128
+    language:
+      type: string
+      enum:
+        - liquid
+        - handlebars
+    status:
+      type: string
+      enum:
+        - AUTO_OK
+        - NEEDS_REVIEW
+        - CANNOT
+    output:
+      oneOf:
+        - type: string
+        - type: "null"
+    findings:
+      type: array
+      items:
+        "$ref": "#/ImportFinding"
+    aliases:
+      type: array
+      items:
+        "$ref": "#/ImportAlias"
+  additionalProperties: false
+ImportConfirmation:
+  type: object
+  description: "A scheduled send Relay recorded; the legacy system cancels its own job named legacy_ref only after it holds this confirmation (OP-97)."
+  required:
+    - line
+    - legacy_ref
+    - event_id
+  properties:
+    line:
+      type: integer
+      minimum: 1
+    legacy_ref:
+      type: string
+      maxLength: 256
+    event_id:
+      "$ref": "#/Id_evt"
+  additionalProperties: false
+ImportProvider:
+  type: object
+  description: "Data residency metadata of a provider account of the environment (TN-58)."
+  required:
+    - channel
+    - provider
+    - in_installation
+    - processing_countries
+    - transfer_basis
+    - scc_notified_on
+  properties:
+    channel:
+      type: string
+    provider:
+      type: string
+    in_installation:
+      oneOf:
+        - type: boolean
+        - type: "null"
+    processing_countries:
+      oneOf:
+        - type: array
+          items:
+            type: string
+        - type: "null"
+    transfer_basis:
+      oneOf:
+        - type: string
+        - type: "null"
+    scc_notified_on:
+      oneOf:
+        - type: string
+          format: date
+        - type: "null"
+  additionalProperties: false
+ImportReport:
+  type: object
+  description: "The result of an import (OP-96): counts, the invalid lines with their codes, identity conflicts (never merged), skipped lines, and the sections of its type. Lists hold at most x-relay-limits import.max_report_items entries; truncated says that more were left out. Values of personal fields are never shown, only line numbers and codes."
+  required:
+    - counts
+    - invalid
+    - conflicts
+    - skipped
+    - truncated
+    - consents
+    - suppression_check
+    - devices
+    - templates
+    - confirmations
+    - data_residency
+  properties:
+    counts:
+      type: object
+      required:
+        - lines
+        - written
+        - unchanged
+        - skipped
+        - invalid
+        - conflicts
+      properties:
+        lines:
+          type: integer
+          minimum: 0
+        written:
+          type: integer
+          minimum: 0
+        unchanged:
+          type: integer
+          minimum: 0
+        skipped:
+          type: integer
+          minimum: 0
+        invalid:
+          type: integer
+          minimum: 0
+        conflicts:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    invalid:
+      type: array
+      items:
+        "$ref": "#/ImportLineCode"
+    conflicts:
+      type: array
+      items:
+        "$ref": "#/ImportConflict"
+    skipped:
+      type: array
+      items:
+        "$ref": "#/ImportLineCode"
+    truncated:
+      type: boolean
+    consents:
+      oneOf:
+        - type: object
+          description: "Asymmetric mapping (OP-55): any refusal is a refusal; a consent only when it can be verified (in Turkey for commercial messages: present in the local İYS copy); anything else is recorded with the provenance imported_unknown, never as true or false."
+          required:
+            - refused
+            - granted
+            - iys_verified
+            - imported_unknown
+          properties:
+            refused:
+              type: integer
+              minimum: 0
+            granted:
+              type: integer
+              minimum: 0
+            iys_verified:
+              type: integer
+              minimum: 0
+            imported_unknown:
+              type: integer
+              minimum: 0
+          additionalProperties: false
+        - type: "null"
+    suppression_check:
+      oneOf:
+        - type: object
+          description: "Suppression applied to the imported addresses and counted (OP-55): expected is how many of them the suppressions imports of the batch name, suppressed how many are suppressed now; verified when every expected one is."
+          required:
+            - addresses
+            - suppressed
+            - expected
+            - verified
+          properties:
+            addresses:
+              type: integer
+              minimum: 0
+            suppressed:
+              type: integer
+              minimum: 0
+            expected:
+              type: integer
+              minimum: 0
+            verified:
+              type: boolean
+          additionalProperties: false
+        - type: "null"
+    devices:
+      oneOf:
+        - type: object
+          required:
+            - dead_dropped
+            - older_duplicates_dropped
+            - anonymous_subscribers
+            - last_seen_missing
+          properties:
+            dead_dropped:
+              type: integer
+              minimum: 0
+            older_duplicates_dropped:
+              type: integer
+              minimum: 0
+            anonymous_subscribers:
+              type: integer
+              minimum: 0
+            last_seen_missing:
+              type: integer
+              minimum: 0
+          additionalProperties: false
+        - type: "null"
+    templates:
+      oneOf:
+        - type: array
+          items:
+            "$ref": "#/ImportTemplateResult"
+        - type: "null"
+    confirmations:
+      oneOf:
+        - type: array
+          items:
+            "$ref": "#/ImportConfirmation"
+        - type: "null"
+    data_residency:
+      type: object
+      required:
+        - providers
+      properties:
+        providers:
+          type: array
+          items:
+            "$ref": "#/ImportProvider"
+      additionalProperties: false
+  additionalProperties: false
+Import:
+  type: object
+  description: "An import job (OP-96). pending until its job processed every line; completed with its report; failed as unavailable or content_unreadable. The uploaded content is kept encrypted only while the import is pending."
+  required:
+    - object
+    - id
+    - type
+    - batch
+    - state
+    - failure
+    - line_count
+    - byte_size
+    - sha256
+    - report
+    - completed_at
+    - created_at
+  properties:
+    object:
+      type: string
+      const: import
+    id:
+      "$ref": "#/Id_imp"
+    type:
+      "$ref": "#/ImportType"
+    batch:
+      "$ref": "#/ImportBatch"
+    state:
+      type: string
+      enum:
+        - pending
+        - completed
+        - failed
+    failure:
+      oneOf:
+        - type: string
+          enum:
+            - unavailable
+            - content_unreadable
+        - type: "null"
+    line_count:
+      type: integer
+      minimum: 0
+    byte_size:
+      type: integer
+      minimum: 0
+    sha256:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    report:
+      oneOf:
+        - "$ref": "#/ImportReport"
+        - type: "null"
+    completed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    created_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ImportUpload:
+  type: string
+  description: "UTF-8 NDJSON: one JSON object per line, at most x-relay-limits import.max_lines lines of import.max_line_bytes bytes. A line that is not a JSON object, that is not valid UTF-8, that shows encoding damage or that has a field its type does not take goes to the invalid bucket of the report, not the whole upload. Lines by type: suppressions {channel (email, sms, voice, whatsapp), address, reason (invalid, anything else is manual), country}; consents {external_id, channel, status (granted, refused, unknown), address, country, commercial (default true), occurred_at, consent_kind, recipient_type, text_version, evidence}; subscribers {external_id, email, phone, name, locale, timezone, country, attributes, provider_ref, digest_open_until}; devices {external_id (none: an anonymous subscriber), platform, token, app, apns_environment, permission (default not_determined), locale, timezone, last_seen_at, state (dead is dropped), provider_ref}; templates {key, language (liquid, handlebars), source, aliases (old path to Relay path), aliases_expire_at (at most import.max_alias_lifetime ahead)}; scheduled {legacy_ref, workflow, subscriber_id, data, send_at, digest_open_until}. A phone without a country code is normalised only from a Turkish national number with country TR. provider_ref is kept only for traceability, sealed under the subscriber's key."
+RecurrenceHandoff:
+  type: object
+  description: "The state a legacy scheduler handed over with the rule (OP-97, OP-56)."
+  required:
+    - handed_over_at
+    - last_run_at
+    - cursor
+    - dry_run_pending
+  properties:
+    handed_over_at:
+      "$ref": "#/Timestamp"
+    last_run_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    cursor:
+      oneOf:
+        - type: string
+          maxLength: 1024
+        - type: "null"
+    dry_run_pending:
+      type: boolean
+      description: "true until the first occurrence ran; that occurrence is a supervised dry run, recorded skipped with recurrence.handoff_dry_run, and sends nothing."
+  additionalProperties: false
+RecurrenceHandoffCreate:
+  type: object
+  description: "A cron job of a legacy scheduler handed over in one call (OP-97, OP-56): the rule, the last run the legacy scheduler made, the next run it would make and its cursor. next_run_at must be the rule's first occurrence after now, so no run is lost or made twice; the legacy job is disabled after the answer."
+  required:
+    - recurrence
+    - next_run_at
+  properties:
+    recurrence:
+      "$ref": "#/RecurrenceCreate"
+    last_run_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    next_run_at:
+      "$ref": "#/Timestamp"
+    cursor:
+      oneOf:
+        - type: string
+          minLength: 1
+          maxLength: 1024
+        - type: "null"
+  additionalProperties: false
 Recurrence:
   type: object
   description: "A recurrence rule (C-52, WF-48, WF-49). active while it has a next occurrence; completed after its COUNT or UNTIL; cancelled by request or because its subscriber was erased (subject_erasure). next_occurrence_at is the UTC instant of the next occurrence, computed in next_occurrence_timezone; its timer fires within 60 seconds after it (deterministic jitter, WF-58). Each occurrence is sent with the workflow version published at that moment. data is not shown."
@@ -13597,6 +14040,7 @@ Recurrence:
     - completed_at
     - created_at
     - updated_at
+    - handoff
   properties:
     object:
       type: string
@@ -13668,6 +14112,10 @@ Recurrence:
       "$ref": "#/Timestamp"
     updated_at:
       "$ref": "#/Timestamp"
+    handoff:
+      oneOf:
+        - "$ref": "#/RecurrenceHandoff"
+        - type: "null"
   additionalProperties: false
 RecurrenceList:
   allOf:

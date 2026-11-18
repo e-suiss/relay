@@ -6,12 +6,16 @@ Every SDK is generated from Relay's OpenAPI contract with a pinned generator, wi
 
 For your backend. They authenticate with your Access API client and DPoP-bound tokens.
 
-| Language               | Package                  | Guide                      |
-| ---------------------- | ------------------------ | -------------------------- |
-| TypeScript and Node.js | `@esuiss/relay`          | [TypeScript](./typescript) |
-| .NET                   | `Esuiss.Relay`           | [.NET](./dotnet)           |
-| Java                   | `app.suiss:esuiss-relay` | [Java](./java)             |
-| Elixir                 | `esuiss_relay`           | [Elixir](./elixir)         |
+| Language               | Package                            | Guide                      |
+| ---------------------- | ---------------------------------- | -------------------------- |
+| TypeScript and Node.js | `@esuiss/relay`                    | [TypeScript](./typescript) |
+| Python                 | `esuiss-relay`                     | [Python](./python)         |
+| Go                     | `github.com/e-suiss/relay/sdks/go` | [Go](./go)                 |
+| .NET                   | `Esuiss.Relay`                     | [.NET](./dotnet)           |
+| Java                   | `app.suiss:esuiss-relay`           | [Java](./java)             |
+| Elixir                 | `esuiss_relay`                     | [Elixir](./elixir)         |
+| PHP                    | `esuiss/relay`                     | [PHP](./php)               |
+| Ruby                   | `esuiss-relay`                     | [Ruby](./ruby)             |
 
 Every server SDK:
 
@@ -38,4 +42,4 @@ Client SDKs register push devices, report displayed and clicked receipts, keep t
 
 ## Every snippet is tested
 
-The code on these pages is compiled in CI against the SDK in the same commit. TypeScript snippets also run against a freshly built Relay.
+The code on these pages is compiled in CI against the SDK in the same commit. TypeScript and Python snippets also run against a freshly built Relay.

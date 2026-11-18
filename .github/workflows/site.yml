@@ -21,6 +21,9 @@ jobs:
       site: ${{ steps.scope.outputs.site }}
       dotnet: ${{ steps.scope.outputs.dotnet }}
       java: ${{ steps.scope.outputs.java }}
+      go: ${{ steps.scope.outputs.go }}
+      php: ${{ steps.scope.outputs.php }}
+      ruby: ${{ steps.scope.outputs.ruby }}
       elixir: ${{ steps.scope.outputs.elixir }}
       kotlin: ${{ steps.scope.outputs.kotlin }}
       swift: ${{ steps.scope.outputs.swift }}
@@ -49,6 +52,9 @@ jobs:
             echo "site=$(changed site contracts web/src/i18n sdks/typescript)"
             echo "dotnet=$(changed site/examples/dotnet sdks/dotnet)"
             echo "java=$(changed site/examples/java sdks/java)"
+            echo "go=$(changed site/examples/go sdks/go)"
+            echo "php=$(changed site/examples/php sdks/php)"
+            echo "ruby=$(changed site/examples/ruby sdks/ruby)"
             echo "elixir=$(changed site/examples/elixir sdks/elixir)"
             echo "kotlin=$(changed site/examples/kotlin sdks/kotlin)"
             echo "swift=$(changed site/examples/swift sdks/swift)"
@@ -202,6 +208,21 @@ jobs:
             KEY_STORE_CURSOR_LABEL=cursor-dev KEY_STORE_BLIND_INDEX_LABEL=bidx-dev deploy/hsm-keys.sh
       - run: mix deps.get
       - run: mix compile
+      # X-37
+      # X-49
+      - name: Limits page matches the code
+        run: |
+          if ! mix relay.docs.limits --check site/reference/limits.md; then
+            mix relay.docs.limits site/reference/limits.md
+            exit 1
+          fi
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: limits-page
+          path: site/reference/limits.md
+          if-no-files-found: ignore
+          retention-days: 7
       - run: mix ecto.setup
       - run: mix relay.audit.store
       - run: mix relay.dev.seed
@@ -220,7 +241,11 @@ jobs:
           cd site
           test -f package-lock.json || npm install --package-lock-only --no-audit
           npm ci --no-audit
-      - name: Run every curl and TypeScript example of the docs
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.15.2"
+      - run: python -m pip install --require-hashes --no-deps -r sdks/python/requirements-dev.lock
+      - name: Run every curl, TypeScript and Python example of the docs
         run: site/scripts/run-examples.sh
       - if: failure()
         run: tail -n 300 "$RUNNER_TEMP/relay.log"
@@ -263,6 +288,60 @@ jobs:
             sleep 30
           done
           exit 1
+
+  examples-go:
+    needs: changes
+    if: needs.changes.outputs.go == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdks/go
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.27.3
+          cache: false
+      - run: mkdir -p internal/docsexamples && cp ../../site/examples/go/*.go internal/docsexamples/
+      - run: go vet ./internal/docsexamples/
+
+  examples-php:
+    needs: changes
+    if: needs.changes.outputs.php == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdks/php
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.2"
+          extensions: curl, sodium
+          coverage: none
+          tools: composer:2.11.1
+      - run: composer install --no-interaction --no-progress --no-plugins --no-scripts
+      - run: mkdir -p docs-examples && cp ../../site/examples/php/*.php docs-examples/
+      - run: php -l docs-examples/Snippets.php
+      - run: vendor/bin/phpstan analyse -c phpstan.neon --no-progress docs-examples
+
+  examples-ruby:
+    needs: changes
+    if: needs.changes.outputs.ruby == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sdks/ruby
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: 4.0.9
+      - run: ruby -wc ../../site/examples/ruby/snippets.rb
+      - run: ruby -w -Ilib -e 'require_relative "../../site/examples/ruby/snippets"; [:quickstart, :handle_relay_webhook].each { |m| DocsExamples.method(m) }'
 
   examples-elixir:
     needs: changes

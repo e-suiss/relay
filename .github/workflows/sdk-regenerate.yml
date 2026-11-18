@@ -125,7 +125,14 @@ jobs:
               gh api "repos/$REPO/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$commit" > /dev/null
             fi
             if [ -z "$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number')" ]; then
-              gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$MESSAGE" --body "Regenerates the code generated from contracts/ on main: every sdks/*/regenerate.sh and web/regenerate.sh."
+              if ! gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$MESSAGE" --body "Regenerates the code generated from contracts/ on main: every sdks/*/regenerate.sh and web/regenerate.sh." 2> "$RUNNER_TEMP/pr.err"; then
+                cat "$RUNNER_TEMP/pr.err"
+                if grep -qi "not permitted to create or approve pull requests" "$RUNNER_TEMP/pr.err"; then
+                  echo "::notice::$BRANCH is updated; open its pull request by hand"
+                else
+                  exit 1
+                fi
+              fi
             fi
             gh workflow run ci.yml --repo "$REPO" --ref "$BRANCH"
             cut -f2 "$RUNNER_TEMP/changes" | awk -F/ '$1 == "sdks" { print $1 "/" $2; next } { print $1 }' | sort -u > "$RUNNER_TEMP/dirs"

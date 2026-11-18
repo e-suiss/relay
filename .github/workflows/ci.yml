@@ -17,8 +17,24 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    needs: test
+    if: always()
+    steps:
+      - run: test "$RESULT" = success
+        env:
+          RESULT: ${{ needs.test.result }}
+
+  test:
+    name: test (${{ matrix.partition }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: [1, 2, 3]
     env:
       MIX_ENV: test
+      MIX_TEST_PARTITION: ${{ matrix.partition }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1.24.1
@@ -50,7 +66,7 @@ jobs:
       - run: rustup toolchain install
         working-directory: native/mjml_port
       - run: native/build.sh
-      - run: mix test --include integration --warnings-as-errors
+      - run: mix test --include integration --warnings-as-errors --partitions 3
 
   static:
     runs-on: ubuntu-24.04

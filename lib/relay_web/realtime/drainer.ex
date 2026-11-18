@@ -1,6 +1,6 @@
 defmodule RelayWeb.Realtime.Drainer do
   @moduledoc """
-  The realtime drainer of the endpoint (IN-34 (4), OP-87). It is the socket's drainer child, so it stops before the HTTP listeners when the endpoint shuts down, which happens only after `Relay.Platform.Drain` has withdrawn readiness and drained the queues. It closes this node's open WebSocket and SSE connections in batches spread over `:window_ms` (15 s), one batch every `:interval_ms` (1 s); each connection gets `{:relay_realtime_drain, seconds}` with its own jittered reconnect hint and closes itself with it (`RelayWeb.Realtime.Transport`, `RelayWeb.Api.RealtimeController`).
+  The realtime drainer of the endpoint (IN-34 (4), OP-87). It is the socket's drainer child, so it stops before the HTTP listeners when the endpoint shuts down, which happens only after `Relay.Platform.Drain` has withdrawn readiness and drained the queues. It closes this node's open WebSocket and SSE connections in batches spread over `:window_ms` (15 s), one batch every `:interval_ms` (1 s); each connection gets `{:relay_realtime_drain, seconds}` with its own jittered reconnect hint and closes itself with it (`RelayWeb.Realtime.Transport` for WebSocket, the SSE stream for SSE).
 
   Telemetry: `[:relay, :realtime, :drain]` with `%{connections: n, monotonic_ms: ms}` once the last batch is sent.
   """

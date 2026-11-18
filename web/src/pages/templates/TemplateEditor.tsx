@@ -198,7 +198,9 @@ function PluralHelper({
   const [variable, setVariable] = useState("data.count");
   const [useZero, setUseZero] = useState(false);
   const [zero, setZero] = useState("");
-  const [forms, setForms] = useState<Partial<Record<PluralCategory, string>>>({});
+  const [forms, setForms] = useState<Partial<Record<PluralCategory, string>>>(
+    {},
+  );
   const [sample, setSample] = useState(3);
   const value = { variable, zero: useZero ? zero : null, forms };
   const ready =
@@ -297,7 +299,8 @@ function PluralHelper({
             onClick={() => {
               onInsert(
                 target,
-                (text) => `${text}${pluralSnippet(freshName(text), value, locale)}`,
+                (text) =>
+                  `${text}${pluralSnippet(freshName(text), value, locale)}`,
               );
             }}
           >
@@ -408,7 +411,9 @@ function CellEditor({
   const email = getCell(definition.cells, "email", locale);
   if (cell === null)
     return (
-      <Section title={t("tpl.cellTitle", { channel: t(`channel.${channel}`), locale })}>
+      <Section
+        title={t("tpl.cellTitle", { channel: t(`channel.${channel}`), locale })}
+      >
         <p className="muted">{t("tpl.noVariant")}</p>
         {!readOnly && (
           <span>
@@ -530,7 +535,9 @@ function CellEditor({
           <PluralHelper
             key={`${channel}:${locale}`}
             locale={locale}
-            fields={fields.filter((field) => field.name !== "html").map((field) => field.name)}
+            fields={fields
+              .filter((field) => field.name !== "html")
+              .map((field) => field.name)}
             onInsert={(name, build) => {
               update(name, build(cellText(cell, name)));
             }}
@@ -548,8 +555,12 @@ function Findings({ findings }: { findings: readonly GateFinding[] }) {
     <ul className="plain stack tight">
       {findings.map((finding, index) => (
         <li key={`${finding.check}-${index}`} data-finding={finding.level}>
-          <span className={`badge tone-${finding.level === "hard" ? "bad" : "warn"}`}>
-            <span className="badge-label">{t(`tpl.level.${finding.level}`)}</span>
+          <span
+            className={`badge tone-${finding.level === "hard" ? "bad" : "warn"}`}
+          >
+            <span className="badge-label">
+              {t(`tpl.level.${finding.level}`)}
+            </span>
           </span>{" "}
           <code className="mono">{finding.check}</code>
           {finding.channel !== undefined && (
@@ -558,7 +569,8 @@ function Findings({ findings }: { findings: readonly GateFinding[] }) {
               <ChannelLabel channel={finding.channel} />
             </>
           )}
-          {finding.locale !== undefined && ` · ${finding.locale}`} — {finding.message}
+          {finding.locale !== undefined && ` · ${finding.locale}`} —{" "}
+          {finding.message}
         </li>
       ))}
     </ul>
@@ -575,7 +587,12 @@ function findingsOf(error: unknown): GateFinding[] {
 function TemplatePreviewPanel({ templateKey }: { templateKey: string }) {
   const { t } = useI18n();
   const mutate = useMutation();
-  const ids = { workflow: useId(), version: useId(), sample: useId(), locale: useId() };
+  const ids = {
+    workflow: useId(),
+    version: useId(),
+    sample: useId(),
+    locale: useId(),
+  };
   const workflows = useGet<Page<Workflow>>("/v1/workflows", { limit: 100 });
   const [form, setForm] = useState({
     workflow: "",
@@ -593,7 +610,9 @@ function TemplatePreviewPanel({ templateKey }: { templateKey: string }) {
       `/v1/templates/${enc(templateKey)}/preview`,
       {
         workflow: form.workflow,
-        version: /^\d+$/.test(form.version) ? Number(form.version) : form.version,
+        version: /^\d+$/.test(form.version)
+          ? Number(form.version)
+          : form.version,
         sample: form.sample,
         ...(form.locale === "" ? {} : { locale: form.locale }),
       },
@@ -647,8 +666,12 @@ function TemplatePreviewPanel({ templateKey }: { templateKey: string }) {
             }}
           >
             <option value="boundary">{t("wf.sample.boundary")}</option>
-            <option value="schema_examples">{t("wf.sample.schema_examples")}</option>
-            <option value="masked_recent">{t("wf.sample.masked_recent")}</option>
+            <option value="schema_examples">
+              {t("wf.sample.schema_examples")}
+            </option>
+            <option value="masked_recent">
+              {t("wf.sample.masked_recent")}
+            </option>
           </select>
         </div>
         <div className="field">
@@ -662,7 +685,11 @@ function TemplatePreviewPanel({ templateKey }: { templateKey: string }) {
             }}
           />
         </div>
-        <button type="submit" className="primary" disabled={form.workflow === ""}>
+        <button
+          type="submit"
+          className="primary"
+          disabled={form.workflow === ""}
+        >
           {t("wf.runPreview")}
         </button>
       </form>
@@ -763,15 +790,14 @@ function Editor({ initial }: { initial: Template }) {
     );
   };
 
-  const gate =
-    check.state.kind === "ready"
-      ? check.state.data
-      : null;
+  const gate = check.state.kind === "ready" ? check.state.data : null;
   const gateMissing =
     check.state.kind === "error" &&
     check.state.error instanceof ApiError &&
     check.state.error.status === 404;
-  const warnings = (gate?.findings ?? findings).some((item) => item.level === "warning");
+  const warnings = (gate?.findings ?? findings).some(
+    (item) => item.level === "warning",
+  );
   const canPublish =
     !dirty &&
     !readOnly &&
@@ -828,7 +854,12 @@ function Editor({ initial }: { initial: Template }) {
         >
           {t("wf.saveDraft")}
         </button>
-        <button type="button" data-publish disabled={!canPublish} onClick={publish}>
+        <button
+          type="button"
+          data-publish
+          disabled={!canPublish}
+          onClick={publish}
+        >
           {t("wf.publish")}
         </button>
         {warnings && (
@@ -867,7 +898,9 @@ function Editor({ initial }: { initial: Template }) {
       <Matrix
         definition={definition}
         extraLocales={extraLocales}
-        translations={translations.state.kind === "ready" ? translations.state.data : null}
+        translations={
+          translations.state.kind === "ready" ? translations.state.data : null
+        }
         selected={selected}
         readOnly={readOnly}
         onSelect={(channel, locale) => {
@@ -893,7 +926,12 @@ function Editor({ initial }: { initial: Template }) {
           onChange={(cell) => {
             setDefinition({
               ...definition,
-              cells: setCell(definition.cells, selected.channel, selected.locale, cell),
+              cells: setCell(
+                definition.cells,
+                selected.channel,
+                selected.locale,
+                cell,
+              ),
             });
             setDirty(true);
             setMessage(null);

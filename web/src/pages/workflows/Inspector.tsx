@@ -118,9 +118,7 @@ function DurationInput({
       id={id}
       invalid={invalid}
       hint={
-        seconds === null
-          ? t("wf.durationHint")
-          : humanDuration(seconds, locale)
+        seconds === null ? t("wf.durationHint") : humanDuration(seconds, locale)
       }
     >
       <input
@@ -558,7 +556,12 @@ function StepForm({
   switch (step.type) {
     case "channel":
       return (
-        <ChannelForm step={step} pointer={pointer} ctx={ctx} onChange={onChange} />
+        <ChannelForm
+          step={step}
+          pointer={pointer}
+          ctx={ctx}
+          onChange={onChange}
+        />
       );
     case "delay":
       return (
@@ -831,7 +834,9 @@ function StepForm({
                   : () => {
                       onChange({
                         ...step,
-                        windows: step.windows.filter((_item, at) => at !== index),
+                        windows: step.windows.filter(
+                          (_item, at) => at !== index,
+                        ),
                       });
                     }
               }

@@ -21,7 +21,11 @@ export interface CellField {
   required: boolean;
 }
 
-const field = (name: string, multiline = false, required = true): CellField => ({
+const field = (
+  name: string,
+  multiline = false,
+  required = true,
+): CellField => ({
   name,
   multiline,
   required,
@@ -48,7 +52,11 @@ export const cellFields: Record<CellChannel, readonly CellField[]> = {
     field("text", true),
   ],
   whatsapp: [field("template_name"), field("language", false, false)],
-  in_app: [field("title"), field("body", true), field("avatar_url", false, false)],
+  in_app: [
+    field("title"),
+    field("body", true),
+    field("avatar_url", false, false),
+  ],
   webhook: [field("body", true)],
   voice: [field("body", true)],
 };
@@ -71,8 +79,11 @@ export function emptyCell(channel: CellChannel): Cell {
   }
 }
 
-export function cellsOf(cells: Cells, channel: CellChannel): Record<string, Cell> {
-  return (cells[channel] ?? {}) as Record<string, Cell>;
+export function cellsOf(
+  cells: Cells,
+  channel: CellChannel,
+): Record<string, Cell> {
+  return cells[channel] ?? {};
 }
 
 export function getCell(
@@ -99,7 +110,7 @@ export function setCell(
   ) as Cells;
   return Object.keys(next).length === 0
     ? rest
-    : ({ ...rest, [channel]: next } as Cells);
+    : { ...rest, [channel]: next };
 }
 
 export function cellText(cell: Cell, name: string): string {
@@ -110,7 +121,8 @@ export function cellText(cell: Cell, name: string): string {
 export function locales(defaultLocale: string, cells: Cells): string[] {
   const found = new Set<string>([defaultLocale]);
   for (const channel of cellChannels)
-    for (const locale of Object.keys(cellsOf(cells, channel))) found.add(locale);
+    for (const locale of Object.keys(cellsOf(cells, channel)))
+      found.add(locale);
   return [...found];
 }
 

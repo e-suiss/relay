@@ -324,6 +324,26 @@ export interface paths {
         patch: operations["updateSubscriberPreferences"];
         trace?: never;
     };
+    "/v1/subscribers/{subscriber_id}/preference_page_links": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mint a hosted preference page link
+         * @description Mints a link to the hosted preference page of a subscriber (X-51, PC-18) for an e-mail footer or any message: a page served by Relay without JavaScript and without signing in. The link carries a signed token that opens only this page, only for this subscriber and only in the environment of the credential; it expires after x-relay-limits preference_page_link_lifetime_seconds and an expired link shows that it has expired. The page renders the same cells as getSubscriberPreferences: locked categories as a label with whom the lock serves, the administrator's and the device settings' states, the three choices Instant, Digest and Never with none preselected when a digestible cell is changed, the channel switches, muted workflows and scope keys and quiet hours. The subscriber's consents are shown read only from Relay's consent copy, with a link to Access where they are changed (X-44); the page never asks for consent. Every change on the page is written as the subscriber's own preference.
+         */
+        post: operations["createPreferencePageLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/subscribers/{subscriber_id}/consents": {
         parameters: {
             query?: never;
@@ -5352,14 +5372,26 @@ export interface components {
          * @enum {string}
          */
         PreferenceSource: "user" | "tenant" | "category_default" | "class_default" | "locked";
-        /** @description One category and channel of a subscriber. web_push follows push and voice follows sms. */
+        /** @description One category and channel of a subscriber. web_push follows push and voice follows sms. The embeddable preference component, the hosted preference page and an app's own notification settings screen render the same cell (X-18, X-51). */
         PreferenceCell: {
             category: components["schemas"]["CategoryKey"];
+            /** @description The category's name as the tenant wrote it, the label of the row. */
+            category_name: string;
             channel: components["schemas"]["Channel"];
             value: components["schemas"]["PreferenceValue"];
             /** @description Whether the channel is open for this category after every level is applied. */
             effective: boolean;
             source: components["schemas"]["PreferenceSource"];
+            /** @description Whether the category is locked (PC-6): the cell is shown as a label, not a switch, and the last open channel of the category cannot be closed. */
+            locked: boolean;
+            /** @description Whom the lock of a locked category serves (PC-6, X-51), written beside its label: subscriber for a security category, which protects the subscriber's own account, and tenant for a category the tenant declared locked because its service needs it. null for a category that is not locked. */
+            lock_beneficiary: ("subscriber" | "tenant") | null;
+            /** @description Whether the subscriber may receive this category as a digest: always for social, for operational when the category allows it (PC-17). Closing such a cell offers the three choices Instant, Digest and Never, none preselected. */
+            digest_allowed: boolean;
+            /** @description The tenant turned this cell off: it turned the category off or wrote opt_out on the subscriber's behalf (PC-15). Shown as "your administrator turned this off"; the subscriber cannot turn it on. */
+            disabled_by_admin: boolean;
+            /** @description For push and web_push: the subscriber has devices on the channel and the operating system permission of none of them allows this category (PC-16). Shown as "turned off in device settings"; the preference itself is kept and applies again once the permission is back. */
+            disabled_in_device_settings: boolean;
         };
         /** @description Channel-level switch across all categories. */
         ChannelPreference: {
@@ -5422,6 +5454,18 @@ export interface components {
         /** @description Preference writes of the tenant on behalf of a subscriber; the tenant may only write opt_out. */
         PreferencesPatch: {
             preferences: components["schemas"]["PreferenceWrite"][];
+        };
+        /** @description A link to the hosted preference page of one subscriber (X-51, PC-18): a page that works without JavaScript and without signing in, opened by a signed, expiring token that only opens this page for this subscriber in the environment of the credential that minted it. */
+        PreferencePageLink: {
+            /** @constant */
+            object: "preference_page_link";
+            subscriber_id: components["schemas"]["Id_sub"];
+            /**
+             * Format: uri
+             * @description The page's address on Relay's public root, on its self-explanatory path: /bildirim-tercihleri/ for a Turkish subscriber, /notification-preferences/ otherwise.
+             */
+            url: string;
+            expires_at: components["schemas"]["Timestamp"];
         };
         /**
          * @description Consent copy record identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
@@ -6012,8 +6056,10 @@ export interface components {
             locale: components["schemas"]["Locale"];
             /** @description True when the render fell back to the tenant default locale. */
             locale_fallback?: boolean;
-            /** @description Rendered fields of the channel; raw HTML is returned for the sandboxed preview origin only. */
+            /** @description Rendered fields of the channel. The e-mail `html` of a `raw_html` cell or of a template that allows `| raw` is null here and is shown only through `sandbox_url`. */
             content?: Record<string, never> | null;
+            /** @description E-mail renders only: the link of the rendered HTML on the sandboxed preview origin, a host of its own that is never the API host. The page needs no credential, is readable for five minutes, forbids scripts, forms and connections in its Content-Security-Policy with the `sandbox` directive, and may be framed only by Relay's own origin; display it in an `iframe` with an empty `sandbox` attribute. Null when the installation has no preview host or the link could not be stored, with a `sandbox_unconfigured` or `sandbox_unavailable` warning when the HTML was withheld. */
+            sandbox_url?: string | null;
             failure_reason?: ("missing_variable" | "render_timeout" | "output_too_large" | "schema_violation") | null;
             warnings: components["schemas"]["PreviewWarning"][];
             measures?: {
@@ -11628,6 +11674,69 @@ export interface operations {
             404: components["responses"]["NotFound"];
             413: components["responses"]["PayloadTooLarge"];
             415: components["responses"]["UnsupportedMediaType"];
+            422: components["responses"]["UnprocessableContent"];
+            429: components["responses"]["TooManyRequests"];
+            500: components["responses"]["InternalError"];
+            503: components["responses"]["ServiceUnavailable"];
+        };
+    };
+    createPreferencePageLink: {
+        parameters: {
+            query?: never;
+            header: {
+                /**
+                 * @description Dated API version. Without it the tenant's pinned version applies; the latest version is never the default.
+                 * @example 2026-11-01
+                 */
+                "Relay-Version"?: components["parameters"]["RelayVersion"];
+                /** @description Comma-separated beta features to enable; outside the version contract. Responses shaped by a beta feature carry beta: true. */
+                "Relay-Beta"?: components["parameters"]["RelayBeta"];
+                /**
+                 * @description Client-generated key for this mutating request, 8 to 255 characters, quoted or not. Valid for 24 hours; scope is tenant, environment, endpoint and key. Never derived from content; do not put personal data in it.
+                 * @example 01j9zq3k-order-4821-shipped
+                 */
+                "Idempotency-Key": components["parameters"]["IdempotencyKey"];
+                /** @description Tenant context of an operator session request. Rejected (422 validation_failed) with API client tokens, whose tenant comes from the credential. */
+                "Relay-Tenant"?: components["parameters"]["RelayTenant"];
+                /** @description Environment context of an operator session request (live or test). Rejected (422 validation_failed) with API client tokens. */
+                "Relay-Environment"?: components["parameters"]["RelayEnvironment"];
+                /** @description CSRF token of the operator session; required on mutating requests authenticated by the session cookie. */
+                "Relay-Csrf-Token"?: components["parameters"]["CsrfToken"];
+            };
+            path: {
+                /** @description The tenant's external id of the subscriber (URL-encoded). */
+                subscriber_id: components["parameters"]["SubscriberId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The link. */
+            201: {
+                headers: {
+                    "Request-Id": components["headers"]["Request-Id"];
+                    "Relay-Version": components["headers"]["Relay-Version"];
+                    RateLimit: components["headers"]["RateLimit"];
+                    "RateLimit-Policy": components["headers"]["RateLimit-Policy"];
+                    "X-RateLimit-Limit": components["headers"]["X-RateLimit-Limit"];
+                    "X-RateLimit-Remaining": components["headers"]["X-RateLimit-Remaining"];
+                    "X-RateLimit-Reset": components["headers"]["X-RateLimit-Reset"];
+                    Deprecation: components["headers"]["Deprecation"];
+                    Sunset: components["headers"]["Sunset"];
+                    Link: components["headers"]["Link"];
+                    "Idempotency-Key": components["headers"]["Idempotency-Key"];
+                    "Idempotency-Replayed": components["headers"]["Idempotency-Replayed"];
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferencePageLink"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
             422: components["responses"]["UnprocessableContent"];
             429: components["responses"]["TooManyRequests"];
             500: components["responses"]["InternalError"];

@@ -35,7 +35,13 @@ function RuleRow({
   onRemove: (() => void) | null;
 }) {
   const { t } = useI18n();
-  const ids = { path: useId(), custom: useId(), op: useId(), kind: useId(), value: useId() };
+  const ids = {
+    path: useId(),
+    custom: useId(),
+    op: useId(),
+    kind: useId(),
+    value: useId(),
+  };
   const known = options.some((option) => option.path === rule.path);
   const [typing, setTyping] = useState(!known && rule.path !== "");
   const unary = rule.operator === "exists" || rule.operator === "not_exists";
@@ -227,7 +233,10 @@ export function ConditionBuilder({
             value={group.join}
             disabled={disabled}
             onChange={(event) => {
-              update({ ...group, join: event.target.value as RuleGroup["join"] });
+              update({
+                ...group,
+                join: event.target.value as RuleGroup["join"],
+              });
             }}
           >
             <option value="all">{t("cond.join.all")}</option>
@@ -246,7 +255,9 @@ export function ConditionBuilder({
           onChange={(next) => {
             update({
               ...group,
-              rules: group.rules.map((item, at) => (at === index ? next : item)),
+              rules: group.rules.map((item, at) =>
+                at === index ? next : item,
+              ),
             });
           }}
           onRemove={

@@ -1,4 +1,10 @@
-import { useEffect, useId, useMemo, useState, type SyntheticEvent } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useState,
+  type SyntheticEvent,
+} from "react";
 import { idempotencyKey } from "../../api/client";
 import { useFetch, useGet, useMutation, usePaged } from "../../api/hooks";
 import type { ChannelRender } from "../../api/pending";
@@ -236,7 +242,9 @@ export function NotificationsPanel({ workflowKey }: { workflowKey: string }) {
 export function AudiencePanel({ workflowKey }: { workflowKey: string }) {
   const { t } = useI18n();
   const campaigns = usePaged<Campaign>("/v1/campaigns", {}, 100);
-  const own = campaigns.items.filter((item) => item.workflow.key === workflowKey);
+  const own = campaigns.items.filter(
+    (item) => item.workflow.key === workflowKey,
+  );
   return (
     <Section title={t("wf.audience")}>
       <p className="muted small">{t("wf.audienceIntro")}</p>
@@ -249,7 +257,11 @@ export function AudiencePanel({ workflowKey }: { workflowKey: string }) {
           ) : (
             <ul className="plain stack">
               {own.map((campaign) => (
-                <li key={campaign.id} className="panel stack" data-campaign={campaign.id}>
+                <li
+                  key={campaign.id}
+                  className="panel stack"
+                  data-campaign={campaign.id}
+                >
                   <div className="row">
                     <strong>{campaign.name}</strong>
                     <span className="muted">{campaign.state}</span>
@@ -363,7 +375,8 @@ export function SendModePanel({
   const modes = useGet<OperatorSchemas["SendModeList"]>(
     "/v1/operator/send_modes",
   );
-  const rows: (Channel | null)[] = channels.length === 0 ? [null] : [...channels];
+  const rows: (Channel | null)[] =
+    channels.length === 0 ? [null] : [...channels];
   return (
     <Section title={t("wf.sendMode")}>
       <p className="muted small">{t("wf.sendModeIntro")}</p>
@@ -425,7 +438,12 @@ const samples: readonly PreviewSample[] = [
 export function PreviewPanel({ workflowKey }: { workflowKey: string }) {
   const { t } = useI18n();
   const mutate = useMutation();
-  const ids = { version: useId(), sample: useId(), to: useId(), locale: useId() };
+  const ids = {
+    version: useId(),
+    sample: useId(),
+    to: useId(),
+    locale: useId(),
+  };
   const [form, setForm] = useState({
     version: "draft",
     sample: "schema_examples" as PreviewSample,
@@ -439,7 +457,9 @@ export function PreviewPanel({ workflowKey }: { workflowKey: string }) {
     event.preventDefault();
     setBusy(true);
     setError(null);
-    const version = /^\d+$/.test(form.version) ? Number(form.version) : form.version;
+    const version = /^\d+$/.test(form.version)
+      ? Number(form.version)
+      : form.version;
     mutate<WorkflowPreview>(
       "POST",
       `/v1/workflows/${enc(workflowKey)}/preview`,
@@ -527,12 +547,16 @@ export function PreviewPanel({ workflowKey }: { workflowKey: string }) {
                 <code className="mono">{step.step}</code>
                 <ChannelLabel channel={step.channel} />
                 <Mono>{step.template}</Mono>
-                <span className={`badge tone-${step.would_send ? "ok" : "neutral"}`}>
+                <span
+                  className={`badge tone-${step.would_send ? "ok" : "neutral"}`}
+                >
                   <span className="badge-label">
                     {step.would_send ? t("wf.wouldSend") : t("wf.wouldSkip")}
                   </span>
                 </span>
-                {step.rule_id !== null && <RuleSentence ruleId={step.rule_id} />}
+                {step.rule_id !== null && (
+                  <RuleSentence ruleId={step.rule_id} />
+                )}
               </div>
               {step.render !== null && (
                 <ChannelPreview render={step.render as ChannelRender} />
@@ -600,7 +624,9 @@ export function TestSendPanel({
       ) : (
         <Loadable state={recipients.state} onRetry={recipients.reload}>
           {(page) => {
-            const verified = page.data.filter((row) => row.state === "verified");
+            const verified = page.data.filter(
+              (row) => row.state === "verified",
+            );
             return (
               <div className="stack">
                 {verified.length === 0 ? (
@@ -613,7 +639,9 @@ export function TestSendPanel({
                         <input
                           type="checkbox"
                           checked={chosen.includes(row.id)}
-                          disabled={!chosen.includes(row.id) && chosen.length >= 5}
+                          disabled={
+                            !chosen.includes(row.id) && chosen.length >= 5
+                          }
                           onChange={(event) => {
                             setChosen(
                               event.target.checked

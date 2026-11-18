@@ -1,4 +1,9 @@
-import type { Channel, DeliveryStatus, DecisionStep, ServerSchemas } from "./types";
+import type {
+  Channel,
+  DeliveryStatus,
+  DecisionStep,
+  ServerSchemas,
+} from "./types";
 
 /** Schemas the console reads before the generated contract types carry them; each mirrors its OpenAPI schema field by field. */
 export type FieldError = ServerSchemas["FieldError"];
@@ -38,9 +43,7 @@ export interface EscalationPolicyUsage {
   versions: { version: number; open: number; stalled: number }[];
 }
 
-export type ChannelRender = ServerSchemas["ChannelRender"] & {
-  sandbox_url?: string | null;
-};
+export type ChannelRender = ServerSchemas["ChannelRender"];
 
 export type SeedName =
   | "seed_no_consent"

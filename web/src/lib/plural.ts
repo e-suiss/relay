@@ -24,9 +24,7 @@ export function pluralCategories(locale: string): PluralCategory[] {
 const liquid = /(\{\{[\s\S]*?\}\}|\{%[\s\S]*?%\})/;
 
 function escapeLiteral(text: string): string {
-  return text
-    .replace(/'/g, "''")
-    .replace(/[{}]/g, (brace) => `'${brace}'`);
+  return text.replace(/'/g, "''").replace(/[{}]/g, (brace) => `'${brace}'`);
 }
 
 /** Escapes a form text for classic ICU MessageFormat, leaving Liquid output and tags as written. */

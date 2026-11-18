@@ -53,8 +53,16 @@ function Seeds() {
       header: t("ti.profile"),
       render: (row) => t(`ti.seedProfile.${row.external_id}`),
     },
-    { key: "email", header: t("ti.email"), render: (row) => <Mono>{row.email}</Mono> },
-    { key: "phone", header: t("ti.phone"), render: (row) => <Mono>{row.phone}</Mono> },
+    {
+      key: "email",
+      header: t("ti.email"),
+      render: (row) => <Mono>{row.email}</Mono>,
+    },
+    {
+      key: "phone",
+      header: t("ti.phone"),
+      render: (row) => <Mono>{row.phone}</Mono>,
+    },
     {
       key: "result",
       header: t("ti.emailResult"),
@@ -69,7 +77,12 @@ function Seeds() {
   const reset = () => {
     setBusy(true);
     setError(null);
-    mutate<SeedReset>("POST", "/v1/test/seed-recipients/reset", undefined, key).then(
+    mutate<SeedReset>(
+      "POST",
+      "/v1/test/seed-recipients/reset",
+      undefined,
+      key,
+    ).then(
       () => {
         setBusy(false);
         setKey(idempotencyKey());
@@ -112,10 +125,26 @@ function Simulated() {
   const { t } = useI18n();
   const results = useGet<Page<SimulatedResult>>("/v1/test/simulated-results");
   const columns: Column<SimulatedResult>[] = [
-    { key: "result", header: t("ti.result"), render: (row) => <Mono>{row.result}</Mono> },
-    { key: "email", header: t("ti.email"), render: (row) => <Mono>{row.email}</Mono> },
-    { key: "phone", header: t("ti.phone"), render: (row) => <Mono>{row.phone}</Mono> },
-    { key: "token", header: t("ti.token"), render: (row) => <Mono>{row.token}</Mono> },
+    {
+      key: "result",
+      header: t("ti.result"),
+      render: (row) => <Mono>{row.result}</Mono>,
+    },
+    {
+      key: "email",
+      header: t("ti.email"),
+      render: (row) => <Mono>{row.email}</Mono>,
+    },
+    {
+      key: "phone",
+      header: t("ti.phone"),
+      render: (row) => <Mono>{row.phone}</Mono>,
+    },
+    {
+      key: "token",
+      header: t("ti.token"),
+      render: (row) => <Mono>{row.token}</Mono>,
+    },
     {
       key: "description",
       header: t("wf.description"),
@@ -142,12 +171,12 @@ function Simulated() {
 }
 
 function renderOf(delivery: TestInboxDelivery): ChannelRender | null {
-  const render = delivery.render;
-  if (render === null || render.output === null) return null;
+  const output = delivery.render?.output ?? null;
+  if (output === null) return null;
   return {
     channel: delivery.channel,
-    locale: render.locale ?? "",
-    content: render.output as ChannelRender["content"],
+    locale: delivery.render?.locale ?? "",
+    content: output as ChannelRender["content"],
     warnings: [],
   };
 }
@@ -158,7 +187,10 @@ function DeliveryView({ delivery }: { delivery: TestInboxDelivery }) {
   const last = delivery.decisions.at(-1);
   const render = renderOf(delivery);
   return (
-    <li className="stack tight delivery" data-test-delivery={delivery.delivery_id}>
+    <li
+      className="stack tight delivery"
+      data-test-delivery={delivery.delivery_id}
+    >
       <div className="row">
         <ChannelLabel channel={delivery.channel} />
         <StatusBadge status={delivery.status} channel={delivery.channel} />
@@ -170,7 +202,10 @@ function DeliveryView({ delivery }: { delivery: TestInboxDelivery }) {
       </div>
       {delivery.render?.digest_only !== null &&
         delivery.render?.digest_only !== undefined && (
-          <p className="notice small" data-digest-only={delivery.render.digest_only}>
+          <p
+            className="notice small"
+            data-digest-only={delivery.render.digest_only}
+          >
             {t(`ti.digestOnly.${delivery.render.digest_only}`)}{" "}
             <Mono>{delivery.render.content_digest.slice(0, 16)}</Mono>
           </p>
@@ -223,7 +258,10 @@ function Messages() {
                   </div>
                   <ul className="plain stack">
                     {message.deliveries.map((delivery) => (
-                      <DeliveryView key={delivery.delivery_id} delivery={delivery} />
+                      <DeliveryView
+                        key={delivery.delivery_id}
+                        delivery={delivery}
+                      />
                     ))}
                   </ul>
                 </li>

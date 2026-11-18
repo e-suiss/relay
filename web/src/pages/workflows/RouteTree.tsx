@@ -44,8 +44,12 @@ export function RouteTree({ node }: { node: Node }) {
   const { t } = useI18n();
   if (typeof node === "string")
     return <ChannelLabel channel={node as Channel} />;
-  if (!isRecord(node)) return <code className="mono">{JSON.stringify(node)}</code>;
-  if (typeof node.channel === "string" && node.strategy === "last_active_device")
+  if (!isRecord(node))
+    return <code className="mono">{JSON.stringify(node)}</code>;
+  if (
+    typeof node.channel === "string" &&
+    node.strategy === "last_active_device"
+  )
     return (
       <span>
         <ChannelLabel channel={node.channel as Channel} />{" "}

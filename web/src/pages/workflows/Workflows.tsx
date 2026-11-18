@@ -26,7 +26,10 @@ export function PublicationBadge({
         ? "bad"
         : "warn";
   return (
-    <span className={`badge tone-${tone}`} data-publication={publication.status}>
+    <span
+      className={`badge tone-${tone}`}
+      data-publication={publication.status}
+    >
       <span className="badge-label">
         {t(`wf.publication.${publication.status}`)}
       </span>

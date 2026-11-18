@@ -39,7 +39,11 @@ export function Templates() {
           ? `${t(`tpl.owner.${row.owner}`)} · ${t("tpl.protected")}`
           : t(`tpl.owner.${row.owner}`),
     },
-    { key: "live", header: t("wf.live"), render: (row) => live(row.live_version) },
+    {
+      key: "live",
+      header: t("wf.live"),
+      render: (row) => live(row.live_version),
+    },
     {
       key: "updated",
       header: t("common.updated"),
@@ -47,9 +51,17 @@ export function Templates() {
     },
   ];
   const layouts: Column<Layout>[] = [
-    { key: "key", header: t("tpl.key"), render: (row) => <Mono>{row.key}</Mono> },
+    {
+      key: "key",
+      header: t("tpl.key"),
+      render: (row) => <Mono>{row.key}</Mono>,
+    },
     { key: "name", header: t("wf.name"), render: (row) => row.name },
-    { key: "live", header: t("wf.live"), render: (row) => live(row.live_version) },
+    {
+      key: "live",
+      header: t("wf.live"),
+      render: (row) => live(row.live_version),
+    },
     {
       key: "updated",
       header: t("common.updated"),
@@ -57,14 +69,22 @@ export function Templates() {
     },
   ];
   const partials: Column<PartialBlock>[] = [
-    { key: "key", header: t("tpl.key"), render: (row) => <Mono>{row.key}</Mono> },
+    {
+      key: "key",
+      header: t("tpl.key"),
+      render: (row) => <Mono>{row.key}</Mono>,
+    },
     { key: "name", header: t("wf.name"), render: (row) => row.name },
     {
       key: "locales",
       header: t("tpl.locales"),
       render: (row) => Object.keys(row.draft?.bodies ?? {}).join(", ") || "—",
     },
-    { key: "live", header: t("wf.live"), render: (row) => live(row.live_version) },
+    {
+      key: "live",
+      header: t("wf.live"),
+      render: (row) => live(row.live_version),
+    },
   ];
   return (
     <section className="stack">

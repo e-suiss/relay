@@ -578,7 +578,8 @@ export const en = {
   "wf.timing.next_break": "At the recipient's next break",
   "wf.maxDefer": "Longest wait for the break",
   "wf.variants": "A/B variants",
-  "wf.variantsHint": "Each variant sends its own template to its share of recipients.",
+  "wf.variantsHint":
+    "Each variant sends its own template to its share of recipients.",
   "wf.variantKey": "Variant key",
   "wf.weight": "Weight",
   "wf.addVariant": "Add a variant",
@@ -640,11 +641,13 @@ export const en = {
   "wf.sample.boundary": "Worst case values",
   "wf.previewTo": "Recipient (optional)",
   "wf.runPreview": "Render",
-  "wf.previewVersionHint": "Version is draft, live or a published version number.",
+  "wf.previewVersionHint":
+    "Version is draft, live or a published version number.",
   "wf.wouldSend": "Would send",
   "wf.wouldSkip": "Would not send",
   "wf.testSend": "Test send",
-  "wf.testNeedsPublished": "Test sends use the published version; publish first.",
+  "wf.testNeedsPublished":
+    "Test sends use the published version; publish first.",
   "wf.noTestRecipients": "No verified test recipients yet.",
   "wf.testRecipients": "Verified test recipients (up to 5)",
   "wf.testData": "Event data (JSON)",
@@ -689,7 +692,8 @@ export const en = {
   "gate.checking": "Running the gate…",
   "gate.passes": "Passes the hard gates",
   "gate.blocked": "Blocked by the gate",
-  "gate.unsaved": "Save the draft to check it again; publishing needs a saved draft.",
+  "gate.unsaved":
+    "Save the draft to check it again; publishing needs a saved draft.",
   "gate.fallback":
     "This server runs the gate only at publication; the result of the last publication of this draft is shown.",
   "gate.code.required": "is required",
@@ -812,7 +816,8 @@ export const en = {
   "tpl.protected": "protected",
   "tpl.locales": "Languages",
   "tpl.back": "Back to templates",
-  "tpl.protectedNote": "This template belongs to its producer; its text cannot be changed here.",
+  "tpl.protectedNote":
+    "This template belongs to its producer; its text cannot be changed here.",
   "tpl.noDraft": "This template has no draft.",
   "tpl.startDraft": "Start a draft",
   "tpl.acceptWarnings": "Publish despite the warnings",
@@ -876,7 +881,8 @@ export const en = {
   "tpl.chooseWorkflow": "Choose a workflow",
   "pv.dark": "Dark mode",
   "pv.narrow": "Narrow",
-  "pv.localeFallback": "Rendered in the default language; this language has no variant.",
+  "pv.localeFallback":
+    "Rendered in the default language; this language has no variant.",
   "pv.failed": "The render failed: {reason}",
   "pv.iosLock": "iOS lock screen",
   "pv.iosCentre": "iOS notification centre",
@@ -906,13 +912,16 @@ export const en = {
     "The HTML is shown only on the separate preview origin, which gave no link for this render.",
   "ti.intro":
     "Every message sent on the test plane, as it was rendered, with each decision and rule_id.",
-  "ti.liveOnly": "The test inbox exists only in the test environment. Switch to Test above.",
+  "ti.liveOnly":
+    "The test inbox exists only in the test environment. Switch to Test above.",
   "ti.messages": "Messages",
   "ti.empty": "Nothing was sent on the test plane yet.",
   "ti.emailHtmlSandboxOnly":
     "Rendered e-mail HTML is shown only in the sandboxed preview; the subject and plain text are below.",
-  "ti.digestOnly.security_subtype": "A security message is kept as its digest only.",
-  "ti.digestOnly.retention_none": "Sent with retention none; only the digest is kept.",
+  "ti.digestOnly.security_subtype":
+    "A security message is kept as its digest only.",
+  "ti.digestOnly.retention_none":
+    "Sent with retention none; only the digest is kept.",
   "ti.seeds": "Seed recipients",
   "ti.seedsIntro":
     "Ready-made recipients of the test plane. Resetting gives each one back its profile and undoes manual changes.",

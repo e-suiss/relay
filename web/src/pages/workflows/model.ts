@@ -341,7 +341,7 @@ export function moveStep(
     });
   }
   const adjusted = adjustAfterRemoval(toList, source);
-  return insertStep(removeStep(steps, from), adjusted, index);
+  return insertStep(removeStep(steps, from), adjusted, index, step);
 }
 
 function adjustAfterRemoval(
@@ -427,7 +427,11 @@ export function newStep(type: StepType, keys: readonly string[]): Step {
         type,
         key,
         windows: [
-          { days: ["mon", "tue", "wed", "thu", "fri"], start: "09:00", end: "18:00" },
+          {
+            days: ["mon", "tue", "wed", "thu", "fri"],
+            start: "09:00",
+            end: "18:00",
+          },
         ],
       };
     case "webhook":
@@ -467,7 +471,6 @@ function shape(
     : [{ field, code: "invalid_format" }];
 }
 
-
 // X-10
 /** Field problems the editor marks before the publication gate runs; the gate stays the authority. */
 export function stepIssues(step: Step): Issue[] {
@@ -477,11 +480,15 @@ export function stepIssues(step: Step): Issue[] {
       return [
         ...own,
         ...need(step.template, "template"),
-        ...shape(step.template, "template", (v) => patterns.templateKey.test(v)),
+        ...shape(step.template, "template", (v) =>
+          patterns.templateKey.test(v),
+        ),
         ...(step.channel === undefined && step.route === undefined
           ? [{ field: "channel", code: "required" as const }]
           : []),
-        ...(step.timing === "next_break" ? need(step.max_defer, "max_defer") : []),
+        ...(step.timing === "next_break"
+          ? need(step.max_defer, "max_defer")
+          : []),
         ...shape(step.max_defer, "max_defer", isDuration),
       ];
     case "delay":
@@ -513,7 +520,9 @@ export function stepIssues(step: Step): Issue[] {
       return [
         ...own,
         ...need(step.event_type, "event_type"),
-        ...shape(step.event_type, "event_type", (v) => patterns.eventType.test(v)),
+        ...shape(step.event_type, "event_type", (v) =>
+          patterns.eventType.test(v),
+        ),
         ...need(step.correlation_key, "correlation_key"),
         ...need(step.timeout, "timeout"),
         ...shape(step.timeout, "timeout", isDuration),
@@ -537,9 +546,13 @@ export function stepIssues(step: Step): Issue[] {
       return [
         ...own,
         ...need(step.endpoint, "endpoint"),
-        ...shape(step.endpoint, "endpoint", (v) => patterns.endpointKey.test(v)),
+        ...shape(step.endpoint, "endpoint", (v) =>
+          patterns.endpointKey.test(v),
+        ),
         ...need(step.event_type, "event_type"),
-        ...shape(step.event_type, "event_type", (v) => patterns.eventType.test(v)),
+        ...shape(step.event_type, "event_type", (v) =>
+          patterns.eventType.test(v),
+        ),
       ];
   }
 }

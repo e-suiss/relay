@@ -36,7 +36,8 @@ function RouteUsageView({ routeKey }: { routeKey: string }) {
   if (usage.state.kind === "error")
     return (
       <span className="small muted">
-        {usage.state.error instanceof ApiError && usage.state.error.status === 404
+        {usage.state.error instanceof ApiError &&
+        usage.state.error.status === 404
           ? t("esc.usageUnavailable")
           : problemText(usage.state.error)}
       </span>
@@ -50,7 +51,8 @@ function RouteUsageView({ routeKey }: { routeKey: string }) {
         <li key={`${item.key}-${item.state}`}>
           <Link to={`/workflows/${enc(item.key)}`}>{item.key}</Link>{" "}
           {t(`esc.usageState.${item.state}`)}
-          {item.version !== null && ` v${item.version}`} · {item.steps.join(", ")}
+          {item.version !== null && ` v${item.version}`} ·{" "}
+          {item.steps.join(", ")}
         </li>
       ))}
       {data.categories.map((category) => (
@@ -75,7 +77,11 @@ function Routes() {
         </span>
       ),
     },
-    { key: "tree", header: t("esc.tree"), render: (row) => <RouteTree node={row.tree} /> },
+    {
+      key: "tree",
+      header: t("esc.tree"),
+      render: (row) => <RouteTree node={row.tree} />,
+    },
     { key: "state", header: t("activity.state"), render: (row) => row.state },
     {
       key: "usage",
@@ -137,7 +143,11 @@ export function Escalation() {
         </Link>
       ),
     },
-    { key: "version", header: t("wf.version"), render: (row) => `v${row.version}` },
+    {
+      key: "version",
+      header: t("wf.version"),
+      render: (row) => `v${row.version}`,
+    },
     { key: "tiers", header: t("esc.tiers"), render: (row) => row.tiers.length },
     { key: "state", header: t("activity.state"), render: (row) => row.state },
     {
@@ -211,12 +221,17 @@ function ResponderRow({
   return (
     <div className="row filters">
       <div className="field">
-        <label htmlFor={ids.kind}>{t("esc.responderKind", { n: index + 1 })}</label>
+        <label htmlFor={ids.kind}>
+          {t("esc.responderKind", { n: index + 1 })}
+        </label>
         <select
           id={ids.kind}
           value={responder.kind}
           onChange={(event) => {
-            onChange({ ...responder, kind: event.target.value as Responder["kind"] });
+            onChange({
+              ...responder,
+              kind: event.target.value as Responder["kind"],
+            });
           }}
         >
           <option value="subscriber">{t("esc.kind.subscriber")}</option>
@@ -310,7 +325,9 @@ function TierCard({
         </span>
       </div>
       <div className="row filters">
-        <div className={`field${seconds === null || tooShort ? " invalid" : ""}`}>
+        <div
+          className={`field${seconds === null || tooShort ? " invalid" : ""}`}
+        >
           <label htmlFor={ids.after}>
             {index === 0 ? t("esc.afterFirst") : t("esc.after")}
           </label>
@@ -320,7 +337,10 @@ function TierCard({
             placeholder="PT2H"
             aria-invalid={!isDuration(tier.after) || tooShort}
             onChange={(event) => {
-              onChange({ ...tier, after: event.target.value.trim().toUpperCase() });
+              onChange({
+                ...tier,
+                after: event.target.value.trim().toUpperCase(),
+              });
             }}
           />
           <span className="small muted">
@@ -339,7 +359,10 @@ function TierCard({
             min={0}
             value={tier.repeat}
             onChange={(event) => {
-              onChange({ ...tier, repeat: Math.max(0, Number(event.target.value)) });
+              onChange({
+                ...tier,
+                repeat: Math.max(0, Number(event.target.value)),
+              });
             }}
           />
         </div>
@@ -383,7 +406,9 @@ function TierCard({
             onChange={(next) => {
               onChange({
                 ...tier,
-                add_responders: responders.map((item, i) => (i === at ? next : item)),
+                add_responders: responders.map((item, i) =>
+                  i === at ? next : item,
+                ),
               });
             }}
             onRemove={() => {
@@ -424,7 +449,9 @@ function move<T>(items: readonly T[], from: number, to: number): T[] {
 }
 
 function clean(tier: Tier): Tier {
-  const responders = (tier.add_responders ?? []).filter((item) => item.id !== "");
+  const responders = (tier.add_responders ?? []).filter(
+    (item) => item.id !== "",
+  );
   return {
     after: tier.after,
     repeat: tier.repeat,
@@ -443,7 +470,9 @@ function PolicyUsage({ policyKey }: { policyKey: string }) {
     return usage.state.kind === "error" ? (
       <p className="small muted">{t("esc.usageUnavailable")}</p>
     ) : null;
-  const open = usage.state.data.versions.filter((row) => row.open + row.stalled > 0);
+  const open = usage.state.data.versions.filter(
+    (row) => row.open + row.stalled > 0,
+  );
   return (
     <Section title={t("esc.inUse")}>
       {open.length === 0 ? (
@@ -465,10 +494,20 @@ function PolicyUsage({ policyKey }: { policyKey: string }) {
   );
 }
 
-function Versions({ policyKey, refresh }: { policyKey: string; refresh: number }) {
+function Versions({
+  policyKey,
+  refresh,
+}: {
+  policyKey: string;
+  refresh: number;
+}) {
   const { t } = useI18n();
   const columns: Column<PolicyVersion>[] = [
-    { key: "version", header: t("wf.version"), render: (row) => `v${row.version}` },
+    {
+      key: "version",
+      header: t("wf.version"),
+      render: (row) => `v${row.version}`,
+    },
     { key: "tiers", header: t("esc.tiers"), render: (row) => row.tiers.length },
     {
       key: "description",
@@ -525,7 +564,9 @@ function PolicyForm({
       `/v1/escalation_policies/${enc(policyKey)}`,
       {
         tiers: tiers.map(clean),
-        ...(description.trim() === "" ? {} : { description: description.trim() }),
+        ...(description.trim() === ""
+          ? {}
+          : { description: description.trim() }),
       },
       key,
       policy === null ? undefined : etag(policy.version),
@@ -541,8 +582,11 @@ function PolicyForm({
         if (stepUp(failure)) return;
         const fields =
           failure instanceof ApiError
-            ? ((failure.problem as { errors?: { pointer: string; code: string }[] } | null)
-                ?.errors ?? [])
+            ? ((
+                failure.problem as {
+                  errors?: { pointer: string; code: string }[];
+                } | null
+              )?.errors ?? [])
             : [];
         setErrors(
           fields.length > 0
@@ -557,7 +601,9 @@ function PolicyForm({
       <div className="row">
         <Mono>{policyKey}</Mono>
         <span className="muted">
-          {policy === null ? t("esc.unsaved") : t("esc.latest", { version: policy.version })}
+          {policy === null
+            ? t("esc.unsaved")
+            : t("esc.latest", { version: policy.version })}
         </span>
       </div>
       <div className="field">

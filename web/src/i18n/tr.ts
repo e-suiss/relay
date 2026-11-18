@@ -541,11 +541,13 @@ export const tr: Messages = {
   "wf.tooDeep": "Dallar en çok 4 kat iç içe olabilir.",
   "wf.tooMany": "Bir workflow en çok 50 adımdır.",
   "wf.palette": "Adımlar",
-  "wf.paletteHint": "Bir adımı bir boşluğa sürükleyin ya da boşluğun + düğmesini kullanın.",
+  "wf.paletteHint":
+    "Bir adımı bir boşluğa sürükleyin ya da boşluğun + düğmesini kullanın.",
   "wf.paletteLocked": "Yapı koddan yönetiliyor.",
   "wf.canvas": "Akış",
   "wf.trigger": "Olay gelir",
-  "wf.emptyCanvas": "Henüz adım yok. Buraya bir adım sürükleyin ya da + düğmesine basın.",
+  "wf.emptyCanvas":
+    "Henüz adım yok. Buraya bir adım sürükleyin ya da + düğmesine basın.",
   "wf.chooseStep": "Adım seçin",
   "wf.addHere": "Buraya adım ekle",
   "wf.issues": "{count} düzeltilecek",
@@ -576,7 +578,8 @@ export const tr: Messages = {
   "wf.timing.next_break": "Alıcının bir sonraki molasında",
   "wf.maxDefer": "Mola için en uzun bekleme",
   "wf.variants": "A/B varyantları",
-  "wf.variantsHint": "Her varyant kendi payındaki alıcılara kendi şablonunu gönderir.",
+  "wf.variantsHint":
+    "Her varyant kendi payındaki alıcılara kendi şablonunu gönderir.",
   "wf.variantKey": "Varyant anahtarı",
   "wf.weight": "Ağırlık",
   "wf.addVariant": "Varyant ekle",
@@ -638,11 +641,13 @@ export const tr: Messages = {
   "wf.sample.boundary": "En kötü durum değerleri",
   "wf.previewTo": "Alıcı (isteğe bağlı)",
   "wf.runPreview": "Render et",
-  "wf.previewVersionHint": "Sürüm draft, live ya da yayımlanmış bir sürüm numarasıdır.",
+  "wf.previewVersionHint":
+    "Sürüm draft, live ya da yayımlanmış bir sürüm numarasıdır.",
   "wf.wouldSend": "Gönderilirdi",
   "wf.wouldSkip": "Gönderilmezdi",
   "wf.testSend": "Test gönderimi",
-  "wf.testNeedsPublished": "Test gönderimi yayımlanmış sürümü kullanır; önce yayımlayın.",
+  "wf.testNeedsPublished":
+    "Test gönderimi yayımlanmış sürümü kullanır; önce yayımlayın.",
   "wf.noTestRecipients": "Henüz doğrulanmış test alıcısı yok.",
   "wf.testRecipients": "Doğrulanmış test alıcıları (en çok 5)",
   "wf.testData": "Olay verisi (JSON)",
@@ -687,7 +692,8 @@ export const tr: Messages = {
   "gate.checking": "Kapı çalışıyor…",
   "gate.passes": "Sert kapılardan geçiyor",
   "gate.blocked": "Kapıda takıldı",
-  "gate.unsaved": "Yeniden denetlemek için taslağı kaydedin; yayın kaydedilmiş taslak ister.",
+  "gate.unsaved":
+    "Yeniden denetlemek için taslağı kaydedin; yayın kaydedilmiş taslak ister.",
   "gate.fallback":
     "Bu sunucu kapıyı yalnız yayında çalıştırıyor; bu taslağın son yayın sonucu gösteriliyor.",
   "gate.code.required": "zorunlu",
@@ -810,7 +816,8 @@ export const tr: Messages = {
   "tpl.protected": "korumalı",
   "tpl.locales": "Diller",
   "tpl.back": "Şablonlara dön",
-  "tpl.protectedNote": "Bu şablon üreticisine ait; metni burada değiştirilemez.",
+  "tpl.protectedNote":
+    "Bu şablon üreticisine ait; metni burada değiştirilemez.",
   "tpl.noDraft": "Bu şablonun taslağı yok.",
   "tpl.startDraft": "Taslak başlat",
   "tpl.acceptWarnings": "Uyarılara rağmen yayımla",
@@ -847,7 +854,8 @@ export const tr: Messages = {
   "tpl.field.language": "Şablon dili",
   "tpl.field.avatar_url": "Avatar adresi",
   "tpl.textFromHtml": "HTML'den düz metin taslağı üret",
-  "tpl.textDrafted": "Düz metin HTML'den taslak olarak üretildi. Gözden geçirip düzeltin.",
+  "tpl.textDrafted":
+    "Düz metin HTML'den taslak olarak üretildi. Gözden geçirip düzeltin.",
   "tpl.smsFromEmail": "E-postadan SMS taslağı üret",
   "tpl.smsDrafted":
     "SMS e-postadan taslak olarak üretildi. Bağlı değildir: e-postadaki sonraki değişiklikler onu değiştirmez.",
@@ -904,13 +912,15 @@ export const tr: Messages = {
     "HTML yalnız ayrı önizleme origin'inde gösterilir; bu render için bağlantı gelmedi.",
   "ti.intro":
     "Test düzleminde gönderilen her mesaj, render edildiği hâliyle, her karar ve rule_id ile.",
-  "ti.liveOnly": "Test inbox'ı yalnız test ortamında vardır. Yukarıdan Test'e geçin.",
+  "ti.liveOnly":
+    "Test inbox'ı yalnız test ortamında vardır. Yukarıdan Test'e geçin.",
   "ti.messages": "Mesajlar",
   "ti.empty": "Test düzleminde henüz gönderim yok.",
   "ti.emailHtmlSandboxOnly":
     "Render edilmiş e-posta HTML'i yalnız sandbox önizlemede gösterilir; konu ve düz metin aşağıdadır.",
   "ti.digestOnly.security_subtype": "Güvenlik mesajı yalnız özetiyle tutulur.",
-  "ti.digestOnly.retention_none": "retention none ile gönderildi; yalnız özet tutulur.",
+  "ti.digestOnly.retention_none":
+    "retention none ile gönderildi; yalnız özet tutulur.",
   "ti.seeds": "Tohum alıcılar",
   "ti.seedsIntro":
     "Test düzleminin hazır alıcıları. Sıfırlama her birine profilini geri verir ve elle yapılan değişiklikleri geri alır.",
@@ -929,7 +939,8 @@ export const tr: Messages = {
   "ti.seedProfile.seed_capped": "Sıklık tavanı dolu",
   "ti.seedProfile.seed_bounced": "E-postası kalıcı geri dönüşle bastırılmış",
   "ti.seedProfile.seed_no_device": "Push cihazı yok",
-  "ti.seedProfile.seed_fallback_timezone": "Saat dilimi yok, yedek dilimle gider",
+  "ti.seedProfile.seed_fallback_timezone":
+    "Saat dilimi yok, yedek dilimle gider",
   "ti.simulated": "Sahte sağlayıcı sonuçları",
   "ti.simulatedIntro": "Belirli bir sonucu üreten adresler",
   "ti.result": "Sonuç",

@@ -212,20 +212,35 @@ test.describe("X-10 visual workflow editor", () => {
     ];
     await mockApi(page, { handlers });
     await page.goto("/console/workflows/welcome");
-    await expect(page.getByRole("heading", { level: 1, name: "Welcome" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Welcome" }),
+    ).toBeVisible();
     await expect(page.locator("[data-gate='fail']")).toBeVisible();
-    await expect(page.locator("[data-gate-error='/steps/0/template']")).toBeVisible();
+    await expect(
+      page.locator("[data-gate-error='/steps/0/template']"),
+    ).toBeVisible();
     await expect(page.locator("[data-publish]")).toBeDisabled();
     await expectAccessible(page);
 
-    for (const type of ["channel", "delay", "digest", "throttle", "condition", "wait_for_event", "time_window", "webhook"])
+    for (const type of [
+      "channel",
+      "delay",
+      "digest",
+      "throttle",
+      "condition",
+      "wait_for_event",
+      "time_window",
+      "webhook",
+    ])
       await expect(page.locator(`[data-palette='${type}']`)).toBeVisible();
 
     await page.getByRole("button", { name: "Add a step here" }).last().click();
     await page.getByLabel("Choose a step").selectOption("delay");
     await expect(page.locator("[data-inspector='delay_1']")).toBeVisible();
     await page.getByLabel("Wait for", { exact: true }).fill("PT2H");
-    await expect(page.locator("[data-inspector='delay_1']")).toContainText("2h");
+    await expect(page.locator("[data-inspector='delay_1']")).toContainText(
+      "2h",
+    );
 
     await page.getByRole("button", { name: "Save draft" }).click();
     await expect(page.getByText("Draft saved.")).toBeVisible();
@@ -234,10 +249,14 @@ test.describe("X-10 visual workflow editor", () => {
     await expect(page.locator("[data-publish]")).toBeEnabled();
 
     await expect(page.locator("[data-used-version]").first()).toHaveText("v1");
-    await expect(page.locator("[data-send-mode='email']")).toContainText("shadow");
+    await expect(page.locator("[data-send-mode='email']")).toContainText(
+      "shadow",
+    );
     await expect(page.locator("[data-promote='1']")).toBeVisible();
     await page.getByRole("button", { name: "Mermaid of v1" }).click();
-    await expect(page.locator("[data-mermaid='1']")).toContainText("flowchart TD");
+    await expect(page.locator("[data-mermaid='1']")).toContainText(
+      "flowchart TD",
+    );
     await expectAccessible(page);
   });
 
@@ -274,11 +293,17 @@ test.describe("X-10 visual workflow editor", () => {
     });
     await page.goto("/console/workflows/welcome");
     await expect(page.locator("[data-code-managed]")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Add a step here" })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Add a step here" }),
+    ).toHaveCount(0);
     await expect(page.locator("[data-gate-mode='fallback']")).toBeVisible();
     await page.locator("[data-step='email_1'] .step-select").click();
-    await expect(page.locator("[data-pointer='/steps/0/template']")).toBeEnabled();
-    await expect(page.locator("[data-pointer='/steps/0/channel']")).toBeDisabled();
+    await expect(
+      page.locator("[data-pointer='/steps/0/template']"),
+    ).toBeEnabled();
+    await expect(
+      page.locator("[data-pointer='/steps/0/channel']"),
+    ).toBeDisabled();
     await expect(page.locator("[data-pointer='/steps/0/key']")).toBeDisabled();
     await expectAccessible(page);
   });
@@ -331,7 +356,9 @@ test.describe("AG-17 escalation policy editor", () => {
       ],
     });
     await page.goto("/console/escalation");
-    await expect(page.locator("[data-escalate]")).toContainText("Escalate unless seen");
+    await expect(page.locator("[data-escalate]")).toContainText(
+      "Escalate unless seen",
+    );
     await page.getByLabel("Policy key").fill("on-call");
     await page.getByRole("button", { name: "New policy" }).click();
     await expect(page).toHaveURL(/\/console\/escalation\/policies\/on-call$/);
@@ -442,7 +469,11 @@ test.describe("TP-38 template editor and channel previews", () => {
                 {
                   channel: "email",
                   locale: "tr-TR",
-                  content: { subject: "Hoş geldiniz", html: null, text: "Hesabınız hazır." },
+                  content: {
+                    subject: "Hoş geldiniz",
+                    html: null,
+                    text: "Hesabınız hazır.",
+                  },
                   warnings: [],
                   measures: { bytes: 75_000 },
                   sandbox_url: "https://preview.relay.test/sandbox/abc",
@@ -489,16 +520,22 @@ test.describe("TP-38 template editor and channel previews", () => {
       ],
     });
     await page.goto("/console/templates/welcome-mail");
-    await expect(page.locator("[data-cell='email:en-GB']")).toContainText("Missing");
+    await expect(page.locator("[data-cell='email:en-GB']")).toContainText(
+      "Missing",
+    );
     await expect(page.locator("[data-finding='warning']")).toBeVisible();
     await expect(page.locator("[data-publish]")).toBeDisabled();
-    await page.getByRole("checkbox", { name: "Publish despite the warnings" }).check();
+    await page
+      .getByRole("checkbox", { name: "Publish despite the warnings" })
+      .check();
     await expect(page.locator("[data-publish]")).toBeEnabled();
 
     await page.locator("[data-cell='sms:tr-TR']").click();
     await page.getByRole("button", { name: "Write a variant" }).click();
     await page.locator("[data-helper='sms-from-email']").click();
-    const body = page.locator("[data-cell-editor='sms:tr-TR'] [data-field='body']");
+    const body = page.locator(
+      "[data-cell-editor='sms:tr-TR'] [data-field='body']",
+    );
     await expect(body).toHaveValue("Hoş geldiniz\nHesabınız hazır.");
     await body.fill("Hoş geldiniz!");
     await expect(page.getByText("It is not linked")).toBeVisible();
@@ -512,12 +549,25 @@ test.describe("TP-38 template editor and channel previews", () => {
     await page.getByRole("button", { name: "Render" }).click();
     const frame = page.locator("iframe.sandbox-frame");
     await expect(frame).toHaveAttribute("sandbox", "");
-    await expect(frame).toHaveAttribute("src", "https://preview.relay.test/sandbox/abc");
+    await expect(frame).toHaveAttribute(
+      "src",
+      "https://preview.relay.test/sandbox/abc",
+    );
     await expect(page.locator("[data-email-size]")).toContainText("73.2 KB");
     await expect(page.locator("[data-sms-encoding]")).toHaveText("GSM7_TR");
-    await expect(page.locator("[data-preview='push']")).toContainText("iOS lock screen");
+    await expect(page.locator("[data-preview='push']")).toContainText(
+      "iOS lock screen",
+    );
     await page.locator("[data-preview='sms'] summary").click();
     await expect(page.locator("[data-transliterated]")).toContainText("GSM7");
+    await page
+      .locator("[data-preview='email']")
+      .getByRole("button", { name: "Plain text" })
+      .click();
+    await expect(frame).toHaveCount(0);
+    await expect(page.locator("[data-preview='email'] pre")).toHaveText(
+      "Hesabınız hazır.",
+    );
     await expectAccessible(page);
   });
 });
@@ -601,8 +651,12 @@ test.describe("X-52 test inbox", () => {
     await expect(page.locator("[data-live-plane]")).toBeVisible();
     await page.getByLabel("Environment", { exact: true }).selectOption("test");
     await expect(page.locator("[data-test-message]")).toBeVisible();
-    await expect(page.locator("[data-preview='sms']")).toContainText("Hoş geldiniz");
-    await expect(page.locator("[data-digest-only='security_subtype']")).toBeVisible();
+    await expect(page.locator("[data-preview='sms']")).toContainText(
+      "Hoş geldiniz",
+    );
+    await expect(
+      page.locator("[data-digest-only='security_subtype']"),
+    ).toBeVisible();
     await expect(page.getByText("consent.missing")).toBeVisible();
     await expect(page.getByText("No marketing consent").first()).toBeVisible();
     await page.locator("[data-reset-seeds]").click();

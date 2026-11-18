@@ -10,14 +10,14 @@ import {
 
 const mime = "application/x-relay-step";
 
-type Payload = { kind: "new"; type: StepType } | { kind: "move"; pointer: string };
+type Payload =
+  { kind: "new"; type: StepType } | { kind: "move"; pointer: string };
 
 function readPayload(event: DragEvent): Payload | null {
   const raw = event.dataTransfer.getData(mime);
   if (raw === "") return null;
   try {
-    const value = JSON.parse(raw) as Payload;
-    return value.kind === "new" || value.kind === "move" ? value : null;
+    return JSON.parse(raw) as Payload;
   } catch {
     return null;
   }
@@ -36,7 +36,8 @@ function stepSummary(step: Step): string {
   switch (step.type) {
     case "channel":
       return [
-        step.channel ?? (typeof step.route === "string" ? `route:${step.route}` : "route"),
+        step.channel ??
+          (typeof step.route === "string" ? `route:${step.route}` : "route"),
         step.template,
       ]
         .filter((part) => part !== "")
@@ -53,7 +54,9 @@ function stepSummary(step: Step): string {
       return `${step.event_type} ≤ ${step.timeout}`;
     case "time_window":
       return step.windows
-        .map((window) => `${window.days.join(",")} ${window.start}–${window.end}`)
+        .map(
+          (window) => `${window.days.join(",")} ${window.start}–${window.end}`,
+        )
         .join("; ");
     case "webhook":
       return `${step.endpoint} · ${step.event_type}`;
@@ -127,7 +130,8 @@ function DropZone({
         setOver(false);
         const payload = readPayload(event);
         if (payload?.kind === "new") actions.add(list, index, payload.type);
-        else if (payload?.kind === "move") actions.move(payload.pointer, list, index);
+        else if (payload?.kind === "move")
+          actions.move(payload.pointer, list, index);
       }}
     >
       {open ? (
@@ -308,7 +312,11 @@ function StepCard({
               const branch = /^\/branches\/(\d+)\/steps$/.exec(child.slot);
               const number = branch ? Number(branch[1]) : null;
               return (
-                <div key={child.slot} className="branch" data-branch={child.slot}>
+                <div
+                  key={child.slot}
+                  className="branch"
+                  data-branch={child.slot}
+                >
                   <div className="row branch-head">
                     <span className="small">
                       {number !== null
@@ -342,24 +350,31 @@ function StepCard({
                 </div>
               );
             })}
-            {step.type === "condition" && !locked && step.branches.length < 10 && (
-              <span>
-                <button
-                  type="button"
-                  className="small"
-                  onClick={() => {
-                    actions.addBranch(pointer);
-                  }}
-                >
-                  {t("wf.addBranch")}
-                </button>
-              </span>
-            )}
+            {step.type === "condition" &&
+              !locked &&
+              step.branches.length < 10 && (
+                <span>
+                  <button
+                    type="button"
+                    className="small"
+                    onClick={() => {
+                      actions.addBranch(pointer);
+                    }}
+                  >
+                    {t("wf.addBranch")}
+                  </button>
+                </span>
+              )}
           </div>
         )}
       </li>
       <li className="flow-gap">
-        <DropZone list={list} index={index + 1} locked={locked} actions={actions} />
+        <DropZone
+          list={list}
+          index={index + 1}
+          locked={locked}
+          actions={actions}
+        />
       </li>
     </>
   );
@@ -393,7 +408,9 @@ export function Canvas({
         actions={actions}
       />
       {steps.length === 0 && (
-        <p className="muted small">{locked ? t("common.empty") : t("wf.emptyCanvas")}</p>
+        <p className="muted small">
+          {locked ? t("common.empty") : t("wf.emptyCanvas")}
+        </p>
       )}
     </section>
   );

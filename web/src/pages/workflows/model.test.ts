@@ -39,7 +39,13 @@ function tree(): Step[] {
       ],
       else: [],
     },
-    { type: "throttle", key: "throttle_1", throttle_key: "x", limit: 1, window: "PT1H" },
+    {
+      type: "throttle",
+      key: "throttle_1",
+      throttle_key: "x",
+      limit: 1,
+      window: "PT1H",
+    },
   ];
 }
 
@@ -65,21 +71,37 @@ describe("X-10 workflow editor tree", () => {
 
   it("addresses lists and steps by JSON pointer", () => {
     const steps = tree();
-    expect(getList(steps, "/steps/1/branches/0/steps")?.[0]?.key).toBe("delay_1");
+    expect(getList(steps, "/steps/1/branches/0/steps")?.[0]?.key).toBe(
+      "delay_1",
+    );
     expect(getStep(steps, "/steps/1/branches/0/steps/0")?.key).toBe("delay_1");
     expect(getList(steps, "/steps/1/else")).toEqual([]);
     expect(getList(steps, "/steps/0/else")).toBeNull();
-    expect(allKeys(steps)).toEqual(["email_1", "condition_1", "delay_1", "throttle_1"]);
+    expect(allKeys(steps)).toEqual([
+      "email_1",
+      "condition_1",
+      "delay_1",
+      "throttle_1",
+    ]);
     expect(depth(steps)).toBe(1);
   });
 
   it("inserts, removes and moves steps, never into their own branches", () => {
     const steps = tree();
-    const added = insertStep(steps, "/steps/1/else", 0, newStep("webhook", allKeys(steps)));
+    const added = insertStep(
+      steps,
+      "/steps/1/else",
+      0,
+      newStep("webhook", allKeys(steps)),
+    );
     expect(getStep(added, "/steps/1/else/0")?.type).toBe("webhook");
     expect(removeStep(added, "/steps/0")).toHaveLength(2);
     const down = moveStep(steps, "/steps/0", "/steps", 3);
-    expect(down?.map((step) => step.key)).toEqual(["condition_1", "throttle_1", "email_1"]);
+    expect(down?.map((step) => step.key)).toEqual([
+      "condition_1",
+      "throttle_1",
+      "email_1",
+    ]);
     const up = moveStep(steps, "/steps/2", "/steps", 0);
     expect(up?.[0]?.key).toBe("throttle_1");
     const into = moveStep(steps, "/steps/0", "/steps/1/else", 0);
@@ -102,7 +124,9 @@ describe("X-10 workflow editor tree", () => {
 
   it("lists the earlier steps on a step's own path", () => {
     expect(
-      earlierSteps(tree(), "/steps/1/branches/0/steps/0").map((step) => step.key),
+      earlierSteps(tree(), "/steps/1/branches/0/steps/0").map(
+        (step) => step.key,
+      ),
     ).toEqual(["email_1"]);
     expect(earlierSteps(tree(), "/steps/2").map((step) => step.key)).toEqual([
       "email_1",
@@ -114,8 +138,12 @@ describe("X-10 workflow editor tree", () => {
 describe("X-9 single manager", () => {
   it("lets a code-managed workflow change only its marked control fields", () => {
     expect(editable("panel", [], "/steps/0/template")).toBe(true);
-    expect(editable("code", ["/steps/0/template"], "/steps/0/template")).toBe(true);
-    expect(editable("code", ["/steps/0/template"], "/steps/0/channel")).toBe(false);
+    expect(editable("code", ["/steps/0/template"], "/steps/0/template")).toBe(
+      true,
+    );
+    expect(editable("code", ["/steps/0/template"], "/steps/0/channel")).toBe(
+      false,
+    );
   });
 });
 
@@ -125,9 +153,24 @@ describe("WF-60 conditions from lists", () => {
       join: "any",
       rules: [
         { path: "data.total", operator: "gte", kind: "number", value: "100" },
-        { path: "data.tier", operator: "in", kind: "list", value: "gold, silver" },
-        { path: "steps.email_1.clicked", operator: "eq", kind: "boolean", value: "true" },
-        { path: "recipient.vip", operator: "not_exists", kind: "string", value: "" },
+        {
+          path: "data.tier",
+          operator: "in",
+          kind: "list",
+          value: "gold, silver",
+        },
+        {
+          path: "steps.email_1.clicked",
+          operator: "eq",
+          kind: "boolean",
+          value: "true",
+        },
+        {
+          path: "recipient.vip",
+          operator: "not_exists",
+          kind: "string",
+          value: "",
+        },
       ],
     };
     const condition = toCondition(group);
@@ -152,7 +195,12 @@ describe("WF-60 conditions from lists", () => {
       fromCondition({ all: [{ any: [{ exists: { var: "data.a" } }] }] }),
     ).toBeNull();
     expect(
-      fromCondition({ lt: [{ var: "event.time" }, { time_add: [{ var: "run.started_at" }, "PT1H"] }] }),
+      fromCondition({
+        lt: [
+          { var: "event.time" },
+          { time_add: [{ var: "run.started_at" }, "PT1H"] },
+        ],
+      }),
     ).toBeNull();
   });
 
@@ -162,28 +210,38 @@ describe("WF-60 conditions from lists", () => {
       category: "c",
       event_schema: {
         type: "object",
-        properties: { order: { type: "object", properties: { total: { type: "number" } } } },
+        properties: {
+          order: { type: "object", properties: { total: { type: "number" } } },
+        },
       },
       recipient_attributes: { vip: "boolean" },
       steps: [],
     };
-    const paths = pathOptions(definition, [newStep("channel", [])]).map((option) => option.path);
+    const paths = pathOptions(definition, [newStep("channel", [])]).map(
+      (option) => option.path,
+    );
     expect(paths).toContain("data.order");
     expect(paths).toContain("data.order.total");
     expect(paths).toContain("recipient.vip");
     expect(paths).toContain("steps.channel_1.clicked");
     expect(paths).toContain("event.time");
-    expect(ruleComplete({ path: "data.a", operator: "gt", kind: "number", value: "x" })).toBe(false);
+    expect(
+      ruleComplete({
+        path: "data.a",
+        operator: "gt",
+        kind: "number",
+        value: "x",
+      }),
+    ).toBe(false);
   });
 });
 
 describe("AG-17 escalation timeline", () => {
   it("opens each tier and repeat after the previous one", () => {
     expect(
-      tierSpans([
-        { after: "PT2H", repeat: 1 },
-        { after: "PT6H" },
-      ])?.map((span) => span.opensAt),
+      tierSpans([{ after: "PT2H", repeat: 1 }, { after: "PT6H" }])?.map(
+        (span) => span.opensAt,
+      ),
     ).toEqual([7200, 14400, 36000]);
     expect(tierSpans([{ after: "2h" }])).toBeNull();
   });

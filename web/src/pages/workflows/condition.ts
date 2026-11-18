@@ -155,7 +155,7 @@ function ruleFrom(node: unknown): Rule | null {
   return {
     ...base,
     kind,
-    value: right === null ? "" : String(right as string | number | boolean),
+    value: right === null ? "" : String(right),
   };
 }
 
@@ -226,12 +226,10 @@ export function pathOptions(
       (name): PathOption => ({ path: `recipient.${name}`, group: "recipient" }),
     ),
     ...earlier.flatMap((step) =>
-      (results[step.type] ?? []).map(
-        (result): PathOption => ({
-          path: `steps.${step.key}.${result}`,
-          group: "steps",
-        }),
-      ),
+      (results[step.type] ?? []).map((result): PathOption => ({
+        path: `steps.${step.key}.${result}`,
+        group: "steps",
+      })),
     ),
     { path: "event.time", group: "time" },
     { path: "run.started_at", group: "time" },

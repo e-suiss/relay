@@ -100,11 +100,11 @@ function GatePanel({ gate, dirty }: { gate: Gate; dirty: boolean }) {
         {t("gate.checking")}
       </p>
     );
-  else if (gate.kind === "error")
-    body = <p role="alert">{gate.message}</p>;
+  else if (gate.kind === "error") body = <p role="alert">{gate.message}</p>;
   else {
     const errors = gate.kind === "check" ? gate.result.errors : gate.errors;
-    const passes = gate.kind === "check" ? gate.result.publishable : gate.publishable;
+    const passes =
+      gate.kind === "check" ? gate.result.publishable : gate.publishable;
     body = (
       <>
         {gate.kind === "fallback" && (
@@ -122,7 +122,10 @@ function GatePanel({ gate, dirty }: { gate: Gate; dirty: boolean }) {
         {errors.length > 0 && (
           <ul className="plain stack tight">
             {errors.map((error, index) => (
-              <li key={`${error.pointer}-${index}`} data-gate-error={error.pointer}>
+              <li
+                key={`${error.pointer}-${index}`}
+                data-gate-error={error.pointer}
+              >
                 <code className="mono">{error.pointer}</code>{" "}
                 <strong>{t(`gate.code.${error.code}`)}</strong>
                 {error.detail !== undefined && ` — ${error.detail}`}
@@ -168,7 +171,10 @@ function DefinitionSettings({
   const [schemaError, setSchemaError] = useState(false);
   const attributes = Object.entries(definition.recipient_attributes ?? {});
   const setAttributes = (entries: [string, string][]) => {
-    onChange({ ...definition, recipient_attributes: Object.fromEntries(entries) });
+    onChange({
+      ...definition,
+      recipient_attributes: Object.fromEntries(entries),
+    });
   };
   return (
     <Section title={t("wf.settings")}>
@@ -234,7 +240,11 @@ function DefinitionSettings({
             setSchemaText(event.target.value);
             try {
               const parsed = JSON.parse(event.target.value) as unknown;
-              if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+              if (
+                typeof parsed === "object" &&
+                parsed !== null &&
+                !Array.isArray(parsed)
+              ) {
                 setSchemaError(false);
                 onChange({
                   ...definition,
@@ -258,9 +268,8 @@ function DefinitionSettings({
                 value={name}
                 onChange={(event) => {
                   setAttributes(
-                    attributes.map(
-                      (item, at): [string, string] =>
-                        at === index ? [event.target.value, item[1]] : item,
+                    attributes.map((item, at): [string, string] =>
+                      at === index ? [event.target.value, item[1]] : item,
                     ),
                   );
                 }}
@@ -272,9 +281,8 @@ function DefinitionSettings({
                 value={type}
                 onChange={(event) => {
                   setAttributes(
-                    attributes.map(
-                      (item, at): [string, string] =>
-                        at === index ? [item[0], event.target.value] : item,
+                    attributes.map((item, at): [string, string] =>
+                      at === index ? [item[0], event.target.value] : item,
                     ),
                   );
                 }}
@@ -300,7 +308,10 @@ function DefinitionSettings({
           <button
             type="button"
             onClick={() => {
-              setAttributes([...attributes, [`attribute_${attributes.length + 1}`, "string"]]);
+              setAttributes([
+                ...attributes,
+                [`attribute_${attributes.length + 1}`, "string"],
+              ]);
             }}
           >
             {t("wf.addAttribute")}
@@ -336,13 +347,7 @@ function usedChannels(steps: Step[]): Channel[] {
   return [...found];
 }
 
-function Editor({
-  initial,
-  base,
-}: {
-  initial: Workflow;
-  base: Definition;
-}) {
+function Editor({ initial, base }: { initial: Workflow; base: Definition }) {
   const { t } = useI18n();
   const mutate = useMutation();
   const fetchJson = useFetch();
@@ -364,7 +369,10 @@ function Editor({
   const categories = useGet<Page<Category>>("/v1/categories", { limit: 100 });
 
   const locked = workflow.managed_by === "code";
-  const controls = useMemo(() => definition.controls ?? [], [definition.controls]);
+  const controls = useMemo(
+    () => definition.controls ?? [],
+    [definition.controls],
+  );
   const canEdit = useCallback(
     (pointer: string) => editable(workflow.managed_by, controls, pointer),
     [workflow.managed_by, controls],
@@ -409,7 +417,10 @@ function Editor({
       if (step?.type !== "condition") return;
       const next: ConditionStep = {
         ...step,
-        branches: [...step.branches, { when: { exists: { var: "" } }, steps: [] }],
+        branches: [
+          ...step.branches,
+          { when: { exists: { var: "" } }, steps: [] },
+        ],
       };
       changeSteps(replaceStep(definition.steps, pointer, next));
     },
@@ -493,7 +504,11 @@ function Editor({
     ).then((next) => {
       setBusy(false);
       setWorkflow(next);
-      setMessage(t("wf.managerChanged", { manager: t(`wf.managedBy.${next.managed_by}`) }));
+      setMessage(
+        t("wf.managerChanged", {
+          manager: t(`wf.managedBy.${next.managed_by}`),
+        }),
+      );
     }, fail);
   };
 
@@ -568,7 +583,8 @@ function Editor({
           </span>
         </span>
         <span className="muted">
-          {workflow.published_version === null || workflow.published_version === undefined
+          {workflow.published_version === null ||
+          workflow.published_version === undefined
             ? t("wf.notPublished")
             : t("wf.liveVersion", { version: workflow.published_version })}
         </span>
@@ -727,10 +743,7 @@ export function WorkflowEditor({ workflowKey }: { workflowKey: string }) {
                 base={blank(workflow)}
               />
             ) : (
-              <EditorFromVersion
-                key={workflow.version}
-                workflow={workflow}
-              />
+              <EditorFromVersion key={workflow.version} workflow={workflow} />
             )
           ) : (
             <Editor

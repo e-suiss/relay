@@ -147,7 +147,13 @@ function Bubble({ body, segments }: { body: string; segments: string[] }) {
 
 // TP-38
 // TP-18
-function SmsView({ render, fields }: { render: ChannelRender; fields: Fields }) {
+function SmsView({
+  render,
+  fields,
+}: {
+  render: ChannelRender;
+  fields: Fields;
+}) {
   const { t } = useI18n();
   const body = text(fields, "body") || text(fields, "text");
   const local = measureSms(body);
@@ -418,7 +424,12 @@ function body(
       return <InboxView fields={fields} />;
     case "email":
       return (
-        <EmailView render={render} fields={fields} dark={dark} narrow={narrow} />
+        <EmailView
+          render={render}
+          fields={fields}
+          dark={dark}
+          narrow={narrow}
+        />
       );
     default:
       return <OtherView fields={fields} />;
@@ -442,7 +453,7 @@ export function ChannelPreview({
   const fields: Fields =
     render.content === null || render.content === undefined
       ? {}
-      : (render.content as Fields);
+      : render.content;
   return (
     <article
       className={`preview panel stack${dark ? " preview-dark" : ""}`}
@@ -450,7 +461,8 @@ export function ChannelPreview({
     >
       <div className="row section-head">
         <h3 className="preview-title">
-          <ChannelLabel channel={render.channel} /> · <span>{render.locale}</span>
+          <ChannelLabel channel={render.channel} /> ·{" "}
+          <span>{render.locale}</span>
           {heading}
         </h3>
         <div className="row">
@@ -481,11 +493,12 @@ export function ChannelPreview({
       {render.locale_fallback === true && (
         <p className="notice small">{t("pv.localeFallback")}</p>
       )}
-      {render.failure_reason !== null && render.failure_reason !== undefined && (
-        <p role="alert" className="notice">
-          {t("pv.failed", { reason: render.failure_reason })}
-        </p>
-      )}
+      {render.failure_reason !== null &&
+        render.failure_reason !== undefined && (
+          <p role="alert" className="notice">
+            {t("pv.failed", { reason: render.failure_reason })}
+          </p>
+        )}
       <div className={`preview-stage${narrow ? " narrow" : ""}`}>
         {body(render, fields, dark, narrow)}
       </div>

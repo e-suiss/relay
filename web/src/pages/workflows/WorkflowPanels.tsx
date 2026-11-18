@@ -557,9 +557,7 @@ export function PreviewPanel({ workflowKey }: { workflowKey: string }) {
                   <RuleSentence ruleId={step.rule_id} />
                 )}
               </div>
-              {step.render !== null && (
-                <ChannelPreview render={step.render} />
-              )}
+              {step.render !== null && <ChannelPreview render={step.render} />}
             </li>
           ))}
         </ol>

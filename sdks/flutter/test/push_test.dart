@@ -118,6 +118,98 @@ void main() {
       },
     );
 
+    test('CH-65 an Android device reports Do Not Disturb access only', () async {
+      final Server server = Server((hc.Request r) => json(device()));
+      final FakePushAdapter adapter = FakePushAdapter()
+        ..interruption = const RelayInterruptionCapabilities(
+          dndAccess: DeviceInterruptionPermission.granted,
+          criticalAlerts: DeviceInterruptionPermission.granted,
+        );
+      final RelayDeviceRegistrar registrar = RelayDeviceRegistrar(
+        http: httpCore(server),
+        adapter: adapter,
+        store: MemoryRelayKeyValueStore(),
+      );
+      await registrar.start();
+      expect(body(server.requests.single)['interruption_permissions'], <
+        String,
+        Object?
+      >{'dnd_access': 'granted'});
+      await registrar.dispose();
+    });
+
+    test('CH-65 an iOS device reports critical alerts and time-sensitive only', () async {
+      final Server server = Server(
+        (hc.Request r) => json(device(platform: 'apns')),
+      );
+      final FakePushAdapter adapter =
+          FakePushAdapter(platform: DevicePlatform.apns)
+            ..interruption = const RelayInterruptionCapabilities(
+              criticalAlerts: DeviceInterruptionPermission.denied,
+              timeSensitive: DeviceInterruptionPermission.notDetermined,
+              dndAccess: DeviceInterruptionPermission.granted,
+            );
+      final RelayDeviceRegistrar registrar = RelayDeviceRegistrar(
+        http: httpCore(server),
+        adapter: adapter,
+        store: MemoryRelayKeyValueStore(),
+      );
+      await registrar.start();
+      expect(body(server.requests.single)['interruption_permissions'], <
+        String,
+        Object?
+      >{'critical_alerts': 'denied', 'time_sensitive': 'not_determined'});
+      await registrar.dispose();
+    });
+
+    test('CH-65 nothing is reported when the permissions are unknown or cannot be read', () async {
+      final Server server = Server((hc.Request r) => json(device()));
+      final FakePushAdapter adapter = FakePushAdapter()
+        ..interruption = const RelayInterruptionCapabilities();
+      final RelayDeviceRegistrar registrar = RelayDeviceRegistrar(
+        http: httpCore(server),
+        adapter: adapter,
+        store: MemoryRelayKeyValueStore(),
+      );
+      await registrar.start();
+      expect(
+        body(server.requests.last).containsKey('interruption_permissions'),
+        isFalse,
+      );
+      adapter.interruptionFails = true;
+      adapter.token = 'push-token-2';
+      await registrar.refreshIfChanged();
+      expect(server.requests, hasLength(2));
+      expect(
+        body(server.requests.last).containsKey('interruption_permissions'),
+        isFalse,
+      );
+      await registrar.dispose();
+    });
+
+    test('CH-65 a changed interruption permission is reported again', () async {
+      final Server server = Server((hc.Request r) => json(device()));
+      final FakePushAdapter adapter = FakePushAdapter();
+      final RelayDeviceRegistrar registrar = RelayDeviceRegistrar(
+        http: httpCore(server),
+        adapter: adapter,
+        store: MemoryRelayKeyValueStore(),
+      );
+      await registrar.start();
+      await registrar.refreshIfChanged();
+      expect(server.requests, hasLength(1));
+      adapter.interruption = const RelayInterruptionCapabilities(
+        dndAccess: DeviceInterruptionPermission.granted,
+      );
+      await registrar.refreshIfChanged();
+      expect(server.requests, hasLength(2));
+      expect(body(server.requests.last)['interruption_permissions'], <
+        String,
+        Object?
+      >{'dnd_access': 'granted'});
+      await registrar.dispose();
+    });
+
     test('CH-31 sign-out disables the device', () async {
       final Server server = Server((hc.Request r) => json(device()));
       final MemoryRelayKeyValueStore store = MemoryRelayKeyValueStore();
@@ -338,6 +430,88 @@ void main() {
         'data': <String, Object?>{'relay_sync': '1'},
       });
       expect(adapter.removed, <String>[dlv1]);
+    });
+
+    Map<String, Object?> pushContent(Map<String, Object?> content) =>
+        <String, Object?>{
+          'object': 'push_content',
+          'delivery_id': dlv1,
+          'notification_id': ntf1,
+          'channel': 'push',
+          'locale': 'tr',
+          'content': content,
+        };
+
+    RelayPushHandler apiHandler(FakePushAdapter adapter, Server server) {
+      final MemoryRelayKeyValueStore s = MemoryRelayKeyValueStore();
+      return RelayPushHandler(
+        adapter: adapter,
+        receipts: RelayReceiptQueue(http: httpCore(server), store: s),
+        store: s,
+        locale: 'tr-TR',
+        onSync: (int? _) async => null,
+      );
+    }
+
+    test('CH-33 by default the content is fetched from Relay by the delivery id', () async {
+      final FakePushAdapter adapter = FakePushAdapter();
+      final Server server = Server((hc.Request r) {
+        if (r.method == 'GET') {
+          return json(
+            pushContent(<String, Object?>{
+              'title': 'Siparişiniz yolda',
+              'body': 'Yarın teslim',
+              'url': 'https://shop.example/orders/1',
+            }),
+          );
+        }
+        return json(<String, Object?>{
+          'object': 'push_receipt',
+          'delivery_id': dlv1,
+          'receipt': 'displayed',
+        }, status: 202);
+      });
+      await apiHandler(adapter, server).handle(<String, Object?>{
+        'data': <String, Object?>{'relay_id': dlv1},
+      });
+      expect(server.calls.first, 'GET /v1/subscriber/push_content/$dlv1');
+      expect(adapter.shown.single.title, 'Siparişiniz yolda');
+      expect(adapter.shown.single.body, 'Yarın teslim');
+      expect(adapter.shown.single.url, 'https://shop.example/orders/1');
+    });
+
+    test('CH-33 a failed fetch shows the generic text and never content from the payload', () async {
+      final FakePushAdapter adapter = FakePushAdapter();
+      final Server server = Server((hc.Request r) {
+        if (r.method == 'GET') return problem(404, 'delivery_not_found');
+        return json(<String, Object?>{
+          'object': 'push_receipt',
+          'delivery_id': dlv1,
+          'receipt': 'displayed',
+        }, status: 202);
+      });
+      await apiHandler(adapter, server).handle(<String, Object?>{
+        'data': <String, Object?>{'relay_id': dlv1, 'relay_url': 'https://x'},
+      });
+      expect(server.calls.first, 'GET /v1/subscriber/push_content/$dlv1');
+      expect(adapter.shown.single.title, 'Yeni bildirim');
+      expect(adapter.shown.single.body, 'Yeni bir bildiriminiz var.');
+      expect(adapter.shown.single.url, isNull);
+    });
+
+    test('CH-33 content without a title or body counts as not fetched', () {
+      expect(
+        relayPushContentOf(
+          PushContent.fromJson(pushContent(<String, Object?>{'url': 'x'})),
+        ),
+        isNull,
+      );
+      final RelayPushContent? c = relayPushContentOf(
+        PushContent.fromJson(pushContent(<String, Object?>{'body': 'B'})),
+      );
+      expect(c?.title, '');
+      expect(c?.body, 'B');
+      expect(c?.notificationId, ntf1);
     });
 
     test('CH-32 a click is recorded as a clicked receipt', () async {

@@ -18,6 +18,37 @@ class RelayPreferencesApi {
     return SubscriberPreferences.fromJson(r.json);
   }
 
+  // X-44
+  // PC-59
+  /// Reads one page of the subscriber's consents from Relay's read-only copy; Relay never writes consent.
+  Future<ConsentList> consents({int? limit, String? startingAfter}) async {
+    final RelayResponse r = await http.send(
+      RelayOperation.listMyConsents,
+      query: <String, String?>{
+        'limit': limit?.toString(),
+        'starting_after': startingAfter,
+      },
+    );
+    return ConsentList.fromJson(r.json);
+  }
+
+  // X-44
+  /// Reads every page of the subscriber's consents, up to [maxPages] pages.
+  Future<List<Consent>> allConsents({int maxPages = 10}) async {
+    final List<Consent> all = <Consent>[];
+    String? cursor;
+    for (int page = 0; page < maxPages; page++) {
+      final ConsentList list = await consents(
+        limit: 100,
+        startingAfter: cursor,
+      );
+      all.addAll(list.data);
+      cursor = list.nextCursor;
+      if (!list.hasMore || cursor == null) break;
+    }
+    return all;
+  }
+
   /// Applies writes atomically.
   Future<SubscriberPreferences> update(MyPreferencesPatch patch) async {
     final RelayResponse r = await http.send(

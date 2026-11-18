@@ -50,6 +50,29 @@ const Map<String, Map<String, String>> relayStrings =
         'channel_in_app': 'Uygulama içi',
         'channel_webhook': 'Webhook',
         'cell_label': '{category}, {channel}: {state}',
+        'consents_title': 'Pazarlama izinleri',
+        'consents_hint':
+            'Pazarlama izinleriniz hesabınızda tutulur ve orada değiştirilir.',
+        'consents_unavailable': 'İzin ayrıntıları burada gösterilmiyor.',
+        'manage_consents': 'İzinleri hesabınızda yönetin',
+        'consent_label': '{channel}: {status}',
+        'consent_brand_label': '{brand}, {channel}: {status}',
+        'consent_none': 'Verilmedi',
+        'consent_pending': 'Onay bekleniyor',
+        'consent_pending_iys': 'İYS bekleniyor',
+        'consent_active': 'Verildi',
+        'consent_revoked': 'Geri alındı',
+        'consent_expired': 'Süresi doldu',
+        'sender_agent': 'Bir yapay zekâ ajanı gönderdi',
+        'waitpoint_awaiting': 'Yanıtınız bekleniyor',
+        'waitpoint_processing': 'Yanıtınız işleniyor…',
+        'waitpoint_responded': '{who} yanıtladı, {when}',
+        'waitpoint_not_awaited': 'Artık yanıt beklenmiyor',
+        'who_you': 'Siz',
+        'who_agent': 'Bir ajan',
+        'who_someone': 'Başka bir alıcı',
+        'approval_note': 'Onay burada değil, hesabınızda verilir.',
+        'approval_open': 'Hesabınızda inceleyin',
       },
       'en': <String, String>{
         'inbox_title': 'Notifications',
@@ -95,6 +118,29 @@ const Map<String, Map<String, String>> relayStrings =
         'channel_in_app': 'In-app',
         'channel_webhook': 'Webhook',
         'cell_label': '{category}, {channel}: {state}',
+        'consents_title': 'Marketing permissions',
+        'consents_hint':
+            'Your marketing permissions are kept in your account and changed there.',
+        'consents_unavailable': 'Permission details are not shown here.',
+        'manage_consents': 'Manage permissions in your account',
+        'consent_label': '{channel}: {status}',
+        'consent_brand_label': '{brand}, {channel}: {status}',
+        'consent_none': 'Not given',
+        'consent_pending': 'Waiting for confirmation',
+        'consent_pending_iys': 'Waiting for İYS',
+        'consent_active': 'Given',
+        'consent_revoked': 'Withdrawn',
+        'consent_expired': 'Expired',
+        'sender_agent': 'Sent by an AI agent',
+        'waitpoint_awaiting': 'Waiting for your response',
+        'waitpoint_processing': 'Processing your response…',
+        'waitpoint_responded': 'Answered by {who} on {when}',
+        'waitpoint_not_awaited': 'No longer expecting a response',
+        'who_you': 'you',
+        'who_agent': 'an agent',
+        'who_someone': 'another recipient',
+        'approval_note': 'Approvals are given in your account, not here.',
+        'approval_open': 'Review in your account',
       },
     };
 
@@ -136,4 +182,8 @@ class RelayLocalizations {
 
   /// The name of a channel.
   String channel(Channel channel) => text('channel_${channel.wire}');
+
+  /// The name of a consent status.
+  String consentStatus(ConsentStatus status) =>
+      text('consent_${status.wire}');
 }

@@ -169,6 +169,10 @@ Map<String, Object?> item(
   bool read = false,
   String title = 'Title',
   String activity = ts,
+  String? senderType,
+  bool? approval,
+  Map<String, Object?>? waitpoint,
+  List<Object?> actions = const <Object?>[],
 }) => <String, Object?>{
   'object': 'inbox_item',
   ...state(id, version: version, read: read),
@@ -182,13 +186,42 @@ Map<String, Object?> item(
   'body': 'Body of $id',
   'avatar_url': null,
   'url': null,
-  'actions': <Object?>[],
+  'actions': actions,
   'data': <Object?>[],
   'locale': 'en',
   'dir': null,
   'activity_count': 1,
   'actor_count': 0,
   'expires_at': null,
+  if (senderType != null) 'sender_type': senderType,
+  if (approval != null) 'approval': approval,
+  'waitpoint': waitpoint,
+};
+
+const String wp1 = 'wp_01j9zq3k4m5n6p7q8r9s0t1v2w';
+const String digest1 =
+    '0000000000000000000000000000000000000000000000000000000000000001';
+
+Map<String, Object?> waitpoint({
+  String kind = 'response',
+  String status = 'awaiting',
+  String? subjectDigest = digest1,
+  List<Object?> options = const <Object?>[
+    <String, Object?>{'label': 'Evet', 'value': 'yes'},
+    <String, Object?>{'label': 'Hayır', 'value': 'no'},
+  ],
+  Map<String, Object?>? responder,
+  String? respondedAt,
+  String? approvalUrl,
+}) => <String, Object?>{
+  'id': wp1,
+  'kind': kind,
+  'status': status,
+  'subject_digest': subjectDigest,
+  'options': options,
+  'responder': responder,
+  'responded_at': respondedAt,
+  'approval_url': approvalUrl,
 };
 
 Map<String, Object?> envelope(
@@ -294,9 +327,17 @@ class FakePushAdapter implements RelayPushAdapter {
       AndroidChannel(id: c.id, importance: c.importance),
   ];
 
+  RelayInterruptionCapabilities interruption =
+      const RelayInterruptionCapabilities(
+        dndAccess: DeviceInterruptionPermission.denied,
+      );
+  bool interruptionFails = false;
+
   @override
-  Future<RelayInterruptionCapabilities> getInterruptionCapabilities() async =>
-      const RelayInterruptionCapabilities(dndAccess: false);
+  Future<RelayInterruptionCapabilities> getInterruptionCapabilities() async {
+    if (interruptionFails) throw StateError('unavailable');
+    return interruption;
+  }
 
   @override
   Future<void> show(RelayLocalNotification notification) async {

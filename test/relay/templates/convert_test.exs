@@ -5,12 +5,15 @@ defmodule Relay.Templates.ConvertTest do
 
   @cases "test/fixtures/template_conversion/cases.json" |> File.read!() |> Jason.decode!()
 
+  defp language("liquid"), do: :liquid
+  defp language("handlebars"), do: :handlebars
+
   describe "OP-96 template conversion" do
     for %{"name" => name} = entry <- @cases do
       @entry entry
       test "OP-96, OP-55: golden case #{name}" do
         %{"language" => language, "source" => source, "aliases" => aliases} = @entry
-        result = Relay.Templates.convert(String.to_existing_atom(language), source, aliases)
+        result = Relay.Templates.convert(language(language), source, aliases)
         codes = Enum.map(result.findings, & &1.code)
 
         assert result.status == @entry["status"], inspect(result)
@@ -21,7 +24,7 @@ defmodule Relay.Templates.ConvertTest do
 
     test "OP-96: every converted output parses in the Relay template engine" do
       for %{"language" => language, "source" => source, "aliases" => aliases} <- @cases do
-        result = Relay.Templates.convert(String.to_existing_atom(language), source, aliases)
+        result = Relay.Templates.convert(language(language), source, aliases)
 
         if result.output do
           raw = String.contains?(result.output, "| raw")

@@ -146,10 +146,10 @@ defmodule Relay.Api.Recurrences do
   defp handoff_time(_text, pointer), do: field(pointer, "required", "a time is required")
 
   defp handoff_match(next_at, next_run_at, last_run_at) do
-    expected = DateTime.truncate(next_at, :second)
+    expected = %{next_at | microsecond: {0, 0}}
 
     cond do
-      DateTime.compare(expected, DateTime.truncate(next_run_at, :second)) != :eq ->
+      DateTime.diff(next_at, next_run_at, :second) != 0 ->
         {:error,
          handoff_mismatch("the rule's first occurrence is #{DateTime.to_iso8601(expected)}")}
 

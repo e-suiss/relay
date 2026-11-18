@@ -310,6 +310,26 @@ defmodule RelayWeb.Router do
     post "/provider_accounts/:provider_account_id/verify", ChannelController, :verify_account,
       private: %{relay_operation: "verifyProviderAccount"}
 
+    # CH-4
+    # CH-6
+    # T-25
+    get "/provider_accounts/:provider_account_id/status", ChannelController, :account_status,
+      private: %{relay_operation: "getProviderAccountStatus"}
+
+    # CH-36
+    get "/provider_accounts/:provider_account_id/email_domains",
+        ChannelController,
+        :email_domains,
+        private: %{relay_operation: "getProviderAccountEmailDomains"}
+
+    # CH-42
+    get "/email_warmup_plans", ChannelController, :warmup_plans,
+      private: %{relay_operation: "listEmailWarmupPlans"}
+
+    # CH-18
+    get "/channel_costs", ChannelController, :cost_quote,
+      private: %{relay_operation: "quoteChannelCost"}
+
     get "/provider_invoices", ProviderInvoiceController, :index,
       private: %{relay_operation: "listProviderInvoices"}
 
@@ -1171,6 +1191,10 @@ defmodule RelayWeb.Router do
 
     get "/queue_panel", PlatformController, :queue_panel,
       private: %{relay_operation: "getQueuePanel"}
+
+    # X-7
+    get "/region_health", PlatformController, :region_health,
+      private: %{relay_operation: "getRegionHealth"}
 
     get "/send_modes", TenantController, :send_modes, private: %{relay_operation: "listSendModes"}
 

@@ -1,0 +1,67 @@
+name: sdk-java-release
+
+on:
+  push:
+    tags:
+      - "sdk-java-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sdk-java-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        working-directory: sdks/java
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          gradle-version: "9.8.2"
+          cache-disabled: true
+      - name: version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#sdk-java-v}"
+          grep -q "^version = \"$version\"$" build.gradle.kts
+      - name: build
+        run: gradle --no-daemon --dependency-verification strict build
+      - name: stage
+        env:
+          SIGNING_KEY: ${{ secrets.MAVEN_SIGNING_KEY }}
+          SIGNING_PASSWORD: ${{ secrets.MAVEN_SIGNING_PASSWORD }}
+        run: |
+          gradle --no-daemon --dependency-verification strict publishMavenPublicationToStagingRepository
+          cd build/staging
+          find . -type f \( -name '*.jar' -o -name '*.pom' -o -name '*.module' \) | while read -r file; do
+            md5sum "$file" | cut -d' ' -f1 > "$file.md5"
+            sha1sum "$file" | cut -d' ' -f1 > "$file.sha1"
+          done
+          zip -qr "$RUNNER_TEMP/bundle.zip" .
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: sdks/java/build/libs/*.jar
+      - name: publish
+        env:
+          CENTRAL_TOKEN: ${{ secrets.MAVEN_CENTRAL_TOKEN }}
+        run: |
+          curl --fail-with-body -sS -X POST \
+            -H "Authorization: Bearer $CENTRAL_TOKEN" \
+            -F "bundle=@$RUNNER_TEMP/bundle.zip" \
+            "https://central.sonatype.com/api/v1/publisher/upload?publishingType=AUTOMATIC"

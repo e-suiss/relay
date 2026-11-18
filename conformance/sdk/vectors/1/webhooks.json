@@ -1,0 +1,161 @@
+{
+  "track": "sdk",
+  "version": "1",
+  "operation": "sdk.webhook_verify",
+  "rule": ["X-29", "API-65", "WH-4", "WH-6", "WH-7"],
+  "description": "The raw-body webhook verifier of the Suiss profile. Keys, signed messages and the base rejections are those of signatures (conformance/webhooks/vectors/1/signature.json), which is referenced and never copied: every SDK runs that file's cases and rejections first. These cases add the header handling around it. Each case starts from a signatures case (base): its webhook_id, webhook_timestamp and body, with the headers listed here (names as written, matched without regard to case; null removes the header). In webhook-signature, {v1a} and {v1} stand for the base case's tokens. keys names the signatures keys the verifier is given; now is Unix seconds (default: the base timestamp); body_hex, when present, replaces the body. A message is accepted when any signature verifies against any key, and the scheme reported is that of the first token, in header order, that verifies; a token of an unknown scheme is skipped, a token that is not well formed refuses the header. Rejection reasons: missing_header, duplicate_header, malformed_header, timestamp_out_of_tolerance, no_matching_signature.",
+  "signatures": "conformance/webhooks/vectors/1/signature.json",
+  "cases": [
+    {
+      "name": "ed25519-only",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-signature": "{v1a}" },
+      "expect": { "ok": true, "scheme": "v1a" }
+    },
+    {
+      "name": "hmac-only",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["hmac_secret"],
+      "headers": { "webhook-signature": "{v1}" },
+      "expect": { "ok": true, "scheme": "v1" }
+    },
+    {
+      "name": "rotation-overlap-ed25519-key",
+      "base": "cloudevent-account-created",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-signature": "{v1a} {v1}" },
+      "expect": { "ok": true, "scheme": "v1a" }
+    },
+    {
+      "name": "rotation-overlap-hmac-key",
+      "base": "cloudevent-account-created",
+      "keys": ["hmac_secret"],
+      "headers": { "webhook-signature": "{v1a} {v1}" },
+      "expect": { "ok": true, "scheme": "v1" }
+    },
+    {
+      "name": "both-keys-empty-body",
+      "base": "empty-body",
+      "keys": ["hmac_secret", "ed25519_public_key"],
+      "headers": { "webhook-signature": "{v1a}" },
+      "expect": { "ok": true, "scheme": "v1a" }
+    },
+    {
+      "name": "unknown-scheme-skipped",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-signature": "v2,AAAA {v1a}" },
+      "expect": { "ok": true, "scheme": "v1a" }
+    },
+    {
+      "name": "extra-spaces-between-tokens",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["hmac_secret"],
+      "headers": { "webhook-signature": "  {v1a}   {v1} " },
+      "expect": { "ok": true, "scheme": "v1" }
+    },
+    {
+      "name": "header-names-any-case",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-id": null, "webhook-timestamp": null, "Webhook-Id": "msg_p5jXN8AQM9LWM0D4loKWxJek", "WEBHOOK-TIMESTAMP": "1614265330", "Webhook-Signature": "{v1a}" },
+      "expect": { "ok": true, "scheme": "v1a" }
+    },
+    {
+      "name": "tolerance-edge-past",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "now": 1614265630,
+      "headers": { "webhook-signature": "{v1a}" },
+      "expect": { "ok": true, "scheme": "v1a" }
+    },
+    {
+      "name": "tolerance-edge-future",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "now": 1614265030,
+      "headers": { "webhook-signature": "{v1a}" },
+      "expect": { "ok": true, "scheme": "v1a" }
+    },
+    {
+      "name": "timestamp-too-far-in-the-future",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "now": 1614265029,
+      "headers": { "webhook-signature": "{v1a}" },
+      "expect": { "ok": false, "error": "timestamp_out_of_tolerance" }
+    },
+    {
+      "name": "only-unknown-scheme",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-signature": "v2,AAAA" },
+      "expect": { "ok": false, "error": "no_matching_signature" }
+    },
+    {
+      "name": "malformed-token",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-signature": "v1a,!!! {v1a}" },
+      "expect": { "ok": false, "error": "malformed_header" }
+    },
+    {
+      "name": "wrong-length-token",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["hmac_secret"],
+      "headers": { "webhook-signature": "v1,AAAA" },
+      "expect": { "ok": false, "error": "malformed_header" }
+    },
+    {
+      "name": "empty-signature-header",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-signature": "   " },
+      "expect": { "ok": false, "error": "malformed_header" }
+    },
+    {
+      "name": "missing-id",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-id": null, "webhook-signature": "{v1a}" },
+      "expect": { "ok": false, "error": "missing_header" }
+    },
+    {
+      "name": "missing-signature",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-signature": null },
+      "expect": { "ok": false, "error": "missing_header" }
+    },
+    {
+      "name": "timestamp-not-a-number",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-timestamp": "16142653a0", "webhook-signature": "{v1a}" },
+      "expect": { "ok": false, "error": "malformed_header" }
+    },
+    {
+      "name": "timestamp-leading-zero",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-timestamp": "01614265330", "webhook-signature": "{v1a}" },
+      "expect": { "ok": false, "error": "malformed_header" }
+    },
+    {
+      "name": "key-of-other-scheme",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key"],
+      "headers": { "webhook-signature": "{v1}" },
+      "expect": { "ok": false, "error": "no_matching_signature" }
+    },
+    {
+      "name": "reserialised-body",
+      "base": "standard-webhooks-reference-body",
+      "keys": ["ed25519_public_key", "hmac_secret"],
+      "body_hex": "7b2274657374223a323433323233323331347d",
+      "headers": { "webhook-signature": "{v1a} {v1}" },
+      "expect": { "ok": false, "error": "no_matching_signature" }
+    }
+  ]
+}

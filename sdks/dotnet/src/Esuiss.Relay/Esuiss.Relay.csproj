@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Esuiss.Relay</RootNamespace>
+    <PackageId>Esuiss.Relay</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>esuiss</Authors>
+    <Description>Server SDK for Relay, the notification, messaging and event orchestration platform of Suiss.</Description>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>relay;notifications;messaging;webhooks;agents;sdk</PackageTags>
+    <RepositoryUrl>https://github.com/e-suiss/relay</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/e-suiss/relay/tree/main/sdks/dotnet</PackageProjectUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="Esuiss.Relay.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -225,6 +225,49 @@ defmodule Relay.Channels do
           {:ok, Pricing.price()} | :unpriced
   defdelegate price(declaration, channel, country, category, volume \\ 0), to: Pricing
 
+  # CH-18
+  # CH-58
+  @doc "The price of one WhatsApp message of a category to a country on a rate card; see `Relay.Channels.Whatsapp.Pricing.price/3`."
+  @spec whatsapp_price(map(), String.t() | nil, String.t()) :: Whatsapp.Pricing.cost()
+  defdelegate whatsapp_price(card, country, category), to: Whatsapp.Pricing, as: :price
+
+  # CH-42
+  @doc "The bundled content of an e-mail data set, for an installation without an active version."
+  @spec email_bundled(String.t()) :: map()
+  defdelegate email_bundled(name), to: Relay.Channels.Email.Bundled, as: :content
+
+  # T-25
+  # INV-40
+  @doc "The states of a provider account's two circuit breakers on this node: the provider breaker of its provider and the tenant breaker of the account; a breaker this node has not seen is closed."
+  @spec breaker_states(Relay.Scope.t(), map()) :: %{
+          provider: Breaker.Core.state(),
+          account: Breaker.Core.state()
+        }
+  def breaker_states(%Relay.Scope{} = scope, %{"provider" => provider} = account) do
+    target = %{
+      tenant_id: scope.tenant_id,
+      environment: scope.environment,
+      channel: account["channel"],
+      provider: provider,
+      provider_account_id: account["id"]
+    }
+
+    %{
+      provider: Breaker.provider_state(provider) || :closed,
+      account: Breaker.tenant_state(target) || :closed
+    }
+  end
+
+  # CH-36
+  # INV-43
+  @doc "Runs the sending domain wizard of an e-mail provider account, outside any transaction; see `Relay.Channels.Email.Wizard.run/4`. The resolver and the installation's bounce host come from `config :relay, Relay.Channels.Email, resolver: module, return_path_target: host`."
+  @spec email_domain_wizard(map(), DateTime.t()) :: [Relay.Channels.Email.Wizard.check()]
+  def email_domain_wizard(account, %DateTime{} = now) do
+    config = Application.get_env(:relay, Relay.Channels.Email, [])
+    resolver = Keyword.get(config, :resolver, Relay.Channels.Email.Resolver.Inet)
+    Relay.Channels.Email.Wizard.run(account, resolver, config[:return_path_target], now)
+  end
+
   # CH-17
   @doc "The adaptive factor of a provider account's rate; see `Relay.Channels.Throttle.factor/1`."
   @spec throttle_factor(Relay.Id.t() | nil) :: float()

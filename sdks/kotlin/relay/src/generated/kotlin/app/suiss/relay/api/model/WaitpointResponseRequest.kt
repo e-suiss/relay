@@ -30,7 +30,7 @@ import com.google.gson.annotations.SerializedName
  * A response to a waitpoint (C-74). The field is response, never approval (AG-26).
  *
  * @param response The response value; it follows the waitpoint's response_schema and is at most x-relay-limits waitpoint.max_response_bytes.
- * @param subjectDigest SHA-256 digest: sha256: and 64 lowercase hexadecimal characters.
+ * @param subjectDigest The digest of the subject the response is about, as the inbox item's waitpoint carries it: sha256: and 64 lowercase hexadecimal characters. The 64 hexadecimal characters alone are accepted too.
  */
 
 
@@ -40,7 +40,7 @@ data class WaitpointResponseRequest (
     @SerializedName("response")
     val response: kotlin.Any?,
 
-    /* SHA-256 digest: sha256: and 64 lowercase hexadecimal characters. */
+    /* The digest of the subject the response is about, as the inbox item's waitpoint carries it: sha256: and 64 lowercase hexadecimal characters. The 64 hexadecimal characters alone are accepted too. */
     @SerializedName("subject_digest")
     val subjectDigest: kotlin.String
 

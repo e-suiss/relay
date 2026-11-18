@@ -1434,6 +1434,21 @@ type Failure struct {
 	Retryable bool    `json:"retryable"`
 }
 
+// FallbackTimezoneReport: The sends in an inferred time zone of a period of the tenant environment, per UTC day and source (X-6, WF-46).
+type FallbackTimezoneReport struct {
+	Object string                           `json:"object"`
+	From   string                           `json:"from"`
+	To     string                           `json:"to"`
+	Rows   []FallbackTimezoneReportRowsItem `json:"rows"`
+}
+
+// FallbackTimezoneReportRowsItem is generated from the Relay API contract.
+type FallbackTimezoneReportRowsItem struct {
+	Day        string `json:"day"`
+	Source     string `json:"source"`
+	Deliveries int64  `json:"deliveries"`
+}
+
 // FieldError: One field error.
 type FieldError struct {
 	Pointer string  `json:"pointer"`
@@ -1846,28 +1861,36 @@ type JSONWebKeySet struct {
 
 // KillSwitch is generated from the Relay API contract.
 type KillSwitch struct {
-	Object        string        `json:"object"`
-	ID            IDKsw         `json:"id"`
-	ScopeKind     string        `json:"scope_kind"`
-	ScopeRef      *string       `json:"scope_ref,omitempty"`
-	Channel       *Channel      `json:"channel,omitempty"`
-	TargetKind    string        `json:"target_kind"`
-	TargetRef     *string       `json:"target_ref,omitempty"`
-	MessageClass  *MessageClass `json:"message_class,omitempty"`
-	State         string        `json:"state"`
-	CanaryPercent *int64        `json:"canary_percent,omitempty"`
-	PausedUntil   *Timestamp    `json:"paused_until,omitempty"`
-	Reason        string        `json:"reason"`
-	TicketRef     *string       `json:"ticket_ref,omitempty"`
-	Origin        string        `json:"origin"`
-	CreatedBy     string        `json:"created_by"`
-	ExpiresAt     *Timestamp    `json:"expires_at,omitempty"`
-	SupersedesID  *IDKsw        `json:"supersedes_id,omitempty"`
-	Status        string        `json:"status"`
-	ReleasedAt    *Timestamp    `json:"released_at,omitempty"`
-	ReleasedBy    *string       `json:"released_by,omitempty"`
-	ReleaseReason *string       `json:"release_reason,omitempty"`
-	CreatedAt     Timestamp     `json:"created_at"`
+	Object        string            `json:"object"`
+	ID            IDKsw             `json:"id"`
+	ScopeKind     string            `json:"scope_kind"`
+	ScopeRef      *string           `json:"scope_ref,omitempty"`
+	Channel       *Channel          `json:"channel,omitempty"`
+	TargetKind    string            `json:"target_kind"`
+	TargetRef     *string           `json:"target_ref,omitempty"`
+	MessageClass  *MessageClass     `json:"message_class,omitempty"`
+	State         string            `json:"state"`
+	CanaryPercent *int64            `json:"canary_percent,omitempty"`
+	PausedUntil   *Timestamp        `json:"paused_until,omitempty"`
+	Reason        string            `json:"reason"`
+	TicketRef     *string           `json:"ticket_ref,omitempty"`
+	Origin        string            `json:"origin"`
+	CreatedBy     string            `json:"created_by"`
+	ExpiresAt     *Timestamp        `json:"expires_at,omitempty"`
+	SupersedesID  *IDKsw            `json:"supersedes_id,omitempty"`
+	Status        string            `json:"status"`
+	ReleasedAt    *Timestamp        `json:"released_at,omitempty"`
+	ReleasedBy    *string           `json:"released_by,omitempty"`
+	ReleaseReason *string           `json:"release_reason,omitempty"`
+	Effect        *KillSwitchEffect `json:"effect,omitempty"`
+	CreatedAt     Timestamp         `json:"created_at"`
+}
+
+// KillSwitchEffect is generated from the Relay API contract.
+type KillSwitchEffect struct {
+	PausedCount   int64     `json:"paused_count"`
+	EffectDelayMs int64     `json:"effect_delay_ms"`
+	EffectiveAt   Timestamp `json:"effective_at"`
 }
 
 // KillSwitchEngage is generated from the Relay API contract.

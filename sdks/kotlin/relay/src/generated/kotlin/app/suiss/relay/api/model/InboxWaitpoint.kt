@@ -38,7 +38,7 @@ import com.google.gson.annotations.SerializedName
  * @param approvalUrl
  * @param respondedAt RFC 3339 timestamp in UTC.
  * @param responder
- * @param subjectDigest
+ * @param subjectDigest The digest of the subject the request is about, in the form respondToMyWaitpoint takes back.
  */
 
 
@@ -67,6 +67,7 @@ data class InboxWaitpoint (
     @SerializedName("responder")
     val responder: InboxWaitpointResponder? = null,
 
+    /* The digest of the subject the request is about, in the form respondToMyWaitpoint takes back. */
     @SerializedName("subject_digest")
     val subjectDigest: kotlin.String? = null
 

@@ -978,6 +978,7 @@ export interface components {
       kind: "response" | "approval";
       /** @enum {string} */
       status: "awaiting" | "processing" | "responded" | "not_awaited";
+      /** @description The digest of the subject the request is about, in the form respondToMyWaitpoint takes back. */
       subject_digest: string | null;
       options: {
         label: string;
@@ -1041,7 +1042,8 @@ export interface components {
     WaitpointResponseRequest: {
       /** @description The response value; it follows the waitpoint's response_schema and is at most x-relay-limits waitpoint.max_response_bytes. */
       response: unknown;
-      subject_digest: components["schemas"]["Sha256Digest"];
+      /** @description The digest of the subject the response is about, as the inbox item's waitpoint carries it: sha256: and 64 lowercase hexadecimal characters. The 64 hexadecimal characters alone are accepted too. */
+      subject_digest: string;
     };
     /** @description A response sent from a channel with a response token. */
     ChannelResponseRequest: {
@@ -1636,8 +1638,6 @@ export interface components {
      * @example wp_01j9zq3k4m5n6p7q8r9s0t1v2w
      */
     Id_wp: string;
-    /** @description SHA-256 digest: sha256: and 64 lowercase hexadecimal characters. */
-    Sha256Digest: string;
     /**
      * @description Waitpoint response identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7.
      * @example wpr_01j9zq3k4m5n6p7q8r9s0t1v2w
@@ -1659,6 +1659,8 @@ export interface components {
     };
     /** @enum {string} */
     EvidenceLevel: "channel_claim" | "relay_session" | "access_aas_ref";
+    /** @description SHA-256 digest: sha256: and 64 lowercase hexadecimal characters. */
+    Sha256Digest: string;
     /** @description Identifier from the single rule dictionary. */
     RuleId: string;
     /**

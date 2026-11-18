@@ -6144,3 +6144,25 @@ class Operations(OperationsBase):
             options=options,
             response="json",
         ))
+
+    def get_fallback_timezone_report(
+        self,
+        *,
+        from_: str,
+        to: str,
+        options: RequestOptions | None = None,
+    ) -> m.FallbackTimezoneReport:
+        """Get the fallback time zone report."""
+        return _t.cast("m.FallbackTimezoneReport", self._call(
+            "GET",
+            "/v1/reports/fallback_timezones",
+            path={},
+            query={"from": from_, "to": to},
+            headers={},
+            body=None,
+            content_type=None,
+            idempotent=False,
+            idempotency_key=None,
+            options=options,
+            response="json",
+        ))

@@ -1109,6 +1109,18 @@
       "class": "validation"
     },
     {
+      "code": "fault_injection_not_found",
+      "family": "resource",
+      "status": 404,
+      "retryable": false,
+      "retry_after": {
+        "kind": "none",
+        "seconds": null,
+        "max_seconds": null
+      },
+      "class": "validation"
+    },
+    {
       "code": "api_client_not_found",
       "family": "resource",
       "status": 404,

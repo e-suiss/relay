@@ -86,6 +86,7 @@ defmodule Relay.ExternalId do
     {"iyu", "iys_uploads"},
     {"tkd", "takedowns"},
     {"esp", "escalation_policies"},
+    {"fij", "fault_injections"},
     {"sdf", "shadow_differences"}
   ]
   @by_prefix Map.new(@tables)

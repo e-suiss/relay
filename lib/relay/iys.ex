@@ -12,7 +12,7 @@ defmodule Relay.Iys do
 
   use Boundary,
     top_level?: true,
-    deps: [Relay],
+    deps: [Relay, Relay.FaultInjection],
     exports: [Calendar, Client, Consent, Sweep, SyncSweep, SyncWorker, TokenCache, UploadWorker]
 
   alias Relay.Actor

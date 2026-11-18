@@ -9,6 +9,7 @@ defmodule Relay.Application do
       Relay.Platform.Leadership,
       Relay.Tenancy,
       Relay.Tenancy.KillSwitch,
+      Relay.FaultInjection,
       Relay.Access,
       Relay.Keys.Eviction,
       Relay.Datasets,
@@ -63,6 +64,7 @@ defmodule Relay.Application do
         Relay.Channels.Live.children() ++
         Relay.Tenancy.children() ++
         Relay.Tenancy.KillSwitch.children() ++
+        Relay.FaultInjection.children() ++
         Relay.Access.children() ++
         [Relay.Keys.Eviction] ++
         Relay.Datasets.children() ++

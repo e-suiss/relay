@@ -579,6 +579,14 @@ CampaignId:
   required: true
   schema:
     "$ref": "./schemas.yaml#/Id_cmp"
+FaultInjectionId:
+  name: fault_injection_id
+  in: path
+  description: Fault injection identifier.
+  required: true
+  schema:
+    type: string
+    pattern: "^fij_[0-7][0-9a-hjkmnp-tv-z]{25}$"
 ShadowDifferenceId:
   name: shadow_difference_id
   in: path

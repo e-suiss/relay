@@ -108,6 +108,24 @@ defmodule Relay.Policy.Live do
     read(scope, recipient_id, Relay.Id.generate(), keys)
   end
 
+  # PC-50
+  # X-43
+  @doc "Fills a recipient's global frequency counter up to the platform cap with members derived from `seed`, outside any transaction; filling it again renews the same members, so the counter stays full for the global window from then. The capped seed recipient of a test plane is kept this way."
+  @spec fill_frequency(Scope.t(), Relay.Id.t(), String.t()) :: :ok | :unavailable
+  def fill_frequency(%Scope{} = scope, recipient_id, seed) when is_binary(seed) do
+    [%{limit: limit}] = keys = Relay.Policy.frequency_keys(:marketing, :email, seed, nil, nil)
+
+    Enum.reduce_while(1..limit, :ok, fn n, :ok ->
+      <<ms::48, _::4, a::12, _::2, b::62, _rest::binary>> = :crypto.hash(:sha256, seed <> ":#{n}")
+      member = <<ms::48, 7::4, a::12, 2::2, b::62>>
+
+      case FrequencyCounter.record(scope, recipient_id, member, keys, counter_options()) do
+        :ok -> {:cont, :ok}
+        :unavailable -> {:halt, :unavailable}
+      end
+    end)
+  end
+
   # PC-40
   # PC-44
   # INV-17

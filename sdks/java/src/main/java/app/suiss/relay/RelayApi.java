@@ -1277,6 +1277,36 @@ public final class RelayApi {
           Operation.Presence.NONE,
           "application/json",
           Operation.Response.JSON);
+  private static final Operation LIST_SEED_RECIPIENTS =
+      new Operation(
+          "listSeedRecipients",
+          "GET",
+          "/v1/test/seed-recipients",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation RESET_SEED_RECIPIENTS =
+      new Operation(
+          "resetSeedRecipients",
+          "POST",
+          "/v1/test/seed-recipients/reset",
+          Operation.Presence.REQUIRED,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
+  private static final Operation LIST_TEST_INBOX_MESSAGES =
+      new Operation(
+          "listTestInboxMessages",
+          "GET",
+          "/v1/test/inbox",
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          Operation.Presence.NONE,
+          "application/json",
+          Operation.Response.JSON);
   private static final Operation LIST_WAITPOINTS =
       new Operation(
           "listWaitpoints",
@@ -5895,6 +5925,76 @@ public final class RelayApi {
    */
   public JsonNode listSimulatedResults() {
     return listSimulatedResults(RequestOptions.none());
+  }
+
+  /**
+   * List the seed recipients of the test plane.
+   *
+   * <p>{@code GET /v1/test/seed-recipients}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode listSeedRecipients(RequestOptions options) {
+    return requester.json(LIST_SEED_RECIPIENTS, List.of(), null, null, options);
+  }
+
+  /**
+   * List the seed recipients of the test plane.
+   *
+   * <p>{@code GET /v1/test/seed-recipients}
+   *
+   * @return the response body
+   */
+  public JsonNode listSeedRecipients() {
+    return listSeedRecipients(RequestOptions.none());
+  }
+
+  /**
+   * Reset the seed recipients of the test plane.
+   *
+   * <p>{@code POST /v1/test/seed-recipients/reset}
+   *
+   * @param options the request options
+   * @return the response body
+   */
+  public JsonNode resetSeedRecipients(RequestOptions options) {
+    return requester.json(RESET_SEED_RECIPIENTS, List.of(), null, null, options);
+  }
+
+  /**
+   * Reset the seed recipients of the test plane.
+   *
+   * <p>{@code POST /v1/test/seed-recipients/reset}
+   *
+   * @return the response body
+   */
+  public JsonNode resetSeedRecipients() {
+    return resetSeedRecipients(RequestOptions.none());
+  }
+
+  /**
+   * List the test inbox.
+   *
+   * <p>{@code GET /v1/test/inbox}
+   *
+   * @param params the query parameters
+   * @param options the request options
+   * @return the first page; further pages are fetched lazily
+   */
+  public Page listTestInboxMessages(ListTestInboxMessagesParams params, RequestOptions options) {
+    return requester.page(LIST_TEST_INBOX_MESSAGES, List.of(), params, options);
+  }
+
+  /**
+   * List the test inbox.
+   *
+   * <p>{@code GET /v1/test/inbox}
+   *
+   * @return the first page; further pages are fetched lazily
+   */
+  public Page listTestInboxMessages() {
+    return listTestInboxMessages(null, RequestOptions.none());
   }
 
   /**

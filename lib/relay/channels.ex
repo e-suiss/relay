@@ -281,8 +281,14 @@ defmodule Relay.Channels do
   # CH-72
   # X-26
   @doc "The simulated result table of the fake provider; see `Relay.Channels.Simulated.table/0`."
-  @spec simulated_results() :: [%{required(String.t()) => String.t()}, ...]
+  @spec simulated_results() :: [%{required(String.t()) => String.t() | [String.t()]}, ...]
   defdelegate simulated_results(), to: Simulated, as: :table
+
+  # X-43
+  # X-26
+  @doc "The seven seed recipients of a test plane with their addresses; see `Relay.Channels.Simulated.seeds/0`."
+  @spec seed_recipients() :: [%{required(String.t()) => String.t()}, ...]
+  defdelegate seed_recipients(), to: Simulated, as: :seeds
 
   # CH-72
   @doc "The simulated result of an address on a channel."

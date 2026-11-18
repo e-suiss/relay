@@ -15,17 +15,34 @@ defmodule Relay.Tenancy.Provisioning do
     blind_index: {"blind_index_key.registered", "blind_index_key"}
   }
 
+  # X-43
+  # X-35
+  @doc "Queues the setup of a new tenant's test plane: its seed recipients and its sample workflow."
+  @callback queue_seeds(Relay.Id.t()) :: :ok | {:error, Error.t()}
+
   # TN-1
   # TN-67 (1)
   # TN-68 (2)
-  @doc "Creates a tenant mapped from an Access tenant and, when it is created or already exists, provisions its missing keys in both environments."
+  @doc "Creates a tenant mapped from an Access tenant and, when it is created or already exists, provisions its missing keys in both environments and queues the setup of its test plane (X-43, X-35) through the configured `config :relay, Relay.Tenancy.Provisioning, test_plane: module`."
   @spec create_tenant(map(), Actor.t()) ::
           {:created | :exists | :conflict | :region_mismatch, Relay.Id.t() | nil}
           | {:error, Error.t()}
   def create_tenant(attrs, %Actor{} = actor) do
-    with {:ok, kek_label} <- Relay.Keys.kek_label(),
-         do: Relay.Tenancy.create_tenant(attrs, &plan(&1, kek_label, actor), actor)
+    with {:ok, kek_label} <- Relay.Keys.kek_label() do
+      attrs
+      |> Relay.Tenancy.create_tenant(&plan(&1, kek_label, actor), actor)
+      |> test_plane()
+    end
   end
+
+  defp test_plane({result, <<_::128>> = id} = created) when result in [:created, :exists] do
+    case :relay |> Application.get_env(__MODULE__, []) |> Keyword.get(:test_plane) do
+      nil -> created
+      module -> with :ok <- module.queue_seeds(id), do: created
+    end
+  end
+
+  defp test_plane(other), do: other
 
   # TN-67 (1)
   # TN-27

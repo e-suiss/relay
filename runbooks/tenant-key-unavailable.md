@@ -1,8 +1,9 @@
 ---
 id: tenant-key-unavailable
+kind: alert
 severity: SEV2
 channels: [all]
-tenant_scope: single
+tenant_scope: one
 alerts: [RelayTenantKeyUnavailable]
 last_tested: 2026-11-18
 tested_by: none

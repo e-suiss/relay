@@ -19,7 +19,7 @@ export const session = {
     { role: "tenant_admin", tenant_id: tenant, environment: "live" },
     { role: "tenant_admin", tenant_id: tenant, environment: "test" },
     { role: "tenant_operator", tenant_id: otherTenant, environment: "test" },
-  ],
+  ] as { role: string; tenant_id: string | null; environment: string | null }[],
   auth_time: "2026-11-18T08:00:00Z",
   step_up_valid_until: null,
   expires_at: "2026-11-18T20:00:00Z",
@@ -49,7 +49,11 @@ export function json(route: Route, status: number, body: unknown) {
 /** Answers `/v1/*` from fixtures; unknown paths are 404 problems so a missing mock is visible. */
 export async function mockApi(
   page: Page,
-  options: { signedIn?: boolean; handlers?: Handler[] } = {},
+  options: {
+    signedIn?: boolean;
+    handlers?: Handler[];
+    roles?: typeof session.roles;
+  } = {},
 ): Promise<Seen[]> {
   const seen: Seen[] = [];
   await page.route("**/v1/**", async (route) => {
@@ -74,7 +78,10 @@ export async function mockApi(
         });
         return;
       }
-      await json(route, 200, session);
+      await json(route, 200, {
+        ...session,
+        roles: options.roles ?? session.roles,
+      });
       return;
     }
     await json(route, 404, {

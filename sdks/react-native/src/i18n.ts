@@ -28,6 +28,8 @@ export const MESSAGES = {
     'prefs.off': 'Kapalı',
     'prefs.locked': 'Açık (kilitli)',
     'prefs.lockedHint': 'Bu bildirimler hesabınız için gereklidir ve kapatılamaz.',
+    'prefs.lockedHintTenant': 'Bu bildirimler hizmet için gereklidir ve kapatılamaz.',
+    'prefs.adminDisabled': 'Yöneticiniz kapattı',
     'prefs.osDisabled': 'Cihaz ayarlarından kapalı',
     'prefs.cell': '{category}, {channel}: {state}',
     'prefs.stepTitle': '{category} bildirimleri nasıl gelsin?',
@@ -79,6 +81,9 @@ export const MESSAGES = {
     'prefs.locked': 'On (locked)',
     'prefs.lockedHint':
       'These notifications are required for your account and cannot be turned off.',
+    'prefs.lockedHintTenant':
+      'These notifications are needed for the service and cannot be turned off.',
+    'prefs.adminDisabled': 'Turned off by your administrator',
     'prefs.osDisabled': 'Off in device settings',
     'prefs.cell': '{category}, {channel}: {state}',
     'prefs.stepTitle': 'How should {category} notifications reach you?',

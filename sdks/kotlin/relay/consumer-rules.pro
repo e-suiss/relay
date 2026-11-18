@@ -1,0 +1,2 @@
+-keep class app.suiss.relay.api.model.** { *; }
+-keepattributes Signature, *Annotation*

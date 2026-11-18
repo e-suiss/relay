@@ -1,0 +1,60 @@
+name: release-sdk-swift
+
+# X-50
+on:
+  push:
+    tags: ["sdk-swift-v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-sdk-swift
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 45
+    environment: sdk-swift-release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.1.1.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Version from the tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#sdk-swift-v}"
+          echo "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$'
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - name: Test
+        working-directory: sdks/swift
+        run: swift test --force-resolved-versions
+      - name: Source archive
+        run: git archive --format=zip --prefix=EsuissRelay/ "HEAD:sdks/swift" -o "EsuissRelay-$VERSION.zip"
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: EsuissRelay-${{ env.VERSION }}.zip
+      - name: Publish the package root for SwiftPM
+        env:
+          MIRROR_KEY: ${{ secrets.SWIFT_MIRROR_DEPLOY_KEY }}
+        run: |
+          key="$RUNNER_TEMP/mirror_key"
+          printf '%s\n' "$MIRROR_KEY" > "$key"
+          chmod 600 "$key"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          split=$(git subtree split --prefix sdks/swift HEAD)
+          git push git@github.com:e-suiss/relay-swift.git "$split:refs/heads/main" "$split:refs/tags/$VERSION"
+          rm -f "$key"
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" "EsuissRelay-$VERSION.zip" --title "EsuissRelay $VERSION" --notes "Swift package EsuissRelay $VERSION."

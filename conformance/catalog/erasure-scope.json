@@ -13,6 +13,12 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "tenant_closures",
+      "personal_columns": [],
+      "tenant_close": "row kept as the record of the closure, its export and the key destruction",
+      "subject_erasure": "not subject data"
+    },
+    {
       "table": "fault_injections",
       "personal_columns": [],
       "tenant_close": "row kept",

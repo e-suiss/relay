@@ -194,13 +194,7 @@ defmodule Relay.Keys do
   @doc "Returns the object label of a PKCS#11 URI (RFC 7512). A URI that carries a PIN is refused, and so is one without an object label."
   @spec label(String.t()) :: {:ok, label()} | {:error, Error.t()}
   def label("pkcs11:" <> rest) do
-    {path, query} =
-      case String.split(rest, "?", parts: 2) do
-        [path, query] -> {path, query}
-        [path] -> {path, ""}
-      end
-
-    attributes = attributes(path, ";") ++ attributes(query, "&")
+    attributes = uri_attributes(rest)
 
     if Enum.any?(attributes, fn {name, _} -> name in ["pin-value", "pin-source"] end),
       do: {:error, Error.new(:invalid_key_ref, "a key reference must not carry a PIN")},
@@ -208,6 +202,45 @@ defmodule Relay.Keys do
   end
 
   def label(_ref), do: {:error, Error.new(:invalid_key_ref, "not a PKCS#11 URI")}
+
+  # OP-85
+  # TN-63
+  @doc "Returns the token label and the object label of a PKCS#11 URI (RFC 7512) that names both, as a tenant's own key reference does (`pkcs11:token=…;object=…`). A URI that carries a PIN, lacks the token or the object, or names either more than once is refused."
+  @spec reference(String.t()) ::
+          {:ok, %{token: String.t(), label: label()}} | {:error, Error.t()}
+  def reference("pkcs11:" <> rest = uri) do
+    tokens = for {"token", value} <- uri_attributes(rest), do: value
+
+    with {:ok, label} <- label(uri) do
+      case tokens do
+        [token] when is_binary(token) and token != "" -> {:ok, %{token: token, label: label}}
+        _ -> {:error, Error.new(:invalid_key_ref, "a key reference names one token")}
+      end
+    end
+  end
+
+  def reference(_ref), do: {:error, Error.new(:invalid_key_ref, "not a PKCS#11 URI")}
+
+  # OP-85
+  # TN-34
+  @doc "The label of the PKCS#11 token the key store program opens, from the installation configuration; `nil` when no key store program is configured on this node."
+  @spec token() :: String.t() | nil
+  def token do
+    case Application.get_env(:relay, Relay.Keys.Port) do
+      opts when is_list(opts) -> Keyword.get(opts, :token)
+      _ -> nil
+    end
+  end
+
+  defp uri_attributes(rest) do
+    {path, query} =
+      case String.split(rest, "?", parts: 2) do
+        [path, query] -> {path, query}
+        [path] -> {path, ""}
+      end
+
+    attributes(path, ";") ++ attributes(query, "&")
+  end
 
   defp object_label([label]) when is_binary(label) and label != "", do: {:ok, label}
 

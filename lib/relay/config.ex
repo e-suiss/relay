@@ -67,6 +67,7 @@ defmodule Relay.Config do
     Relay.Preferences,
     RelayWeb.Links,
     Relay.Api.PreviewSandbox,
+    Relay.TenantLifecycle,
     Oban
   ]
   @repos [Relay.Repo, Relay.QueueRepo, Relay.BulkRepo, Relay.ReportRepo, Relay.Platform.MaintRepo]

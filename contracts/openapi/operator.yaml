@@ -2056,6 +2056,592 @@ paths:
       x-relay-idempotency: required
       x-relay-step-up: always
       x-relay-stage: 6
+  "/v1/operator/tenants/{tenant_id}/key_custody":
+    get:
+      operationId: getTenantKeyCustody
+      tags:
+        - platform
+      summary: Get a tenant's own key
+      description: "Installation operator only. The PKCS#11 URI of the tenant's own key in the region's key store, or null when its keys are wrapped under the region key, and how many of the tenant's keys of both environments are wrapped under it and under another key; while a change is incomplete keys_under_other is above zero."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The key reference.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantKeyCustody"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - tenant_not_found
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-85 makes setting a tenant's own key an installation operator action with step-up without naming a path; the path and shapes are chosen by the contract."
+    put:
+      operationId: setTenantKeyCustody
+      tags:
+        - platform
+      summary: Set or change a tenant's own key
+      description: "Installation operator with step-up (OP-85). key_ref is a PKCS#11 URI that names the region's token and a key object dedicated to the tenant (pkcs11:token=...;object=...); Relay never sees the key. The key is probed first: a key the key store cannot use is 503 key_unavailable and nothing changes; a URI without a token or an object, with a PIN, of another token or naming one of the installation's own keys is 422 validation_failed at /key_ref. Then the reference is recorded, audited as tenant.key_custody_changed, and every tenant key of both environments that is not destroyed is wrapped again under the new key; repeating the same request finishes an incomplete change. A closed tenant is 409 resource_conflict. Once set, a key the key store cannot reach makes the tenant's encrypted reads fail closed with key_unavailable, and a key the tenant destroys crypto-shreds the tenant."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/TenantKeyCustodyWrite"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The key reference after the change.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantKeyCustody"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - tenant_not_found
+        - resource_conflict
+        - key_unavailable
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-85 makes setting a tenant's own key an installation operator action with step-up without naming a path; the path and shapes are chosen by the contract."
+  "/v1/operator/tenants/{tenant_id}/closure":
+    get:
+      operationId: getTenantClosure
+      tags:
+        - platform
+      summary: Get a tenant's closure
+      description: "Installation operator only. The tenant's closure and its state: exporting while the full export is written, export_ready once every file and the manifest are in the region's object store, shredding and shredded during and after the destruction of its keys. From export_ready on, files lists every exported file with its environment, kind, format, row count, size, SHA-256 and a signed download link that expires at links_expire_at, a day after the read; reading again gives fresh links."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The closure.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantClosure"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - tenant_not_found
+        - tenant_closure_not_found
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: not_applicable
+      x-relay-step-up: false
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-86 makes the closure a two-step installation operator action without naming paths; the paths, the shapes and the confirmation by evidence reference are chosen by the contract."
+    post:
+      operationId: requestTenantClosure
+      tags:
+        - platform
+      summary: Close a tenant and export its data
+      description: "Installation operator with step-up, the first step of the closure (OP-86, OP-26). The tenant is set closed at once, so every entry point refuses new work, and the full export of both environments starts: subscribers and the raw deliveries, delivery events and usage records, page by page as JSON lines and CSV (formats, default both) in the installation's object store in the tenant's region, then a manifest. Audited as tenant.closed, and tenant.export_ready when the export is written. A tenant has one closure: a second request is 409 resource_conflict, and the installation tenant cannot be closed."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/TenantClosureRequest"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "201":
+          description: The closure recorded.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Location:
+              "$ref": "./components/headers.yaml#/Location"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantClosure"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - tenant_not_found
+        - resource_conflict
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-86 makes the closure a two-step installation operator action without naming paths; the paths, the shapes and the confirmation by evidence reference are chosen by the contract."
+  "/v1/operator/tenants/{tenant_id}/closure/confirm":
+    post:
+      operationId: confirmTenantClosure
+      tags:
+        - platform
+      summary: Record the tenant's confirmation
+      description: "Installation operator with step-up (OP-86). Records the tenant's explicit confirmation that its keys may be destroyed before 30 days have passed since the export was ready; confirmation_ref names the evidence, such as the Access record of the tenant owner's decision. Only an export_ready closure is confirmed (409 resource_conflict otherwise); confirming again changes nothing. Audited as tenant.closure_confirmed."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/TenantClosureConfirm"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The closure after the confirmation.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantClosure"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - tenant_not_found
+        - tenant_closure_not_found
+        - resource_conflict
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-86 makes the closure a two-step installation operator action without naming paths; the paths, the shapes and the confirmation by evidence reference are chosen by the contract."
+  "/v1/operator/tenants/{tenant_id}/closure/shred":
+    post:
+      operationId: shredTenantClosure
+      tags:
+        - platform
+      summary: Destroy a closed tenant's keys
+      description: "Installation operator with step-up, the second step of the closure (OP-86, OP-26). Allowed 30 days after the export was ready, or earlier once the tenant's confirmation is recorded; before that 409 resource_conflict. In both environments the tenant's data keys and the subject data keys of classes without a legal retention obligation are destroyed, and those with one are restricted and stay readable for their legal period with the key that wraps them (Access Appendix C); rows stay, unreadable. An active legal hold on the tenant is 409 resource_conflict and nothing is destroyed. Audited as tenant.shred_started and, per environment, tenant.shredded; a request that failed part way is completed by repeating it. shredded counts what this request destroyed and restricted."
+      parameters:
+        - "$ref": "./components/parameters.yaml#/RelayVersion"
+        - "$ref": "./components/parameters.yaml#/RelayBeta"
+        - "$ref": "./components/parameters.yaml#/IdempotencyKey"
+        - "$ref": "./components/parameters.yaml#/CsrfToken"
+        - "$ref": "./components/parameters.yaml#/TenantId"
+      security:
+        - operator_session: []
+        - operator_bearer: []
+      responses:
+        "200":
+          description: The closure after the destruction.
+          headers:
+            Request-Id:
+              "$ref": "./components/headers.yaml#/Request-Id"
+            Relay-Version:
+              "$ref": "./components/headers.yaml#/Relay-Version"
+            RateLimit:
+              "$ref": "./components/headers.yaml#/RateLimit"
+            RateLimit-Policy:
+              "$ref": "./components/headers.yaml#/RateLimit-Policy"
+            X-RateLimit-Limit:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Limit"
+            X-RateLimit-Remaining:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Remaining"
+            X-RateLimit-Reset:
+              "$ref": "./components/headers.yaml#/X-RateLimit-Reset"
+            Deprecation:
+              "$ref": "./components/headers.yaml#/Deprecation"
+            Sunset:
+              "$ref": "./components/headers.yaml#/Sunset"
+            Link:
+              "$ref": "./components/headers.yaml#/Link"
+            Idempotency-Key:
+              "$ref": "./components/headers.yaml#/Idempotency-Key"
+            Idempotency-Replayed:
+              "$ref": "./components/headers.yaml#/Idempotency-Replayed"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/TenantClosure"
+        "400":
+          "$ref": "./components/responses.yaml#/BadRequest"
+        "401":
+          "$ref": "./components/responses.yaml#/Unauthorized"
+        "403":
+          "$ref": "./components/responses.yaml#/Forbidden"
+        "404":
+          "$ref": "./components/responses.yaml#/NotFound"
+        "409":
+          "$ref": "./components/responses.yaml#/Conflict"
+        "413":
+          "$ref": "./components/responses.yaml#/PayloadTooLarge"
+        "415":
+          "$ref": "./components/responses.yaml#/UnsupportedMediaType"
+        "422":
+          "$ref": "./components/responses.yaml#/UnprocessableContent"
+        "429":
+          "$ref": "./components/responses.yaml#/TooManyRequests"
+        "500":
+          "$ref": "./components/responses.yaml#/InternalError"
+        "503":
+          "$ref": "./components/responses.yaml#/ServiceUnavailable"
+      x-relay-errors:
+        - auth_invalid_session
+        - auth_insufficient_role
+        - auth_missing_credentials
+        - auth_invalid_token
+        - auth_expired_token
+        - auth_tenant_suspended
+        - auth_csrf_failed
+        - unsupported_api_version
+        - unsupported_beta_feature
+        - rate_limited
+        - internal_error
+        - service_unavailable
+        - idempotency_key_missing
+        - idempotency_key_invalid
+        - idempotency_key_reuse
+        - idempotency_key_in_progress
+        - malformed_request
+        - unsupported_media_type
+        - payload_too_large
+        - validation_failed
+        - unknown_field
+        - auth_step_up_required
+        - auth_step_up_unavailable
+        - tenant_not_found
+        - tenant_closure_not_found
+        - resource_conflict
+      x-relay-role: installation_operator
+      x-relay-weight: 1
+      x-relay-idempotency: required
+      x-relay-step-up: always
+      x-relay-stage: 15
+      x-relay-choice: true
+      x-relay-choice-note: "OP-86 makes the closure a two-step installation operator action without naming paths; the paths, the shapes and the confirmation by evidence reference are chosen by the contract."
   "/v1/operator/send_modes":
     get:
       operationId: listSendModes
@@ -6687,6 +7273,218 @@ components:
               type: array
               items:
                 "$ref": "#/components/schemas/TenantOverview"
+    TenantKeyCustody:
+      type: object
+      description: "A tenant's own key in the region's key store (OP-85)."
+      required:
+        - object
+        - tenant_id
+        - key_ref
+        - keys_under_key
+        - keys_under_other
+      properties:
+        object:
+          type: string
+          const: tenant_key_custody
+        tenant_id:
+          "$ref": "./components/schemas.yaml#/Id_ten"
+        key_ref:
+          description: "The PKCS#11 URI of the tenant's own key; null while its keys are wrapped under the region key."
+          oneOf:
+            - type: string
+              maxLength: 512
+            - type: "null"
+        keys_under_key:
+          type: integer
+          minimum: 0
+        keys_under_other:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    TenantKeyCustodyWrite:
+      type: object
+      required:
+        - key_ref
+      properties:
+        key_ref:
+          type: string
+          minLength: 8
+          maxLength: 512
+          pattern: "^pkcs11:"
+          examples:
+            - "pkcs11:token=relay-tr;object=tenant-acme"
+      additionalProperties: false
+    TenantClosure:
+      type: object
+      description: "The closure of a tenant (OP-86): the full export, then the destruction of its keys."
+      required:
+        - object
+        - tenant_id
+        - state
+        - reason
+        - formats
+        - export_ready_at
+        - shred_after
+        - confirmed_at
+        - confirmation_ref
+        - shred_started_at
+        - shredded_at
+        - files
+        - links_expire_at
+        - created_at
+      properties:
+        object:
+          type: string
+          const: tenant_closure
+        tenant_id:
+          "$ref": "./components/schemas.yaml#/Id_ten"
+        state:
+          type: string
+          enum:
+            - exporting
+            - export_ready
+            - shredding
+            - shredded
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        formats:
+          type: array
+          minItems: 1
+          items:
+            "$ref": "#/components/schemas/TenantExportFormat"
+        export_ready_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        shred_after:
+          description: "The earliest time the keys may be destroyed: 30 days after the export was ready, or the confirmation time."
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        confirmed_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        confirmation_ref:
+          oneOf:
+            - type: string
+              maxLength: 256
+            - type: "null"
+        shred_started_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        shredded_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        files:
+          type: array
+          items:
+            "$ref": "#/components/schemas/TenantExportFile"
+        links_expire_at:
+          oneOf:
+            - "$ref": "./components/schemas.yaml#/Timestamp"
+            - type: "null"
+        shredded:
+          "$ref": "#/components/schemas/TenantShredCounts"
+        created_at:
+          "$ref": "./components/schemas.yaml#/Timestamp"
+      additionalProperties: false
+    TenantExportFormat:
+      type: string
+      enum:
+        - jsonl
+        - csv
+        - parquet
+    TenantExportFile:
+      type: object
+      required:
+        - environment
+        - kind
+        - format
+        - key
+        - rows
+        - bytes
+        - sha256
+        - url
+      properties:
+        environment:
+          type: string
+          enum:
+            - live
+            - test
+        kind:
+          type: string
+          enum:
+            - subscribers
+            - deliveries
+            - delivery_events
+            - usage_records
+        format:
+          "$ref": "#/components/schemas/TenantExportFormat"
+        key:
+          type: string
+          maxLength: 256
+        rows:
+          type: integer
+          minimum: 0
+        bytes:
+          type: integer
+          minimum: 0
+        sha256:
+          type: string
+          pattern: "^[0-9a-f]{64}$"
+        url:
+          type: string
+          format: uri
+      additionalProperties: false
+    TenantShredCounts:
+      type: object
+      required:
+        - keys
+        - deks
+        - restricted
+      properties:
+        keys:
+          type: integer
+          minimum: 0
+        deks:
+          type: integer
+          minimum: 0
+        restricted:
+          type: integer
+          minimum: 0
+      additionalProperties: false
+    TenantClosureRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        formats:
+          type: array
+          minItems: 1
+          maxItems: 3
+          uniqueItems: true
+          items:
+            "$ref": "#/components/schemas/TenantExportFormat"
+      additionalProperties: false
+    TenantClosureConfirm:
+      type: object
+      required:
+        - confirmation_ref
+      properties:
+        confirmation_ref:
+          type: string
+          minLength: 1
+          maxLength: 256
+      additionalProperties: false
     CriticalInterruption:
       type: object
       description: "A tenant's opening of the critical interruption level (CH-20, TN-23). Closed by default."

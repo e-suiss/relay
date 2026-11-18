@@ -17,6 +17,7 @@ defmodule RelayWeb do
       Relay.Api,
       Relay.Access,
       Relay.Operators,
+      Relay.TenantLifecycle,
       Relay.Observability,
       Relay.Realtime
     ],

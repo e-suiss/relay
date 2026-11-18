@@ -131,6 +131,14 @@ groups:
         annotations:
           summary: "The key store cannot sign push provider tokens; the last token has at most an hour of runway"
           runbook_url: runbooks/push-signing-unavailable.md
+      - alert: RelayTenantKeyUnavailable
+        expr: increase(relay_keys_custody_unavailable_total[5m]) > 0
+        labels:
+          severity: page
+          decision: OP-85
+        annotations:
+          summary: "A tenant's own key in the key store is unavailable; the tenant's encrypted reads fail closed"
+          runbook_url: runbooks/tenant-key-unavailable.md
   - name: relay-slo
     rules:
       - record: relay:slo_objective

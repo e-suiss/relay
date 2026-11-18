@@ -67,6 +67,19 @@ config :relay, Relay.Iys,
   http: [plug: {RelayTest.IysFake, []}],
   base_urls: %{"production" => "http://iys.invalid", "sandbox" => "http://iys.invalid"}
 
+config :relay, Relay.TenantLifecycle,
+  export_store:
+    {Relay.TenantLifecycle.ExportStore.S3,
+     [
+       endpoint: "http://exports.relay.test",
+       bucket: "relay-exports",
+       region: "us-east-1",
+       access_key_id: "relay-test",
+       secret_access_key: "relay-test-secret",
+       prefix: "",
+       req_options: [plug: {Req.Test, Relay.TenantLifecycle.ExportStore.S3}]
+     ]}
+
 config :relay, Relay.Keys,
   kek_label: "kek-test",
   fingerprint_label: "fingerprint-test",

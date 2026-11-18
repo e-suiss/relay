@@ -204,6 +204,24 @@ tests:
         exp_alerts: []
   - interval: 1m
     input_series:
+      - series: 'relay_keys_custody_unavailable_total'
+        values: "0 0 0 1 2 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3"
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: RelayTenantKeyUnavailable
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: RelayTenantKeyUnavailable
+        exp_alerts:
+          - exp_labels: {severity: page, decision: OP-85}
+            exp_annotations:
+              summary: "A tenant's own key in the key store is unavailable; the tenant's encrypted reads fail closed"
+              runbook_url: runbooks/tenant-key-unavailable.md
+      - eval_time: 15m
+        alertname: RelayTenantKeyUnavailable
+        exp_alerts: []
+  - interval: 1m
+    input_series:
       - series: 'relay_funnel_gap{gap="accepted_enqueued",channel="sms",provider="twilio"}'
         values: "1x10"
       - series: 'relay_funnel_gap{gap="accepted_enqueued",channel="email",provider="ses"}'

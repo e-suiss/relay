@@ -1,12 +1,13 @@
 defmodule Relay.Tenancy.KeyProvisioning do
   @moduledoc """
-  Tenant creation with its keys, from a key plan. After the tenant row exists, each environment gets a `data` and a `dek_wrap` key, wrapped under the region KEK inside the key store, and a blind index key generated inside the key store, where it stays. The plan names the region KEK label and, for every environment and key, the key identifier and the digest of the audit record that registers it; `Relay.Tenancy.Provisioning` builds it. A key that is already active is left as it is, so a repeated mapping event adds only what is missing. Every key store call runs before the transaction that registers its key.
+  Tenant creation with its keys, from a key plan. After the tenant row exists, each environment gets a `data` and a `dek_wrap` key, wrapped under the region KEK inside the key store, and a blind index key generated inside the key store, where it stays. The plan names the region KEK label and, for every environment and key, the key identifier and the digest of the audit record that registers it; `Relay.Tenancy.Provisioning` builds it. A key that is already active is left as it is, so a repeated mapping event adds only what is missing. A tenant with its own key (`Relay.Tenancy.KeyCustody`) gets its new keys wrapped under that key instead of the region KEK. Every key store call runs before the transaction that registers its key.
   """
 
   alias Relay.Error
   alias Relay.Scope
   alias Relay.Tenancy.Context
   alias Relay.Tenancy.Defaults
+  alias Relay.Tenancy.KeyCustody
   alias Relay.Tenancy.Keyring
   alias Relay.Tenancy.Store
 
@@ -59,6 +60,7 @@ defmodule Relay.Tenancy.KeyProvisioning do
   # TN-67 (1)
   # TN-27
   # TN-65 (2)
+  # OP-85
   @doc "Provisions the missing tenant keys and blind index keys of both environments of a tenant from a key plan."
   @spec provision(Relay.Id.t(), plan(), Relay.Actor.t()) :: :ok | {:error, Error.t()}
   def provision(<<_::128>> = tenant_id, plan, actor) do
@@ -129,8 +131,9 @@ defmodule Relay.Tenancy.KeyProvisioning do
     %{id: id, record_digest: digest} = plan.keys[{scope.environment, purpose}]
     attrs = %{id: id, purpose: purpose, kek_label: plan.kek_label, record_digest: digest}
 
-    with {:ok, generated} <-
-           Keyring.generate_tenant_key(scope, id, purpose, plan.kek_label),
+    with {:ok, {label, kek_ref}} <- KeyCustody.wrapping(scope, plan.kek_label),
+         {:ok, generated} <- Keyring.generate_tenant_key(scope, id, purpose, label),
+         generated = %{generated | kek_ref: kek_ref},
          {:ok, _registered} <-
            registered(
              Context.within(scope, fn _status ->

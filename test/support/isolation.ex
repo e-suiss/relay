@@ -604,9 +604,23 @@ defmodule RelayTest.Isolation do
     F.body(F.request(:post, "/v1/webhook_event_types", owner(scope), body), 201)["id"]
   end
 
-  @doc "Creates a webhook endpoint in `scope` and returns its identifier."
+  @doc "Creates a webhook endpoint in `scope` once per process and returns its identifier; every operation reads it from another scope and never changes it, so one endpoint serves them all within the tenant's endpoint limit."
   @spec webhook_endpoint!(Relay.Scope.t()) :: String.t()
   def webhook_endpoint!(scope) do
+    key = {__MODULE__, :webhook_endpoint, scope}
+
+    case Process.get(key) do
+      nil ->
+        id = create_webhook_endpoint!(scope)
+        Process.put(key, id)
+        id
+
+      id ->
+        id
+    end
+  end
+
+  defp create_webhook_endpoint!(scope) do
     body = %{
       "use" => "relay_events",
       "destination" => %{"kind" => "https", "url" => "https://hooks.example.com/isolation"},

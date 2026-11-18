@@ -53,11 +53,9 @@ defmodule Relay.Repo.Migrations.CreateRolloutAndDedupClaims do
       )
     end
 
-    execute(
-      """
-      ALTER TABLE relay.webhook_endpoints ADD COLUMN IF NOT EXISTS shadow boolean NOT NULL DEFAULT false
-      """
-    )
+    execute("""
+    ALTER TABLE relay.webhook_endpoints ADD COLUMN IF NOT EXISTS shadow boolean NOT NULL DEFAULT false
+    """)
 
     Enum.each(functions(), &execute/1)
 

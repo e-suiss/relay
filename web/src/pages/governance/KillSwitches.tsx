@@ -231,11 +231,11 @@ function EngageForm({ onDone }: { onDone: () => void }) {
   );
 }
 
-function ReleaseButton({
-  row,
+export function ReleaseButton({
+  path,
   onDone,
 }: {
-  row: KillSwitch;
+  path: string;
   onDone: () => void;
 }) {
   const { t } = useI18n();
@@ -261,14 +261,12 @@ function ReleaseButton({
 
   const submit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault();
-    mutate<KillSwitch>(
-      "POST",
-      `/v1/kill_switches/${encodeURIComponent(row.id)}/release`,
-      { reason },
-      key,
-    ).then(onDone, (failure: unknown) => {
-      if (!stepUp(failure)) setError(problemText(failure));
-    });
+    mutate<KillSwitch>("POST", path, { reason }, key).then(
+      onDone,
+      (failure: unknown) => {
+        if (!stepUp(failure)) setError(problemText(failure));
+      },
+    );
   };
 
   return (
@@ -353,7 +351,10 @@ export function KillSwitches() {
       header: t("common.actions"),
       render: (row) =>
         row.status === "active" ? (
-          <ReleaseButton row={row} onDone={paged.reload} />
+          <ReleaseButton
+            path={`/v1/kill_switches/${encodeURIComponent(row.id)}/release`}
+            onDone={paged.reload}
+          />
         ) : (
           t("killSwitch.released")
         ),

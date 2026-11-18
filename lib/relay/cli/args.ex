@@ -94,6 +94,12 @@ defmodule Relay.CLI.Args do
     "release" => {[reason: :string], 1, 1}
   }
 
+  @rollout %{
+    "get" => {[], 0, 0},
+    "emergency-stop" => {[reason: :string], 0, 0},
+    "release" => {[reason: :string], 0, 0}
+  }
+
   @usage """
   Usage: relay <command> [arguments] [options]
 
@@ -115,6 +121,10 @@ defmodule Relay.CLI.Args do
     kill-switch engage          Engage a kill switch (--scope, --ref, --reason, --ttl)
     kill-switch replace <id>    Tighten a kill switch (--state, --reason, --ttl)
     kill-switch release <id>    Release a kill switch (--reason)
+    rollout get                 Show the staged rollout configuration
+    rollout emergency-stop      Route every request to the system being replaced and open an
+                                incident record (--reason)
+    rollout release             Release the emergency stop (--reason)
     help                        Show this help
 
   Event options (trigger, preview):
@@ -193,6 +203,18 @@ defmodule Relay.CLI.Args do
         if head[:help] || "--help" in tail || "-h" in tail,
           do: {:help, @usage},
           else: {:error, "kill-switch needs one of: list, get, engage, replace, release", json?}
+    end
+  end
+
+  defp command("rollout", tail, head, json?) do
+    with [sub | rest] <- tail,
+         {:ok, spec} <- Map.fetch(@rollout, sub) do
+      build("rollout", sub, spec, rest, head, json?)
+    else
+      _other ->
+        if head[:help] || "--help" in tail || "-h" in tail,
+          do: {:help, @usage},
+          else: {:error, "rollout needs one of: get, emergency-stop, release", json?}
     end
   end
 

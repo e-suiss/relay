@@ -57,6 +57,7 @@ struct RelayMiddleware: ClientMiddleware {
 /// with full jitter backoff and `Retry-After` as a floor, and a mutation keeps its idempotency key.
 final class RelayHTTP: Sendable {
   let client: Client
+  let transport: any ClientTransport
   let tokens: TokenStore
   let configuration: RelayConfiguration
   let backoff = FullJitterBackoff(base: 0.5, cap: 30)
@@ -65,12 +66,46 @@ final class RelayHTTP: Sendable {
     self.configuration = configuration
     let tokens = TokenStore(provider: configuration.tokenProvider, clock: configuration.clock)
     self.tokens = tokens
+    let transport = transport ?? URLSessionTransport()
+    self.transport = transport
     self.client = Client(
       serverURL: configuration.baseURL,
       configuration: Configuration(dateTranscoder: RelayDateTranscoder()),
-      transport: transport ?? URLSessionTransport(),
+      transport: transport,
       middlewares: [RelayMiddleware(tokens: tokens)]
     )
+  }
+
+  func send(
+    _ method: HTTPRequest.Method,
+    path: String,
+    json: Data,
+    idempotencyKey: String,
+    operationID: String
+  ) async throws -> (HTTPResponse, Data) {
+    var fields = HTTPFields()
+    fields[.contentType] = "application/json"
+    fields[.accept] = "application/json"
+    fields[HTTPField.Name("Idempotency-Key")!] = idempotencyKey
+    let request = HTTPRequest(
+      method: method,
+      scheme: nil,
+      authority: nil,
+      path: path,
+      headerFields: fields
+    )
+    let transport = self.transport
+    let (response, body) = try await RelayMiddleware(tokens: tokens).intercept(
+      request,
+      body: HTTPBody(String(decoding: json, as: UTF8.self)),
+      baseURL: configuration.baseURL,
+      operationID: operationID
+    ) { outgoing, outgoingBody, url in
+      try await transport.send(outgoing, body: outgoingBody, baseURL: url, operationID: operationID)
+    }
+    var data = Data()
+    if let body { data = try await Data(collecting: body, upTo: 1 << 20) }
+    return (response, data)
   }
 
   // X-29

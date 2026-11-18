@@ -79,8 +79,61 @@ defmodule RelayWeb.Telemetry do
       webhook_metrics() ++
       iys_metrics() ++
       agent_metrics() ++
+      migration_metrics() ++
       vm_metrics()
   end
+
+  # OP-52 (3)
+  # OP-54
+  # OP-80
+  # OP-94
+  # OP-95
+  @doc "The migration metrics: the displayed notification digests the SDKs reported and how many were duplicates, whose ratio is the duplicate rate; the shadow comparisons by channel and state and the shadow sends to a recipient whose consent the other side refused or suppressed; the active intentional differences of the last report read; the emergency stops; and the HTTP responses by status class, whose `5xx` share freezes or rolls back a rollout."
+  @spec migration_metrics() :: [Telemetry.Metrics.t()]
+  def migration_metrics do
+    [
+      sum("relay.migration.displayed.total",
+        event_name: [:relay, :migration, :displayed],
+        measurement: :count,
+        description: "Displayed notification digests the SDKs reported"
+      ),
+      sum("relay.migration.displayed_duplicates.total",
+        event_name: [:relay, :migration, :displayed],
+        measurement: :duplicates,
+        description: "Reported displayed notification digests already reported in the window"
+      ),
+      counter("relay.shadow.compared.total",
+        event_name: [:relay, :shadow, :compared],
+        tags: [:channel, :state],
+        description: "Shadow comparisons that left the pending state, by channel and outcome"
+      ),
+      counter("relay.shadow.unpermitted.total",
+        event_name: [:relay, :shadow, :unpermitted],
+        tags: [:channel],
+        description: "Shadow sends to a recipient whose consent the other side refused"
+      ),
+      last_value("relay.shadow.intentional_differences",
+        event_name: [:relay, :shadow, :differences],
+        measurement: :active,
+        description: "Active intentional differences of the last shadow coverage report read"
+      ),
+      counter("relay.rollout.emergency_stop.total",
+        event_name: [:relay, :rollout, :emergency_stop],
+        description: "Emergency stops of a staged rollout"
+      ),
+      counter("relay.http.responses.total",
+        event_name: [:phoenix, :endpoint, :stop],
+        tags: [:status_class],
+        tag_values: &status_class/1,
+        description: "HTTP responses by status class"
+      )
+    ]
+  end
+
+  defp status_class(%{conn: %{status: status}}) when is_integer(status),
+    do: %{status_class: Integer.to_string(div(status, 100)) <> "xx"}
+
+  defp status_class(_metadata), do: %{status_class: "unknown"}
 
   # DS-42
   # OP-35 (6)

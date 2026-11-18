@@ -24,6 +24,7 @@ import 'realtime/phoenix.dart';
 import 'realtime/poll.dart';
 import 'realtime/sse.dart';
 import 'realtime/transport.dart';
+import 'telemetry/displayed.dart';
 
 // X-31
 // IN-35
@@ -47,6 +48,8 @@ class RelayClient {
     this.locale,
     String? timezone,
     this.openTimeout = const Duration(seconds: 5),
+    bool reportDisplayedNotifications = false,
+    RelayPeriodic? periodic,
   }) : store = store ?? MemoryRelayKeyValueStore(),
        clock = clock ?? const SystemRelayClock(),
        logger = logger ?? const SilentRelayLogger() {
@@ -73,6 +76,12 @@ class RelayClient {
       store: this.store,
       clock: this.clock,
     );
+    displayedNotifications = RelayDisplayedNotifications(
+      http: http,
+      enabled: reportDisplayedNotifications,
+      clock: this.clock,
+      periodic: periodic,
+    );
     preferences = RelayPreferencesApi(http);
     waitpoints = RelayWaitpointsApi(http);
     final RelayPushAdapter? adapter = push;
@@ -91,6 +100,7 @@ class RelayClient {
         receipts: receipts,
         store: this.store,
         contentSource: contentSource,
+        displayedNotifications: displayedNotifications,
         locale: locale,
         logger: this.logger,
         onSync: (int? _) async {
@@ -158,6 +168,9 @@ class RelayClient {
 
   /// The push receipt queue.
   late final RelayReceiptQueue receipts;
+
+  /// Opt-in reporting of displayed notifications by identifier digest.
+  late final RelayDisplayedNotifications displayedNotifications;
 
   /// The preferences.
   late final RelayPreferencesApi preferences;
@@ -246,6 +259,7 @@ class RelayClient {
   /// Closes the stream; freshness is left to push.
   Future<void> background() async {
     _foreground = false;
+    unawaited(displayedNotifications.flush());
     await realtime.stop();
   }
 
@@ -265,6 +279,11 @@ class RelayClient {
     await intents.flush();
   }
 
+  // OP-95
+  /// Reports a notification the app displayed itself, by its Relay notification identifier; only its digest is sent, and only when `reportDisplayedNotifications` is on.
+  Future<void> reportDisplayedNotification(String notificationId) =>
+      displayedNotifications.report(notificationId);
+
   /// The permission the device reported last.
   DevicePermission? get pushPermission => devices?.permission;
 
@@ -274,12 +293,15 @@ class RelayClient {
     await realtime.stop();
     await devices?.unregister();
     await intents.clear();
+    await displayedNotifications.flush();
+    displayedNotifications.clear();
     inbox.clear();
     http.clearToken();
   }
 
   /// Releases resources.
   Future<void> dispose() async {
+    displayedNotifications.dispose();
     await realtime.stop();
     await devices?.dispose();
   }

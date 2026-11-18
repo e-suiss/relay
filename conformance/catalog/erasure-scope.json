@@ -993,6 +993,40 @@
       "personal_columns": [],
       "tenant_close": "row kept",
       "subject_erasure": "not subject data; the run state of an agent and the owner's reference"
+    },
+    {
+      "table": "shadow_keys",
+      "personal_columns": [],
+      "tenant_close": "row kept; the wrapped key is erased at the end of the shadow retention period",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "shadow_comparisons",
+      "personal_columns": [
+        "delivery_ct",
+        "legacy_ct",
+        "relay_ct"
+      ],
+      "tenant_close": "row kept; unreadable once its day key is destroyed",
+      "subject_erasure": "masked and digested values only, sealed under the day key of the shadow retention class, which is destroyed 14 days after its day; the outcome columns hold no personal value"
+    },
+    {
+      "table": "shadow_differences",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "rollout_configs",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "pinned recipients are SHA-256 digests of the tenant and the external identifier; once the subject is erased Relay holds no external identifier the digest could be matched with"
+    },
+    {
+      "table": "dedup_claims",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "dedup keys of the tenant's existing system, not subject data"
     }
   ],
   "locations": [

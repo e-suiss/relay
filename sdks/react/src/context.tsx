@@ -111,6 +111,9 @@ export function RelayProvider(props: RelayProviderProps): ReactNode {
       ...(initial.tabs === undefined ? {} : { tabs: initial.tabs }),
       ...(initial.undoWindowMs === undefined ? {} : { undoWindowMs: initial.undoWindowMs }),
       ...(initial.storage === undefined ? {} : { storage: initial.storage }),
+      ...(initial.reportDisplayedNotifications === undefined
+        ? {}
+        : { reportDisplayedNotifications: initial.reportDisplayedNotifications }),
     });
   }, [given, baseUrl, hasToken, hasPortalToken]);
   const runtime = given ?? (owned as RelayRuntime);

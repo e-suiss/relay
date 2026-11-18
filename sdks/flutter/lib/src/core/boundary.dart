@@ -4,6 +4,10 @@ import 'errors.dart';
 /// The path of the realtime WebSocket.
 const String relayWebSocketPath = '/v1/realtime/websocket';
 
+/// The path where displayed notification digests are reported.
+const String relayDisplayedNotificationsPath =
+    '/v1/subscriber/displayed_notifications';
+
 // X-31
 /// The calls a client may make: subscriber-token operations only; no event triggering, no profile or consent writes and no secret credentials.
 abstract final class RelayBoundary {
@@ -11,6 +15,7 @@ abstract final class RelayBoundary {
     for (final RelayOperation op in RelayOperation.values)
       (op.method, _pattern(op.path)),
     ('GET', _pattern(relayWebSocketPath)),
+    ('POST', _pattern(relayDisplayedNotificationsPath)),
   ];
 
   static RegExp _pattern(String template) {

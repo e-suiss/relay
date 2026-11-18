@@ -48,7 +48,8 @@ config :relay, Relay.Platform.Leadership,
     {"tenant_suspension_activator", Relay.Operators.SuspensionActivator, []},
     {"observability_rollup", Relay.Observability.Rollup, []},
     {"inbox_maintenance", Relay.Inbox.Maintenance, []},
-    {"webhook_maintenance", Relay.Webhooks.Maintenance, []}
+    {"webhook_maintenance", Relay.Webhooks.Maintenance, []},
+    {"shadow_key_sweep", Relay.Migration.KeySweep, []}
   ]
 
 config :relay, Relay.Audit,

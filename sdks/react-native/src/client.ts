@@ -1,4 +1,5 @@
 import { ConsentsClient } from './consents';
+import { DisplayedNotificationReporter } from './displayed';
 import { RelayHttp, TokenManager } from './http';
 import { resolveLocale, type RelayLocale } from './i18n';
 import { IntentQueue, type FlushResult } from './inbox/queue';
@@ -52,6 +53,8 @@ export interface RelayClientOptions {
   readonly locale?: string;
   readonly timezone?: string;
   readonly realtime?: boolean;
+  /** Reports the SHA-256 digests of the notification ids this device displays, so Relay can measure duplicate displays; off by default. */
+  readonly reportDisplayedNotifications?: boolean;
   readonly fetch?: FetchLike;
   readonly webSocket?: WebSocketFactory;
   readonly streaming?: StreamingConnector;
@@ -78,6 +81,7 @@ export class RelayClient {
   readonly sync: InboxSync;
   readonly queue: IntentQueue;
   readonly receipts: ReceiptQueue;
+  readonly displayedNotifications: DisplayedNotificationReporter | null;
   readonly presence: DeviceStatusWriter;
   readonly preferences: PreferencesClient;
   readonly consents: ConsentsClient;
@@ -124,6 +128,10 @@ export class RelayClient {
       ...(options.onConflicts ? { onConflicts: options.onConflicts } : {}),
     });
     this.receipts = new ReceiptQueue(this.http, options.storage, clock, random, logger);
+    this.displayedNotifications =
+      options.reportDisplayedNotifications === true
+        ? new DisplayedNotificationReporter(this.http, options.storage, clock, random, logger)
+        : null;
     this.preferences = new PreferencesClient(this.http);
     this.consents = new ConsentsClient(this.http);
     this.waitpoints = new WaitpointsClient(this.http);
@@ -172,6 +180,7 @@ export class RelayClient {
     await this.devices?.start().catch(() => null);
     await this.sync.foreground();
     await this.receipts.flush();
+    await this.displayedNotifications?.flush();
   }
 
   // IN-35
@@ -181,12 +190,21 @@ export class RelayClient {
     await this.devices?.register('foreground').catch(() => null);
     await this.sync.foreground();
     await this.receipts.flush();
+    await this.displayedNotifications?.flush();
   }
 
   // IN-35
-  /** Call when the app goes to the background: the realtime connection closes. */
+  /** Call when the app goes to the background: the realtime connection closes and queued displayed-notification digests are reported. */
   background(): void {
     this.sync.background();
+    void this.displayedNotifications?.flush().catch(() => undefined);
+  }
+
+  // OP-54
+  // OP-95
+  /** Queues the digest of a notification id the app displayed itself when `reportDisplayedNotifications` is on; does nothing otherwise. */
+  async reportDisplayed(notificationId: string): Promise<void> {
+    await this.displayedNotifications?.record(notificationId);
   }
 
   // IN-12
@@ -203,12 +221,19 @@ export class RelayClient {
 
   /** Disables this device's push registration and forgets the local inbox state; call on sign-out. */
   async signOut(): Promise<void> {
-    this.background();
+    this.sync.background();
     this.presence.stop();
+    this.displayedNotifications?.stop();
     await this.devices?.unregister().catch(() => undefined);
     this.inbox.clear();
     this.tokens.clear();
-    for (const key of ['relay.inbox.intents', 'relay.push.receipts', 'relay.push.index']) {
+    for (const key of [
+      'relay.inbox.intents',
+      'relay.push.receipts',
+      'relay.push.index',
+      'relay.displayed.pending',
+      'relay.displayed.batches',
+    ]) {
       await this.storage.removeItem(key);
     }
   }
@@ -223,6 +248,7 @@ export class RelayClient {
     clock: Clock,
     logger: Logger,
   ): PushHandler {
+    const reporter = this.displayedNotifications;
     return new PushHandler({
       adapter: push.adapter,
       contentSource: push.contentSource ?? new RelayPushContentSource(this.http),
@@ -233,6 +259,7 @@ export class RelayClient {
       locale: () => this.locale,
       syncCounters: () => this.sync.refreshCounters(),
       ...(push.channelId ? { channelId: push.channelId } : {}),
+      ...(reporter ? { displayed: (id: string) => reporter.record(id) } : {}),
     });
   }
 

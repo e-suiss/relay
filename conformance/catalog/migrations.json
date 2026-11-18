@@ -325,5 +325,10 @@
   {"file": "20270117000100_create_import_functions.exs", "sha256": "616d7c21632c0c4440ee14fce8f41c629cec30076685710dfca21c5067dd96e9"},
   {"file": "20270117000200_add_recurrence_handoff.exs", "sha256": "40df56e32282f2aace63e58accf69798b02d7cd416956a6a8f820f581145bbb5"},
   {"file": "20270117000300_validate_recurrence_handoff_checks.exs", "sha256": "03e2ce1f4b025e9acd17ca5eadeb57a2aa321cf77a6f4ae7bbffd8c0abfabc58"},
-  {"file": "20270117000400_rebuild_reference_check_for_imports.exs", "sha256": "def4ae4643669e1a39c6b1852408295b3caac4b843843a8b899afd7041762cba"}
+  {"file": "20270117000400_rebuild_reference_check_for_imports.exs", "sha256": "def4ae4643669e1a39c6b1852408295b3caac4b843843a8b899afd7041762cba"},
+  {"file": "20270116000000_add_shadow_retention_class.exs", "sha256": "b4eee6bccc9da26c777b75360b746a8ab014b87165a95ca3c712d824cb9a815a"},
+  {"file": "20270116000100_create_shadow_comparisons.exs", "sha256": "4c2de751ed4ed61ceedf9183ada7fe9e100add302a407b64ff410119b952d4bf"},
+  {"file": "20270116000200_create_rollout_and_dedup_claims.exs", "sha256": "8cbd265bcf1c3689c1e102d7fc858225d193e9e03e1053d57e27e7f470238ba1"},
+  {"file": "20270116000300_index_events_by_correlation_id.exs", "sha256": "7ccf4dbd56fa6c6f806640fe40e64c8925c461a10eadb10d53cffe2d4490468d"},
+  {"file": "20270118000000_rebuild_reference_check_for_shadow_comparisons.exs", "sha256": "911149da6a6b32a412612104dac75dff15bdeb59e3071241d332cb916bf76422"}
 ]

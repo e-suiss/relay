@@ -15949,3 +15949,543 @@ FaultInjectionClear:
       minLength: 1
       maxLength: 2000
   additionalProperties: false
+Id_sdf:
+  type: string
+  description: "Intentional shadow difference identifier: prefix plus 26 lowercase Crockford base32 characters of a UUIDv7."
+  pattern: "^sdf_[0-7][0-9a-hjkmnp-tv-z]{25}$"
+  examples:
+    - sdf_01j9zq3k4m5n6p7q8r9s0t1v2w
+Sha256Hex:
+  type: string
+  description: "Lowercase hexadecimal SHA-256 digest."
+  pattern: "^[0-9a-f]{64}$"
+ShadowField:
+  type: string
+  description: "A field a shadow comparison can differ in. recipients, decision, consent, timing, dedup_key and schedule belong to the decision layer, content to the content layer, provider and sender to the routing layer."
+  enum:
+    - recipients
+    - decision
+    - consent
+    - timing
+    - dedup_key
+    - schedule
+    - content
+    - provider
+    - sender
+ShadowLayer:
+  type: string
+  description: "A layer of the shadow comparison (OP-52 (4))."
+  enum:
+    - decision
+    - content
+    - routing
+ShadowOutcome:
+  type: object
+  description: "What the existing system decided for one recipient of one channel."
+  required:
+    - external_id
+    - decision
+    - consent
+    - timing
+  properties:
+    external_id:
+      "$ref": "#/ExternalId"
+    decision:
+      type: string
+      enum:
+        - sent
+        - skipped
+        - deferred
+    consent:
+      type: string
+      description: "allowed, or refused for a missing or revoked consent, or suppressed for a suppressed address."
+      enum:
+        - allowed
+        - refused
+        - suppressed
+    timing:
+      type: string
+      description: "What shaped the timing: nothing, quiet hours, a frequency limit or a throttle."
+      enum:
+        - none
+        - quiet_hours
+        - frequency
+        - throttle
+  additionalProperties: false
+ShadowChannelObservation:
+  type: object
+  required:
+    - channel
+    - outcomes
+  properties:
+    channel:
+      "$ref": "#/Channel"
+    content_digest:
+      description: "The canonical content digest of what was sent on the channel, null when nothing was sent."
+      oneOf:
+        - "$ref": "#/Sha256Hex"
+        - type: "null"
+    provider:
+      oneOf:
+        - type: string
+          minLength: 1
+          maxLength: 64
+        - type: "null"
+    sender:
+      oneOf:
+        - type: string
+          minLength: 1
+          maxLength: 256
+        - type: "null"
+    outcomes:
+      type: array
+      minItems: 1
+      maxItems: 100
+      items:
+        "$ref": "#/ShadowOutcome"
+  additionalProperties: false
+ShadowObservation:
+  type: object
+  description: "The existing system's decision for one request (OP-94)."
+  required:
+    - correlation_id
+    - channels
+  properties:
+    correlation_id:
+      "$ref": "#/CorrelationId"
+    template:
+      oneOf:
+        - "$ref": "#/TemplateKey"
+        - type: "null"
+    locale:
+      oneOf:
+        - "$ref": "#/Locale"
+        - type: "null"
+    dedup_key:
+      oneOf:
+        - type: string
+          minLength: 1
+          maxLength: 512
+        - type: "null"
+    scheduled_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    channels:
+      type: array
+      minItems: 1
+      maxItems: 12
+      items:
+        "$ref": "#/ShadowChannelObservation"
+  additionalProperties: false
+ShadowObservationResult:
+  type: object
+  required:
+    - object
+    - correlation_id
+    - recorded
+    - compared
+    - unknown_recipients
+  properties:
+    object:
+      type: string
+      const: shadow_observation
+    correlation_id:
+      "$ref": "#/CorrelationId"
+    recorded:
+      type: integer
+      minimum: 0
+    compared:
+      type: integer
+      minimum: 0
+      description: "Recorded outcomes compared at once with Relay's decision; the others are compared once it is known."
+    unknown_recipients:
+      type: integer
+      minimum: 0
+  additionalProperties: false
+ShadowCoverageRow:
+  type: object
+  required:
+    - template
+    - locale
+    - channel
+    - observed
+    - decision_differences
+    - explained
+    - unexplained
+    - content_differences
+    - routing_differences
+    - sufficient
+  properties:
+    template:
+      type: string
+    locale:
+      type: string
+    channel:
+      "$ref": "#/Channel"
+    observed:
+      type: integer
+      minimum: 0
+    decision_differences:
+      type: integer
+      minimum: 0
+    explained:
+      type: integer
+      minimum: 0
+    unexplained:
+      type: integer
+      minimum: 0
+    content_differences:
+      type: integer
+      minimum: 0
+    routing_differences:
+      type: integer
+      minimum: 0
+    sufficient:
+      type: boolean
+  additionalProperties: false
+ShadowCoverage:
+  type: object
+  required:
+    - object
+    - window_days
+    - first_observed_at
+    - days_observed
+    - cycles_met
+    - unexplained_decision_differences
+    - active_intentional_differences
+    - exit_criteria_met
+    - rows
+  properties:
+    object:
+      type: string
+      const: shadow_coverage
+    window_days:
+      type: integer
+      minimum: 1
+    first_observed_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    days_observed:
+      type: integer
+      minimum: 0
+    cycles_met:
+      type: boolean
+    unexplained_decision_differences:
+      type: integer
+      minimum: 0
+    active_intentional_differences:
+      type: integer
+      minimum: 0
+    exit_criteria_met:
+      type: boolean
+    rows:
+      type: array
+      items:
+        "$ref": "#/ShadowCoverageRow"
+  additionalProperties: false
+ShadowDifference:
+  type: object
+  required:
+    - id
+    - object
+    - layer
+    - field
+    - template
+    - channel
+    - owner
+    - reason
+    - expires_at
+    - renewals
+    - state
+    - created_at
+    - updated_at
+  properties:
+    id:
+      "$ref": "#/Id_sdf"
+    object:
+      type: string
+      const: shadow_difference
+    layer:
+      "$ref": "#/ShadowLayer"
+    field:
+      oneOf:
+        - "$ref": "#/ShadowField"
+        - type: "null"
+    template:
+      oneOf:
+        - "$ref": "#/TemplateKey"
+        - type: "null"
+    channel:
+      oneOf:
+        - "$ref": "#/Channel"
+        - type: "null"
+    owner:
+      type: string
+    reason:
+      type: string
+    expires_at:
+      "$ref": "#/Timestamp"
+    renewals:
+      type: integer
+      minimum: 0
+    state:
+      type: string
+      enum:
+        - active
+        - expired
+    created_at:
+      "$ref": "#/Timestamp"
+    updated_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ShadowDifferenceList:
+  allOf:
+    - "$ref": "#/ListEnvelope"
+    - properties:
+        data:
+          type: array
+          items:
+            "$ref": "#/ShadowDifference"
+ShadowDifferenceCreate:
+  type: object
+  required:
+    - layer
+    - owner
+    - reason
+    - expires_at
+  properties:
+    layer:
+      "$ref": "#/ShadowLayer"
+    field:
+      oneOf:
+        - "$ref": "#/ShadowField"
+        - type: "null"
+    template:
+      oneOf:
+        - "$ref": "#/TemplateKey"
+        - type: "null"
+    channel:
+      oneOf:
+        - "$ref": "#/Channel"
+        - type: "null"
+    owner:
+      type: string
+      minLength: 1
+      maxLength: 200
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 1000
+    expires_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+ShadowDifferenceRenew:
+  type: object
+  required:
+    - expires_at
+    - reason
+  properties:
+    expires_at:
+      "$ref": "#/Timestamp"
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 1000
+  additionalProperties: false
+RolloutStep:
+  type: object
+  required:
+    - basis_points
+    - changed_at
+  properties:
+    basis_points:
+      type: integer
+      minimum: 0
+      maximum: 10000
+    changed_at:
+      "$ref": "#/Timestamp"
+  additionalProperties: false
+Rollout:
+  type: object
+  description: "The staged rollout configuration of a tenant environment (OP-53, OP-95). generation 0 means none is set and every request goes to Relay."
+  required:
+    - object
+    - generation
+    - emergency_stop
+    - stopped_at
+    - stop_reason
+    - relay_list
+    - legacy_list
+    - enabled_categories
+    - basis_points
+    - steps
+    - updated_at
+  properties:
+    object:
+      type: string
+      const: rollout
+    generation:
+      type: integer
+      minimum: 0
+    emergency_stop:
+      type: boolean
+    stopped_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+    stop_reason:
+      oneOf:
+        - type: string
+        - type: "null"
+    relay_list:
+      type: array
+      description: "Digests of the pinned Relay recipients: SHA-256 of the tenant id bytes, 0x00 and the external_id."
+      items:
+        "$ref": "#/Sha256Hex"
+    legacy_list:
+      type: array
+      items:
+        "$ref": "#/Sha256Hex"
+    enabled_categories:
+      type: array
+      items:
+        "$ref": "#/CategoryKey"
+    basis_points:
+      type: object
+      propertyNames:
+        "$ref": "#/CategoryKey"
+      additionalProperties:
+        type: integer
+        minimum: 0
+        maximum: 10000
+    steps:
+      type: object
+      propertyNames:
+        "$ref": "#/CategoryKey"
+      additionalProperties:
+        "$ref": "#/RolloutStep"
+    updated_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+RolloutReplace:
+  type: object
+  required:
+    - generation
+    - relay_list
+    - legacy_list
+    - enabled_categories
+    - basis_points
+  properties:
+    generation:
+      type: integer
+      minimum: 0
+      description: "The generation of the configuration that was read; 0 when none was set."
+    relay_list:
+      type: array
+      maxItems: 1000
+      uniqueItems: true
+      items:
+        "$ref": "#/ExternalId"
+    legacy_list:
+      type: array
+      maxItems: 1000
+      uniqueItems: true
+      items:
+        "$ref": "#/ExternalId"
+    enabled_categories:
+      type: array
+      maxItems: 200
+      uniqueItems: true
+      items:
+        "$ref": "#/CategoryKey"
+    basis_points:
+      type: object
+      maxProperties: 200
+      propertyNames:
+        "$ref": "#/CategoryKey"
+      additionalProperties:
+        type: integer
+        minimum: 0
+        maximum: 10000
+  additionalProperties: false
+RolloutStop:
+  type: object
+  required:
+    - reason
+  properties:
+    reason:
+      type: string
+      minLength: 1
+      maxLength: 1000
+  additionalProperties: false
+DedupClaimRequest:
+  type: object
+  required:
+    - key
+    - ttl_seconds
+  properties:
+    key:
+      type: string
+      minLength: 1
+      maxLength: 512
+    ttl_seconds:
+      type: integer
+      minimum: 60
+      maximum: 604800
+  additionalProperties: false
+DedupClaim:
+  type: object
+  required:
+    - object
+    - key
+    - result
+    - claimed_by
+    - expires_at
+  properties:
+    object:
+      type: string
+      const: dedup_claim
+    key:
+      type: string
+    result:
+      type: string
+      enum:
+        - claimed
+        - duplicate
+    claimed_by:
+      type: string
+      enum:
+        - legacy
+        - relay
+    expires_at:
+      oneOf:
+        - "$ref": "#/Timestamp"
+        - type: "null"
+  additionalProperties: false
+WebhookEndpointShadow:
+  type: object
+  required:
+    - shadow
+  properties:
+    shadow:
+      type: boolean
+  additionalProperties: false
+WebhookEndpointShadowState:
+  type: object
+  required:
+    - object
+    - webhook_endpoint_id
+    - shadow
+  properties:
+    object:
+      type: string
+      const: webhook_endpoint_shadow
+    webhook_endpoint_id:
+      "$ref": "#/Id_whe"
+    shadow:
+      type: boolean
+  additionalProperties: false

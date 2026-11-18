@@ -203,7 +203,7 @@ struct Harness {
   let logger = CapturingLogger()
   let configuration: RelayConfiguration
 
-  init(scopes: Set<RelayScope> = []) {
+  init(scopes: Set<RelayScope> = [], reportDisplayedNotifications: Bool = false) {
     tokens = StaticTokens(scopes: scopes)
     configuration = RelayConfiguration(
       baseURL: URL(string: "https://relay.test")!,
@@ -211,7 +211,8 @@ struct Harness {
       tokenProvider: tokens,
       clock: clock,
       random: FixedRandom(),
-      logger: logger
+      logger: logger,
+      reportDisplayedNotifications: reportDisplayedNotifications
     )
   }
 

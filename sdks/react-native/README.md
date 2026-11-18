@@ -91,6 +91,18 @@ notifee.onForegroundEvent(({ detail }) => relay.push?.opened(detail.notification
 
 Shown notifications record a `displayed` receipt and opened ones a `clicked` receipt. Receipts wait on the device while offline and are sent with the same idempotency key until Relay records them.
 
+### Displayed notification reporting
+
+Relay can measure how often the same notification is shown twice on a device. This is off by default; turn it on with `reportDisplayedNotifications: true`:
+
+```ts
+const relay = createRelayClient({ ...options, reportDisplayedNotifications: true });
+
+await relay.reportDisplayed(notificationId);
+```
+
+When it is on, every push the SDK shows or is told was shown, and whose notification id it knows, is queued, and `reportDisplayed` queues an id your app displayed itself. Only the SHA-256 digest of the id and the time it was shown leave the device, never the id or any content. The same id shown twice is reported twice. The queue is reported in batches of at most 100 when 20 are waiting, every 30 seconds and when the app goes to the background. A batch that fails stays on the device and is sent again with the same idempotency key; batches older than 24 hours are dropped.
+
 ## Inbox
 
 ```ts

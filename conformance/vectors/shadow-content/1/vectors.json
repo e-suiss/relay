@@ -1,0 +1,40 @@
+{
+  "description": "The canonical content form of a shadow comparison. Only the text fields subject, title, subtitle, body and text count, in that order. Each is masked: tracking pixels removed, links reduced to scheme, host and path, ISO 8601 timestamps to <ts>, UUIDs and prefixed identifiers to <id>, runs of at least 20 letters, digits, _ or - holding both a letter and a digit to <token>, control characters dropped and white space collapsed; money and date formats stay. The canonical form is the JSON object of the channel and the masked fields with no white space; the digest is its SHA-256 in lowercase hex.",
+  "vectors": [
+    {
+      "channel": "sms",
+      "content": {
+        "body": "Siparişiniz 2026-11-18T10:00:00Z tarihinde hazır: https://shop.example.com/o/123?sig=abcDEF123&utm=x Tutar 1.250,00 TL"
+      },
+      "canonical": "{\"channel\":\"sms\",\"fields\":{\"body\":\"Siparişiniz <ts> tarihinde hazır: https://shop.example.com/o/123 Tutar 1.250,00 TL\"}}",
+      "digest": "82cfaa3f0bab310dc90405699b77f0ecabd9ac4ab7b63aa78b5282b3eadf098b"
+    },
+    {
+      "channel": "email",
+      "content": {
+        "subject": "Hoş geldin",
+        "text": "Merhaba,\n\nKodunuz: 123456\nID 0199f1c6-0000-7000-8000-000000000001",
+        "html": "<p>Merhaba</p><img src=\"https://t.example.com/p.gif\" width=\"1\" height=\"1\">"
+      },
+      "canonical": "{\"channel\":\"email\",\"fields\":{\"subject\":\"Hoş geldin\",\"text\":\"Merhaba, Kodunuz: 123456 ID <id>\"}}",
+      "digest": "5562f7efb26269a93af6a1a64bb1cb0200f9c770bb6038290ac410ffde4688c3"
+    },
+    {
+      "channel": "push",
+      "content": {
+        "body": "Takip: ntf_01j9zq3k4m5n6p7q8r9s0t1v2w kod AbCdEfGhIjKlMnOpQrSt12 <img src=x width=1>",
+        "title": "Paket yolda"
+      },
+      "canonical": "{\"channel\":\"push\",\"fields\":{\"title\":\"Paket yolda\",\"body\":\"Takip: <id> kod <token>\"}}",
+      "digest": "c34b933b23a6073edf9ee20d980a00d26c1523d9e59b0d234a1796f482bf9f9d"
+    },
+    {
+      "channel": "sms",
+      "content": {
+        "body": "Randevunuz 18.11.2026 14:30,  2026-11-18 tarihinde. 99,90 TL"
+      },
+      "canonical": "{\"channel\":\"sms\",\"fields\":{\"body\":\"Randevunuz 18.11.2026 14:30, 2026-11-18 tarihinde. 99,90 TL\"}}",
+      "digest": "1d82c0f9a04fd615ec598cfc0f72cca5797b8aefae3b135beb849a874ffa3732"
+    }
+  ]
+}

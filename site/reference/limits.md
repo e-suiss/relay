@@ -41,6 +41,13 @@ Durations are ISO 8601 durations.
 | `content_dedup.min_window` | PT1M |
 | `content_dedup.operational_window` | PT5M |
 
+### dedup_claim
+
+| Limit | Value |
+|---|---|
+| `dedup_claim.max_ttl` | P7D |
+| `dedup_claim.min_ttl` | PT1M |
+
 ### devices
 
 | Limit | Value |
@@ -64,6 +71,13 @@ Durations are ISO 8601 durations.
 | `digest.max_items.min` | 2 |
 | `digest.max_render_items` | 50 |
 | `digest.max_window` | P31D |
+
+### displayed_notifications
+
+| Limit | Value |
+|---|---|
+| `displayed_notifications.duplicate_window` | PT24H |
+| `displayed_notifications.max_batch` | 100 |
 
 ### event
 
@@ -192,12 +206,39 @@ Durations are ISO 8601 durations.
 | `recurrence.max_until_years` | 5 |
 | `recurrence.missed_grace` | PT1H |
 
+### rollout
+
+| Limit | Value |
+|---|---|
+| `rollout.buckets` | 10000 |
+| `rollout.duplicate_rate_basis_points.freeze` | 50 |
+| `rollout.duplicate_rate_basis_points.rollback` | 100 |
+| `rollout.duplicate_rate_basis_points.warn` | 10 |
+| `rollout.max_categories` | 200 |
+| `rollout.max_list_entries` | 1000 |
+| `rollout.propagation` | PT60S |
+| `rollout.ramp_factor` | 5 |
+| `rollout.ramp_floor_basis_points` | 100 |
+| `rollout.ramp_min_interval` | P1D |
+
 ### route
 
 | Limit | Value |
 |---|---|
 | `route.max_depth` | 4 |
 | `route.max_leaves` | 10 |
+
+### shadow
+
+| Limit | Value |
+|---|---|
+| `shadow.difference_max_ttl` | P30D |
+| `shadow.max_channels` | 12 |
+| `shadow.max_recipients_per_channel` | 100 |
+| `shadow.min_comparisons` | 100 |
+| `shadow.min_observed` | P14D |
+| `shadow.pending_grace` | PT1H |
+| `shadow.retention` | P14D |
 
 ### sms_destination
 
@@ -621,6 +662,7 @@ Every error is an RFC 9457 problem document whose `type` is `/v1/errors/<code>` 
 | `sender_identity_archived` | 409 | no |  | Sender identity is archived |
 | `sender_identity_not_found` | 404 | no |  | Sender identity not found |
 | `service_unavailable` | 503 | yes | 5–30 s | Service unavailable |
+| `shadow_difference_not_found` | 404 | no |  | Intentional difference not found |
 | `sms_destination_stop_not_found` | 404 | no |  | SMS destination stop not found |
 | `subscriber_not_found` | 404 | no |  | Subscriber not found |
 | `subtenant_not_found` | 404 | no |  | Subtenant not found |

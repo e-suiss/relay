@@ -11,6 +11,15 @@ export {
   type RelayRootProps,
 } from "./context.js";
 export {
+  apiDisplayedSender,
+  DisplayedReporter,
+  notificationDigest,
+  type DisplayedBatch,
+  type DisplayedNotification,
+  type DisplayedReporterOptions,
+  type DisplayedSender,
+} from "./displayed.js";
+export {
   catalogs,
   createTranslator,
   en,

@@ -44,6 +44,7 @@ public class RelayDataMessageHandler internal constructor(
     private val onSync: suspend () -> Unit,
     private val smallIcon: Int,
     private val launchIntent: () -> Intent?,
+    private val displayed: RelayDisplayedNotifications? = null,
 ) {
     /** Handles one data message; returns what was shown, or `null` for a sync signal or a foreign message. */
     public suspend fun handle(
@@ -102,6 +103,7 @@ public class RelayDataMessageHandler internal constructor(
             builder.setContentIntent(pending)
         }
         manager?.notify(shown.tag, TAG_ID, builder.build())
+        (content?.notificationId ?: payload.id)?.let { displayed?.report(it) }
         return shown
     }
 

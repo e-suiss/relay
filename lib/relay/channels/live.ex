@@ -28,6 +28,7 @@ defmodule Relay.Channels.Live do
       Relay.Inbox.Live,
       Relay.Ingest,
       Relay.Messaging,
+      Relay.Migration,
       Relay.Platform,
       Relay.Preferences,
       Relay.PushPolicy,
@@ -865,6 +866,7 @@ defmodule Relay.Channels.Live do
       channel = delivery["channel"]
       _ = Relay.Delivery.count_attempt(scope, ctx.parameters, channel, account["id"], n)
       _ = meter(ctx, n, target)
+      _ = shadow(ctx, account, content)
       ctx = Map.put(ctx, :commercial, declare(ctx, n))
       call(ctx, account, ticket, request(ctx, account, target, content, key, n))
     else
@@ -875,6 +877,26 @@ defmodule Relay.Channels.Live do
   end
 
   defp default_key(delivery_id), do: "dlv-" <> Relay.Id.to_string(delivery_id)
+
+  # OP-52 (1)
+  # OP-94
+  defp shadow(%{scope: %Scope{environment: :live}} = ctx, %{"provider" => "fake"}, content)
+       when is_map(content) do
+    delivery = ctx.delivery
+    digest = Relay.Migration.Content.digest(delivery["channel"], content)
+    Relay.Migration.shadow_delivered(ctx.scope, delivery["id"], digest, real_provider(ctx), nil)
+  end
+
+  defp shadow(_ctx, _account, _content), do: :ok
+
+  defp real_provider(%{scope: scope, delivery: delivery, declarations: declarations}) do
+    policy = %{draw: :erlang.phash2(delivery["id"]), provider: delivery["provider"]}
+
+    case Relay.Channels.routes(scope, delivery["channel"], declarations, policy) do
+      {:ok, {[account | _rest], _excluded}} -> account["provider"]
+      _none -> nil
+    end
+  end
 
   # OP-38
   defp meter(ctx, n, target) do

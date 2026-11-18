@@ -10,7 +10,9 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   configureRelay,
   defineRelayElements,
+  flushDisplayedNotifications,
   relayElementTags,
+  reportDisplayedNotification,
   tokenFromUrl,
   type RelayElementsConfig,
 } from "../src/index.js";
@@ -262,5 +264,34 @@ describe("X-32 web components", () => {
     await expect(
       tokenFromUrl("/relay/token", failing as unknown as typeof fetch)(),
     ).rejects.toThrow("401");
+  });
+
+  it("OP-54 reports digests of rendered and host-displayed notifications when turned on", async () => {
+    const relay = createFakeRelay({ items: [fakeItem("inb_1")] });
+    const config = configFor(relay, { reportDisplayedNotifications: true });
+    const element = mount("relay-inbox", config);
+    await until(() => element.shadowRoot?.querySelector("[data-testid=relay-inbox-item]"));
+    reportDisplayedNotification("ntf_1", config);
+    for (let attempt = 0; relay.state.displayed.length < 2 && attempt < 100; attempt++) {
+      await flushDisplayedNotifications(config);
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(relay.state.displayed).toHaveLength(2);
+    expect(relay.state.displayed.every((entry) => /^[0-9a-f]{64}$/.test(entry.digest))).toBe(true);
+    const sent = JSON.stringify(
+      relay.requests.filter((request) => request.path === "/v1/subscriber/displayed_notifications"),
+    );
+    expect(sent).not.toContain("inb_1");
+    expect(sent).not.toContain("ntf_1");
+  });
+
+  it("OP-54 reports nothing by default", async () => {
+    const relay = createFakeRelay({ items: [fakeItem("inb_1")] });
+    const config = configFor(relay);
+    const element = mount("relay-inbox", config);
+    await until(() => element.shadowRoot?.querySelector("[data-testid=relay-inbox-item]"));
+    reportDisplayedNotification("ntf_1", config);
+    await flushDisplayedNotifications(config);
+    expect(relay.state.displayed).toHaveLength(0);
   });
 });

@@ -75,10 +75,18 @@ defmodule Relay.Tenancy.RetentionPeriodsTest do
   defp validate(%{"type" => type}, value, path), do: ["#{path}: #{inspect(value)} is not #{type}"]
 
   describe "OP-71 (7) retention periods version 2" do
-    test "OP-71: version 2 follows the unchanged schema and is the newest packaged version" do
+    test "OP-71: version 2 follows the schema and version 3 is the newest packaged version" do
       assert validate(read("schema.json"), read("v2.json")) == []
+      assert validate(read("schema.json"), read("v3.json")) == []
 
-      assert @dir |> File.ls!() |> Enum.sort() == ["schema.json", "v1.json", "v2.json"]
+      assert @dir |> File.ls!() |> Enum.sort() == ["schema.json", "v1.json", "v2.json", "v3.json"]
+    end
+
+    test "OP-79: version 3 adds only the shadow class, at most 14 days in every region and sector" do
+      {shadow, rest} = Enum.split_with(periods("v3.json"), &(&1["retention_class"] == "shadow"))
+      assert rest == periods("v2.json")
+      assert length(shadow) == 12
+      assert Enum.all?(shadow, &(&1["days"] == 14))
     end
 
     test "OP-71: every region carries exactly the sectors general, payment, bank and ecommerce" do

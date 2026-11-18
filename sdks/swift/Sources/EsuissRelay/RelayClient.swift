@@ -13,9 +13,11 @@ public final class RelayClient: RelayLifecycleSteps {
   public let store: RelayInboxStore
   public let realtime: RelayRealtimeConnection
   public let remover: RelayNotificationRemover
+  public let displayedNotifications: RelayDisplayedNotificationReporter
   public private(set) var lifecycle: RelayLifecycle!
 
   let http: RelayHTTP
+  let displayedObserver: DisplayedNotificationBackgroundObserver
 
   public convenience init(configuration: RelayConfiguration) {
     let queueURL =
@@ -68,6 +70,9 @@ public final class RelayClient: RelayLifecycleSteps {
       random: configuration.random
     )
     self.remover = RelayNotificationRemover(center: delivered)
+    let displayed = RelayDisplayedNotificationReporter(http: http)
+    self.displayedNotifications = displayed
+    self.displayedObserver = DisplayedNotificationBackgroundObserver(reporter: displayed)
     self.lifecycle = RelayLifecycle(steps: self)
     let store = self.store
     let remover = self.remover
@@ -108,10 +113,22 @@ public final class RelayClient: RelayLifecycleSteps {
     }
   }
 
-  /// Records that a Relay notification was displayed while the app was in the foreground.
+  // OP-95
+  /// Records that a Relay notification was displayed while the app was in the foreground and, when
+  /// `reportDisplayedNotifications` is on, queues the digest of its identifier.
   public func handleNotificationDisplayed(userInfo: [AnyHashable: Any]) async {
-    guard let deliveryId = RelayPushPayload(userInfo: userInfo)?.deliveryId else { return }
+    guard let payload = RelayPushPayload(userInfo: userInfo) else { return }
+    if let id = payload.id, !payload.isSyncSignal {
+      await displayedNotifications.report(notificationId: id)
+    }
+    guard let deliveryId = payload.deliveryId else { return }
     try? await push.record(.displayed, deliveryId: deliveryId)
+  }
+
+  /// Queues the digest of a Relay notification identifier the app displayed itself; it does nothing
+  /// unless `reportDisplayedNotifications` is on.
+  public func reportDisplayed(notificationId: String) async {
+    await displayedNotifications.report(notificationId: notificationId)
   }
 
   public func refreshCounters() async { await store.refreshCounters() }

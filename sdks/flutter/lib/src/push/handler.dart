@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import '../core/ports.dart';
 import '../generated/models.dart';
+import '../telemetry/displayed.dart';
 import 'adapter.dart';
 import 'content.dart';
 import 'payload.dart';
@@ -26,6 +27,7 @@ class RelayPushHandler {
     required this.store,
     required this.onSync,
     RelayPushContentSource? contentSource,
+    this.displayedNotifications,
     this.locale,
     this.fetchTimeout = const Duration(seconds: 10),
     RelayLogger? logger,
@@ -47,6 +49,9 @@ class RelayPushHandler {
 
   /// Fetches content-free content; Relay's push content API unless the app supplies another source.
   final RelayPushContentSource contentSource;
+
+  /// Reports shown notifications by identifier digest when the app opted in.
+  final RelayDisplayedNotifications? displayedNotifications;
 
   /// The device locale for the generic text.
   final String? locale;
@@ -101,6 +106,7 @@ class RelayPushHandler {
       final String? ntf = content.notificationId;
       if (ntf != null) await _remember(ntf, n.deliveryId);
       await _show(n.deliveryId, content.title, content.body, content.url);
+      if (ntf != null) await displayedNotifications?.report(ntf);
       return;
     }
     final RelayNeutralText fallback = relayNeutralText(locale);

@@ -50,7 +50,11 @@ defmodule Relay.Api.WorkflowRuns do
         Relay.Workflow.variants(p.workflow["definition"], p.workflow["key"], row["id"]),
       "providers" => p.providers,
       "templates" => templates(p.templates),
-      "otp" => OtpChain.freeze(Map.get(p, :otp), destination, row["id"])
+      "otp" => OtpChain.freeze(Map.get(p, :otp), destination, row["id"]),
+      "migration" => %{
+        "routed_to_legacy" => row["routed_to_legacy"] == true,
+        "dedup_claimed" => row["dedup_claimed"] == true
+      }
     }
   end
 
@@ -276,7 +280,15 @@ defmodule Relay.Api.WorkflowRuns do
 
   defp bind(p, run, data, attributes) do
     recipient_id = run["recipient_id"]
-    row = Events.device_locale(Relay.Subscribers.row(recipient_id), recipient_id)
+    migration = run["plan"]["migration"] || %{}
+
+    row =
+      recipient_id
+      |> Relay.Subscribers.row()
+      |> Events.device_locale(recipient_id)
+      |> Map.put("routed_to_legacy", migration["routed_to_legacy"] == true)
+      |> Map.put("dedup_claimed", migration["dedup_claimed"] == true)
+
     mismatch? = run["plan"]["mismatch"] == true
     notification_id = run["notification_id"]
 

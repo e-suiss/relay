@@ -52,7 +52,8 @@
               "traffic",
               "suppression",
               "dsr_log",
-              "erasure_log"
+              "erasure_log",
+              "shadow"
             ]
           },
           "days": {

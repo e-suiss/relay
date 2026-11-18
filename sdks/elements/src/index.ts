@@ -57,6 +57,8 @@ export interface RelayElementsConfig {
   readonly subtenantBrand?: RelayElementsBrand;
   readonly messages?: Readonly<Record<string, string>>;
   readonly links?: RelayElementsLinks;
+  /** Reports digests of the identifiers of displayed notifications to Relay, which measures duplicate displays with them; off by default. */
+  readonly reportDisplayedNotifications?: boolean;
 }
 
 type Runtime = ReturnType<typeof createRelayRuntime>;
@@ -87,10 +89,30 @@ function runtimeOf(config: RelayElementsConfig): Runtime {
       ...(config.fetch === undefined ? {} : { fetch: config.fetch }),
       ...(config.realtime === false ? { realtime: false as const } : {}),
       ...(config.undoWindowMs === undefined ? {} : { undoWindowMs: config.undoWindowMs }),
+      ...(config.reportDisplayedNotifications === true
+        ? { reportDisplayedNotifications: true }
+        : {}),
     });
     runtimes.set(config, runtime);
   }
   return runtime;
+}
+
+/** Reports that the page displayed a notification itself, by its Relay identifier, with the given configuration or the global one; does nothing while reporting is off. */
+export function reportDisplayedNotification(
+  id: string,
+  config: RelayElementsConfig | null = globalConfig,
+): void {
+  if (config === null) return;
+  runtimeOf(config).reportDisplayed(id);
+}
+
+/** Sends the queued displayed notifications of a configuration, or of the global one, now. */
+export function flushDisplayedNotifications(
+  config: RelayElementsConfig | null = globalConfig,
+): Promise<void> {
+  if (config === null) return Promise.resolve();
+  return runtimeOf(config).displayed?.flush() ?? Promise.resolve();
 }
 
 /** Reads a token from an endpoint of the application's own backend: JSON with `token` or `access_token`, or plain text. */

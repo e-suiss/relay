@@ -56,3 +56,9 @@ description = "Synthetic caller idempotency key of the PHP SDK tests"
 condition = "AND"
 paths = ['''^sdks/php/tests/''']
 regexes = ['''^order-4821-wait$''']
+
+[[allowlists]]
+description = "Synthetic idempotency key of the displayed notification reporter test"
+condition = "AND"
+paths = ['''^sdks/react/test/displayed\.test\.ts$''']
+regexes = ['''^6f1c9e0a-1111-4222-8333-944445555666$''']

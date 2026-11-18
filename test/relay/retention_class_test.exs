@@ -22,7 +22,8 @@ defmodule Relay.RetentionClassTest do
                traffic: [:traffic],
                suppression: [:suppression],
                dsr_log: [:dsr_log],
-               erasure_log: [:erasure_log]
+               erasure_log: [:erasure_log],
+               shadow: [:message_log]
              }
     end
 
@@ -32,10 +33,11 @@ defmodule Relay.RetentionClassTest do
       end
     end
 
-    test "C-85: the codes are the eleven retention classes of the data model, in order" do
+    test "C-85, OP-94: the codes are the retention classes of the data model and shadow, in order" do
       assert Enum.map(RetentionClass.all(), &RetentionClass.dump/1) ==
                ~w(recipient_profile notification_content delivery_record commercial_consent
-                  commercial_message preference audit traffic suppression dsr_log erasure_log)
+                  commercial_message preference audit traffic suppression dsr_log erasure_log
+                  shadow)
     end
 
     test "C-85: every class maps to exactly one Access Appendix C class so that a data key carries one period" do

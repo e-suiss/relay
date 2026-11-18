@@ -14,6 +14,7 @@ defmodule Relay.Webhooks.Fanout do
 
   @disabled "webhook_endpoint.disabled"
   @tested "webhook_endpoint.tested"
+  @modes ~w(live shadow dry_run off)
 
   @typedoc "One of Relay's own events as the outbox handed it over: its identifier and type, its data with external identifiers, its stream as subject with epoch and sequence number, when it happened and its trace context."
   @type event :: %{
@@ -41,7 +42,7 @@ defmodule Relay.Webhooks.Fanout do
   def relay_event(%{type: type, data: data} = event) do
     with {:ok, identifiers} <- Relay.EventCatalog.identifiers(type),
          {:ok, %{version: version, explicit_only: explicit}} <- Relay.EventCatalog.fetch(type) do
-      endpoints = EngineStore.subscribers(type, not explicit)
+      endpoints = EngineStore.subscribers(type, not explicit, shadow?(data))
 
       if explicit and endpoints == [],
         do: [],
@@ -49,6 +50,37 @@ defmodule Relay.Webhooks.Fanout do
     else
       :error -> []
     end
+  end
+
+  # OP-52 (1)
+  # OP-94
+  defp shadow?(%{"delivery_id" => text}) when is_binary(text) do
+    with {:ok, id} <- Relay.ExternalId.decode(text, ["dlv"]),
+         %{"environment" => "live"} = row <- EngineStore.delivery_mode(id) do
+      row["provider"] == "fake" or mode(row) == :shadow
+    else
+      _not_shadow -> false
+    end
+  end
+
+  defp shadow?(_data), do: false
+
+  defp mode(row) do
+    category = row["category"] || ""
+    channel = row["channel"]
+    own = if row["workflow_key"], do: ["send_mode.workflow." <> row["workflow_key"]], else: []
+
+    keys =
+      own ++
+        [
+          "send_mode.category." <> category <> ".channel." <> channel,
+          "send_mode.channel." <> channel,
+          "send_mode"
+        ]
+
+    settings = EngineStore.settings(keys)
+    modes = [row["send_mode"] | Enum.map(keys, &Map.get(settings, &1))]
+    if Enum.find(modes, "live", &(&1 in @modes)) == "shadow", do: :shadow, else: :live
   end
 
   defp recorded(%{id: id, type: type} = event, endpoints, data, version) do

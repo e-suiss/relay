@@ -33,17 +33,59 @@ defmodule Relay.Webhooks.EngineStore do
   # WH-16
   # WH-34 (2)
   # WH-67
-  @doc "The endpoints of use `relay_events` that are not archived and subscribe to `event_type` or, when `wildcard` is true, to `*`, with their retry schedule."
-  @spec subscribers(String.t(), boolean()) :: [map()]
-  def subscribers(event_type, wildcard) when is_boolean(wildcard) do
+  # OP-52 (1)
+  # OP-94
+  @doc "The endpoints of use `relay_events` that are not archived and subscribe to `event_type` or, when `wildcard` is true, to `*`, with their retry schedule: the shadow endpoints when `shadow` is true, the live ones otherwise."
+  @spec subscribers(String.t(), boolean(), boolean()) :: [map()]
+  def subscribers(event_type, wildcard, shadow \\ false)
+      when is_boolean(wildcard) and is_boolean(shadow) do
     all(
       """
       SELECT e.id, e.state, e.retry_schedule FROM relay.webhook_endpoints e
-      WHERE e.use_kind = 'relay_events' AND e.state <> 'archived'
+      WHERE e.use_kind = 'relay_events' AND e.state <> 'archived' AND e.shadow = $3
         AND (e.event_types @> ARRAY[$1::text] OR ($2 AND e.event_types @> ARRAY['*'::text]))
       ORDER BY e.id
       """,
-      [event_type, wildcard]
+      [event_type, wildcard, shadow]
+    )
+  end
+
+  # OP-51
+  # OP-94
+  @doc "The tenant settings of `keys` that are set, by key."
+  @spec settings([String.t()]) :: %{String.t() => term()}
+  def settings(keys) do
+    for row <- Repo.call!("relay_fn.setting_resolve", [nil, keys]),
+        row["value"] != nil,
+        into: %{},
+        do: {row["key"], row["value"]}
+  end
+
+  # OP-52 (1)
+  # OP-94
+  @doc "What tells whether an event about a delivery comes from a shadow send: the delivery's channel, its event's requested send mode, its workflow's key and category and the provider of its latest attempt; `nil` when there is no such delivery."
+  @spec delivery_mode(id()) :: map() | nil
+  def delivery_mode(delivery_id) do
+    one(
+      """
+      SELECT d.tenant_id, d.environment, d.channel::text AS channel,
+        e.send_mode::text AS send_mode, wf.key AS workflow_key,
+        wv.definition->>'category' AS category,
+        (SELECT a.provider FROM relay.delivery_attempts a WHERE a.tenant_id = d.tenant_id
+          AND a.environment = d.environment AND a.delivery_id = d.id
+          ORDER BY a.attempt_no DESC LIMIT 1) AS provider
+      FROM relay.deliveries d
+      JOIN relay.notifications n ON n.tenant_id = d.tenant_id AND n.environment = d.environment
+        AND n.id = d.notification_id
+      LEFT JOIN relay.events e ON e.tenant_id = n.tenant_id AND e.environment = n.environment
+        AND e.id = n.event_id
+      LEFT JOIN relay.workflow_versions wv ON wv.tenant_id = e.tenant_id
+        AND wv.environment = e.environment AND wv.id = e.workflow_version_id
+      LEFT JOIN relay.workflows wf ON wf.tenant_id = e.tenant_id
+        AND wf.environment = e.environment AND wf.id = e.workflow_id
+      WHERE d.id = $1
+      """,
+      [delivery_id]
     )
   end
 

@@ -484,5 +484,17 @@
     "rule": "physical_delete",
     "match": "rstrip truncate replace",
     "reason": "OP-96: the Liquid filter truncate in the list of filters the converter keeps, not SQL"
+  },
+  {
+    "path": "priv/repo/migrations/20270116000100_create_shadow_comparisons.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-9: the triggers reject TRUNCATE on the shadow keys, comparisons and intentional differences"
+  },
+  {
+    "path": "priv/repo/migrations/20270116000200_create_rollout_and_dedup_claims.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-9: the triggers reject TRUNCATE on the rollout configurations and the dedup claims"
   }
 ]

@@ -79,6 +79,28 @@ delivery id the push carries, over TLS; when it cannot, the generic text stays o
 Registration reports the Critical Alerts and Time Sensitive permissions the device knows, so a
 notification the device cannot take at its level is delivered one level lower.
 
+## Duplicate notification telemetry
+
+Turn on `reportDisplayedNotifications` to help Relay measure how often the same notification is
+shown twice, for example while traffic moves over from another system:
+
+```swift
+let configuration = RelayConfiguration(
+  baseURL: URL(string: "https://relay.example.com")!,
+  appIdentifier: Bundle.main.bundleIdentifier!,
+  tokenProvider: Tokens(),
+  reportDisplayedNotifications: true
+)
+```
+
+It is off by default. When it is on, every Relay push shown in the foreground through
+`RelayNotificationCenterDelegate` is queued, and your app can queue a notification it displayed
+itself with `await client.reportDisplayed(notificationId:)`. Only the SHA-256 digest of the
+identifier and the time it was shown leave the device, never the identifier or the content. The
+queue is sent in batches of up to 100 when 20 notifications are waiting, 30 seconds after the first
+one and when the app goes to the background; a failed batch is retried with the same idempotency key
+and dropped after 24 hours. The token needs the `devices:write` scope.
+
 ## Behaviour
 
 - Requests carry the pinned API version and a random idempotency key on every mutation; only

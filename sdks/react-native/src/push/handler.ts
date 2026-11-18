@@ -15,6 +15,7 @@ export interface ShownNotification {
   readonly url: string | null;
   readonly contentFree: boolean;
   readonly fetched: boolean;
+  readonly notificationId: string | null;
 }
 
 export interface PushHandlerOptions {
@@ -28,6 +29,7 @@ export interface PushHandlerOptions {
   readonly syncCounters: () => Promise<InboxCounters | null>;
   readonly channelId?: (push: NotificationPush) => string | null;
   readonly fetchTimeoutMs?: number;
+  readonly displayed?: (notificationId: string) => Promise<void>;
 }
 
 interface IndexEntry {
@@ -74,9 +76,9 @@ export class PushHandler {
         channelId: this.options.channelId?.(push) ?? null,
         threadId: push.topic,
       });
-      await this.options.receipts.record(push.deliveryId, 'displayed');
+      await this.recordShown(shown);
     } else if (presentation === 'displayed') {
-      await this.options.receipts.record(push.deliveryId, 'displayed');
+      await this.recordShown(shown);
     }
     return shown;
   }
@@ -90,6 +92,14 @@ export class PushHandler {
     return { deliveryId: push.deliveryId, url: push.url };
   }
 
+  // CH-32
+  // OP-54
+  private async recordShown(shown: ShownNotification): Promise<void> {
+    await this.options.receipts.record(shown.deliveryId, 'displayed');
+    if (shown.notificationId === null) return;
+    await this.options.displayed?.(shown.notificationId).catch(() => undefined);
+  }
+
   // CH-33 (4)
   private async resolve(push: NotificationPush): Promise<ShownNotification> {
     const locale = this.options.locale();
@@ -101,6 +111,7 @@ export class PushHandler {
         url: push.url,
         contentFree: false,
         fetched: false,
+        notificationId: null,
       };
     }
     const content = await this.fetchContent(push.deliveryId);
@@ -112,6 +123,7 @@ export class PushHandler {
       url: content?.url ?? null,
       contentFree: true,
       fetched: content !== null,
+      notificationId: content?.notificationId ?? null,
     };
   }
 

@@ -23,7 +23,8 @@ defmodule Relay.CLI do
     "promote" => Relay.CLI.Definitions,
     "logs" => Relay.CLI.Logs,
     "listen" => Relay.CLI.Listen,
-    "kill-switch" => Relay.CLI.KillSwitch
+    "kill-switch" => Relay.CLI.KillSwitch,
+    "rollout" => Relay.CLI.Rollout
   }
 
   # X-33

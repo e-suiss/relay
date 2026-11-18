@@ -1,0 +1,37 @@
+{
+  "description": "The sticky rollout bucket of a recipient: SHA-256 over the 16 bytes of the tenant's UUID, one 0x00 byte and the UTF-8 bytes of the external_id; the first 8 bytes of the digest as an unsigned big-endian integer modulo 10000. The digest in lowercase hex is also the form of a pinned list entry.",
+  "tenant_id": "0199f1c6-0000-7000-8000-000000000001",
+  "buckets": 10000,
+  "vectors": [
+    {
+      "external_id": "user-4821",
+      "digest": "fd2518a11908819b4cbdcfe114b707ea03b5f29f42e772141f51aadff394c25a",
+      "bucket": 1227
+    },
+    {
+      "external_id": "user-4822",
+      "digest": "ea6719b3f455f00ed474f92fe57da312fd3a4c4d9abbfc21e8f18b76a0d3f36d",
+      "bucket": 7694
+    },
+    {
+      "external_id": "user-0001",
+      "digest": "67617470831ce5cd04746c3bff6145e6d3ef9a959464562de1cec109807d4b48",
+      "bucket": 9341
+    },
+    {
+      "external_id": "a",
+      "digest": "c115fbfcca3a4d9f814bf1201986ea225c657e93ed72f828261dfc6f3bbb5673",
+      "bucket": 4383
+    },
+    {
+      "external_id": "x",
+      "digest": "972bdc4bb116678088eb47631fcab5fb4dbbee05b83121aba872c3eb4fd4b760",
+      "bucket": 9984
+    },
+    {
+      "external_id": "UPPER_case-ID",
+      "digest": "cefda8b3260c0cc07d3affea46c9383d11c3fe3bc98bb851bbd87886a66e8c5c",
+      "bucket": 7040
+    }
+  ]
+}

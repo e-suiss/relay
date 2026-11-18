@@ -38,7 +38,10 @@ public fun interface RelayTokenProvider {
     public suspend fun subscriberToken(forceRefresh: Boolean): RelaySubscriberToken
 }
 
-/** Settings of a Relay client. */
+/**
+ * Settings of a Relay client. [reportDisplayedNotifications] opts in to reporting the digests of
+ * displayed notification identifiers for duplicate telemetry; it is off by default.
+ */
 public class RelayConfiguration(
     public val baseUrl: String,
     public val appIdentifier: String,
@@ -47,6 +50,7 @@ public class RelayConfiguration(
     public val random: RelayRandom = SystemRandom,
     public val logger: RelayLogger = RelayLogger { _, _ -> },
     public val maxRetries: Int = 3,
+    public val reportDisplayedNotifications: Boolean = false,
 ) {
     public companion object {
         /** The dated API version this SDK release is pinned to (X-48). */

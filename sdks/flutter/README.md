@@ -62,6 +62,22 @@ FirebaseMessaging.onMessage.listen((m) {
 - A notification read on another device is removed from this one.
 - On iOS, content-free notifications are completed by a Notification Service Extension, which comes from the native iOS SDK.
 
+## Displayed notification reporting
+
+Off by default. Turn it on to help measure notifications shown more than once on a device:
+
+```dart
+final relay = RelayClient(
+  baseUrl: Uri.parse('https://relay.example.com'),
+  tokenProvider: myTokenProvider,
+  reportDisplayedNotifications: true,
+);
+```
+
+- Every notification the SDK shows (a push with fetched content, an item rendered by `RelayInboxList`) is queued as a SHA-256 digest of its notification id and the time it was shown. The id itself and the content are never sent.
+- Notifications your app shows on its own can be reported with `relay.reportDisplayedNotification(notificationId)`.
+- The queue is sent at 20 items, every 30 seconds and when the app goes to the background, at most 100 per request. A batch that fails is retried with the same idempotency key and dropped after 24 hours.
+
 ## Inbox
 
 - Opens the realtime stream before reading the list, then applies buffered events by item id and version.

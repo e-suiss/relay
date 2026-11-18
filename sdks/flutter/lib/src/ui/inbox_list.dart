@@ -15,6 +15,7 @@ import 'theme.dart';
 // IN-6
 // AG-34
 // AG-35
+// OP-95
 /// The inbox list: read, unread, archive and hide with undo; unread items carry a text label, never colour alone; agent items say so; an item awaiting a response shows its options and then its state; an approval item only links to the Access approval surface.
 class RelayInboxList extends StatefulWidget {
   /// Creates the list.
@@ -33,6 +34,7 @@ class RelayInboxList extends StatefulWidget {
 class _RelayInboxListState extends State<RelayInboxList> {
   final Set<String> _pending = <String>{};
   final Set<String> _responding = <String>{};
+  final Set<String> _displayed = <String>{};
   final Map<String, WaitpointResponseReceipt> _receipts =
       <String, WaitpointResponseReceipt>{};
   StreamSubscription<RelayConflictNotice>? _notices;
@@ -45,6 +47,7 @@ class _RelayInboxListState extends State<RelayInboxList> {
     if (!identical(client, _client)) {
       unawaited(_notices?.cancel());
       _client = client;
+      _displayed.clear();
       _notices = client.intents.notices.listen((RelayConflictNotice _) {
         if (!mounted) return;
         ScaffoldMessenger.maybeOf(context)?.showSnackBar(
@@ -151,6 +154,10 @@ class _RelayInboxListState extends State<RelayInboxList> {
                     ),
                   ),
                 );
+              }
+              final String id = items[index].id;
+              if (_displayed.add(id)) {
+                unawaited(client.reportDisplayedNotification(id));
               }
               final InboxWaitpoint? waitpoint = items[index].waitpoint;
               return _RelayInboxRow(

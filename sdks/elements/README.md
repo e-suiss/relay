@@ -59,6 +59,20 @@ Every element also takes `locale`, `color-scheme`, `base-url`, `token-url` and `
 
 Both bubble out of the shadow root.
 
+## Displayed notification reporting
+
+Relay can measure how often the same notification is shown more than once. The measurement is off by default; turn it on in the configuration:
+
+```js
+configureRelay({
+  baseUrl: "https://relay.example.com",
+  token,
+  reportDisplayedNotifications: true,
+});
+```
+
+Every inbox item the elements render is then queued as the SHA-256 digest of its identifier with the time it was shown; the identifier and the content never leave the browser. The queue is sent in batches of up to 100: when 20 are waiting, every 30 seconds and when the page becomes hidden. A failed batch is retried on the next flush with the same Idempotency-Key, and batches older than 24 hours are dropped. `reportDisplayedNotification(id)` reports a notification your page showed itself, and `flushDisplayedNotifications()` sends the queue at once; both take an optional configuration and use the global one otherwise.
+
 ## Theming
 
 Set CSS custom properties on the element or any ancestor; they cross the shadow boundary and win over the configured theme:

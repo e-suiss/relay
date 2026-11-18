@@ -53,6 +53,9 @@ public struct RelayConfiguration: Sendable {
   public var logger: any RelayLogger
   public var maxRetries: Int
   public var storageDirectory: URL?
+  /// Reports SHA-256 digests of the identifiers of displayed notifications so Relay can measure
+  /// duplicate deliveries; off unless the app turns it on.
+  public var reportDisplayedNotifications: Bool
 
   public init(
     baseURL: URL,
@@ -62,7 +65,8 @@ public struct RelayConfiguration: Sendable {
     random: any RelayRandom = SystemRandom(),
     logger: any RelayLogger = SilentLogger(),
     maxRetries: Int = 3,
-    storageDirectory: URL? = nil
+    storageDirectory: URL? = nil,
+    reportDisplayedNotifications: Bool = false
   ) {
     self.baseURL = baseURL
     self.appIdentifier = appIdentifier
@@ -72,6 +76,7 @@ public struct RelayConfiguration: Sendable {
     self.logger = logger
     self.maxRetries = maxRetries
     self.storageDirectory = storageDirectory
+    self.reportDisplayedNotifications = reportDisplayedNotifications
   }
 }
 

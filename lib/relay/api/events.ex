@@ -84,6 +84,7 @@ defmodule Relay.Api.Events do
          {:ok, recipients} <-
            recipients(scope, request.targets, Map.get(ctx, :transient, false)),
          {:ok, recipients} <- WorkflowRuns.attributes(scope, workflow["definition"], recipients),
+         {:ok, legacy} <- legacy(scope, workflow, recipients),
          {:ok, payload} <- payload(scope, request, cloudevent),
          {:ok, digests} <- digests(scope, workflow, request, recipients, cloudevent),
          {:ok, hooks} <- WorkflowRuns.webhook_events(scope, workflow["definition"], request.data),
@@ -112,6 +113,7 @@ defmodule Relay.Api.Events do
          request: request,
          providers: providers,
          recipients: OtpChain.destinations(scope, otp, recipients),
+         legacy: legacy,
          otp: otp,
          payload: payload,
          settings: tenant.settings,
@@ -128,6 +130,17 @@ defmodule Relay.Api.Events do
          webhook_events: hooks,
          erase_payload: Keyword.get(opts, :erase_payload) || erase_reason(request)
        }}
+    end
+  end
+
+  # OP-53
+  # OP-95
+  defp legacy(scope, workflow, recipients) do
+    ids = for %{external_id: id} when is_binary(id) <- recipients, do: id
+
+    case Relay.Migration.routed_to_legacy(scope, workflow["definition"]["category"], ids) do
+      {:ok, legacy} -> {:ok, legacy}
+      {:error, _reason} -> {:error, unavailable("the rollout configuration could not be read")}
     end
   end
 
@@ -545,6 +558,7 @@ defmodule Relay.Api.Events do
   @spec accept(prepared(), context()) :: {:ok, map()} | {:error, Relay.Error.t()}
   def accept(prepared, ctx) do
     with :ok <- lock(prepared),
+         prepared = claimed(prepared),
          :ok <- quota(prepared),
          {:ok, event} <- event(prepared),
          :ok <- Relay.Topics.record(prepared.request, event.id),
@@ -575,6 +589,13 @@ defmodule Relay.Api.Events do
   end
 
   defp erasure(_prepared), do: :ok
+
+  # OP-54
+  # OP-95
+  defp claimed(%{dedup_key: key} = prepared) when is_binary(key),
+    do: Map.put(prepared, :dedup_claimed, Relay.Migration.claimed_here?(key))
+
+  defp claimed(prepared), do: prepared
 
   # API-58
   # INV-60
@@ -728,6 +749,8 @@ defmodule Relay.Api.Events do
   defp notification(p, event, %{plan: plan, index: index, external_id: external_id} = r, ctx) do
     ctx = Map.put(ctx, :attributes, Map.get(r, :attributes, %{}))
     ctx = Map.put(ctx, :otp_destination, Map.get(r, :otp_destination))
+    legacy? = MapSet.member?(Map.get(p, :legacy, MapSet.new()), external_id)
+    ctx = Map.put(ctx, :routed_to_legacy, legacy?)
 
     with {:ok, recipient_id} <- upsert(plan, index),
          {:ok, result, id, original, mismatch?} <- open_notification(p, event, recipient_id),
@@ -738,7 +761,13 @@ defmodule Relay.Api.Events do
   end
 
   defp created(:created, p, id, recipient_id, mismatch?, ctx) do
-    row = device_locale(Relay.Subscribers.row(recipient_id), recipient_id)
+    row =
+      recipient_id
+      |> Relay.Subscribers.row()
+      |> device_locale(recipient_id)
+      |> Map.put("routed_to_legacy", Map.get(ctx, :routed_to_legacy, false))
+      |> Map.put("dedup_claimed", Map.get(p, :dedup_claimed, false))
+
     start_run(p, id, row, mismatch?, ctx)
   end
 
@@ -973,6 +1002,15 @@ defmodule Relay.Api.Events do
 
   defp decision(%{skip: {reason, rule}}, _row, _mismatch?, _mode), do: {:skip, reason, rule}
   defp decision(_step, _row, true, _mode), do: {:skip, "scope_mismatch", "scope.mismatch"}
+
+  # OP-95
+  defp decision(_step, %{"routed_to_legacy" => true}, _mismatch?, _mode),
+    do: {:skip, "routed_to_legacy", "rollout.routed_to_legacy"}
+
+  # OP-54
+  defp decision(_step, %{"dedup_claimed" => true}, _mismatch?, _mode),
+    do: {:skip, "dedup_claimed", "dedup.claimed_by_legacy"}
+
   defp decision(_step, _row, _mismatch?, :off), do: {:skip, "send_mode_off", "send_mode.off"}
   defp decision(_step, _row, _mismatch?, _mode), do: :lattice
 

@@ -46,8 +46,9 @@ public class RelayClient internal constructor(
             scope = scope,
         )
     public val lifecycle: RelayLifecycle = RelayLifecycle(this)
+    public val displayed: RelayDisplayedNotifications = RelayDisplayedNotifications.over(http, CoroutineDisplayedScheduler(scope))
     public val messaging: RelayDataMessageHandler =
-        RelayDataMessageHandler(context.applicationContext, push, { onSyncSignal() }, smallIcon, launchIntent)
+        RelayDataMessageHandler(context.applicationContext, push, { onSyncSignal() }, smallIcon, launchIntent, displayed)
 
     public constructor(
         configuration: RelayConfiguration,
@@ -70,6 +71,7 @@ public class RelayClient internal constructor(
     init {
         store.onItemsRemoved = { items -> remover.remove(items) }
         realtime.onEnvelope = { envelope -> store.handle(envelope) }
+        store.onItemDisplayed = { item -> displayed.report(item.id) }
     }
 
     // CH-32
@@ -97,4 +99,6 @@ public class RelayClient internal constructor(
     override suspend fun drainQueue(): Unit = store.drainQueue()
 
     override suspend fun disconnectRealtime(): Unit = realtime.disconnect()
+
+    override suspend fun flushDisplayedNotifications(): Unit = displayed.flush()
 }

@@ -43,7 +43,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "generate": "openapi-typescript ../../contracts/openapi/server.yaml -o src/generated/server.ts && openapi-typescript ../../contracts/openapi/subscriber.yaml -o src/generated/subscriber.ts && node scripts/generate.mjs && prettier --write src/generated",
+    "generate": "openapi-typescript ../../contracts/openapi/server.yaml --empty-objects-unknown -o src/generated/server.ts && openapi-typescript ../../contracts/openapi/subscriber.yaml --empty-objects-unknown -o src/generated/subscriber.ts && node scripts/generate.mjs && prettier --write src/generated",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",

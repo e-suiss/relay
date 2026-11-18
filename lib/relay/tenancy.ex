@@ -23,6 +23,8 @@ defmodule Relay.Tenancy do
 
   @type option :: {:key_provider, module()} | {:data_key, Relay.Redacted.t()}
 
+  @retention_classes ~w(commercial_message commercial_consent delivery_record)
+
   # TN-4
   @doc "Resolves sub-tenant settings over tenant settings; see `Relay.Tenancy.Settings.resolve/2`."
   @spec resolve_settings(Settings.settings() | nil, Settings.settings()) :: Settings.settings()
@@ -239,6 +241,27 @@ defmodule Relay.Tenancy do
   end
 
   defp extends!(_key, _value, _subtenant_id), do: :ok
+
+  # OP-19
+  # DS-44
+  @doc "The retention period of each record class of a scope (`commercial_message`, `commercial_consent`, `delivery_record`): the legal period of the tenant's region and sector in the active `retention_periods` data set and the tenant's own period, each in days or `nil`."
+  @spec retention_periods(Scope.t()) ::
+          {:ok,
+           [%{class: String.t(), legal_days: pos_integer() | nil, days: pos_integer() | nil}]}
+          | {:error, term()}
+  def retention_periods(scope) do
+    within(scope, fn _status ->
+      stored =
+        for {"retention." <> class, value, :tenant} <-
+              Store.setting_resolve(nil, Enum.map(@retention_classes, &("retention." <> &1))),
+            into: %{},
+            do: {class, value}
+
+      for class <- @retention_classes do
+        %{class: class, legal_days: Store.retention_legal_days(class), days: stored[class]}
+      end
+    end)
+  end
 
   # TN-4
   @doc "Resolves stored settings for an optional sub-tenant."

@@ -470,6 +470,19 @@ defmodule Relay.Agents do
   defdelegate get_escalation_policy(scope, key), to: Escalation, as: :get_policy
 
   # AG-17
+  # X-10
+  @doc "Where an escalation policy is used; see `Relay.Agents.Escalation.policy_usage/2`."
+  @spec escalation_policy_usage(Relay.Scope.t(), String.t()) ::
+          {:ok, %{latest_version: pos_integer(), versions: [map()]} | nil} | {:error, term()}
+  defdelegate escalation_policy_usage(scope, key), to: Escalation, as: :policy_usage
+
+  # AG-54
+  # AG-49
+  @doc "The waitpoint figures of one tenant environment; see `Relay.Agents.Operations.scope_stats/2`."
+  @spec waitpoint_stats(Relay.Scope.t(), DateTime.t()) :: {:ok, map()} | {:error, term()}
+  defdelegate waitpoint_stats(scope, now), to: Relay.Agents.Operations, as: :scope_stats
+
+  # AG-17
   # API-56
   @doc "Lists escalation policies; see `Relay.Agents.Escalation.list_policies/4`."
   @spec list_escalation_policies(Relay.Scope.t(), String.t() | nil, map() | nil, integer()) ::

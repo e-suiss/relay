@@ -81,6 +81,16 @@ defmodule RelayWeb.Api.EscalationPolicyController do
     end
   end
 
+  # AG-17
+  # X-10
+  @spec usage(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def usage(conn, %{"policy_key" => key}) do
+    case key(key) do
+      {:ok, key} -> Work.answer(conn, EscalationPolicies.usage(conn.assigns.scope, key))
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
   defp key(key), do: key(key, EscalationPolicies.not_found())
 
   defp key(key, error) do

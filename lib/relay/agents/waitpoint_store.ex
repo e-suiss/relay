@@ -371,6 +371,65 @@ defmodule Relay.Agents.WaitpointStore do
     end
   end
 
+  # AG-54
+  # AG-49
+  @doc "Counts the waitpoints, responses and held agent notifications of the established scope at `now`: open, stalled and silent waitpoints (state unchanged for `silent_s` seconds), the waitpoints resolved in the seven days before `now` and how many of them a responder an escalation added resolved, the responses of those seven days by evidence level and the held notifications."
+  @spec scope_stats(DateTime.t(), pos_integer()) :: map()
+  def scope_stats(%DateTime{} = now, silent_s) do
+    sql = """
+    SELECT
+      (SELECT count(*) FROM relay.waitpoints w WHERE w.state = 'open') AS open,
+      (SELECT count(*) FROM relay.waitpoints w WHERE w.state = 'stalled') AS stalled,
+      (SELECT count(*) FROM relay.waitpoints w
+        WHERE w.state IN ('open', 'stalled')
+          AND w.state_changed_at <= $1::timestamptz - make_interval(secs => $2::bigint)) AS silent,
+      (SELECT count(*) FROM relay.waitpoints w
+        WHERE w.state = 'resolved' AND w.resolved_at > $1 - interval '7 days'
+          AND w.resolved_at <= $1) AS resolved,
+      (SELECT count(*) FROM relay.waitpoints w
+        JOIN relay.waitpoint_responses s ON s.tenant_id = w.tenant_id
+          AND s.environment = w.environment AND s.id = w.resolution_response_id
+        JOIN relay.waitpoint_responders r ON r.tenant_id = s.tenant_id
+          AND r.environment = s.environment AND r.waitpoint_id = s.waitpoint_id
+          AND r.recipient_id = s.responder_recipient_id
+        WHERE w.state = 'resolved' AND w.resolved_at > $1 - interval '7 days'
+          AND w.resolved_at <= $1 AND r.added_by = 'escalation') AS resolved_by_escalation,
+      (SELECT count(*) FROM relay.waitpoint_responses s
+        WHERE s.responded_at > $1 - interval '7 days' AND s.responded_at <= $1
+          AND s.evidence_level = 'channel_claim') AS channel_claim,
+      (SELECT count(*) FROM relay.waitpoint_responses s
+        WHERE s.responded_at > $1 - interval '7 days' AND s.responded_at <= $1
+          AND s.evidence_level = 'relay_session') AS relay_session,
+      (SELECT count(*) FROM relay.waitpoint_responses s
+        WHERE s.responded_at > $1 - interval '7 days' AND s.responded_at <= $1
+          AND s.evidence_level = 'access_aas_ref') AS access_aas_ref,
+      (SELECT count(*) FROM relay.agent_ceiling_holds h WHERE h.state = 'held') AS held
+    """
+
+    [row] = all(sql, [now, silent_s])
+    row
+  end
+
+  # AG-17
+  # X-10
+  @doc "Counts the open and stalled waitpoints of the established scope that pinned a version of the escalation policy `key`, by version."
+  @spec policy_usage(String.t()) :: [map()]
+  def policy_usage(key) do
+    sql = """
+    SELECT split_part(w.escalation_policy_ref, ':', 2)::bigint AS version,
+      count(*) FILTER (WHERE w.state = 'open') AS open,
+      count(*) FILTER (WHERE w.state = 'stalled') AS stalled
+    FROM relay.waitpoints w
+    WHERE w.state IN ('open', 'stalled')
+      AND split_part(w.escalation_policy_ref, ':', 1) = $1
+      AND w.escalation_policy_ref <> 'inline'
+    GROUP BY 1
+    ORDER BY 1
+    """
+
+    all(sql, [key])
+  end
+
   defp all(sql, params) do
     %Postgrex.Result{columns: columns, rows: rows} = Repo.scoped_query!(sql, params)
     Enum.map(rows, &(columns |> Enum.zip(&1) |> Map.new()))

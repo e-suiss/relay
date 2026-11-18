@@ -61,6 +61,23 @@ defmodule Relay.Agents.Escalation do
     do: EscalationStore.in_scope(scope, fn _status -> EscalationStore.get(key) end)
 
   # AG-17
+  # X-10
+  @doc "Where an escalation policy is used, in its own read transaction: `nil` for an unknown key, else its latest version and the open and stalled waitpoints that pinned each version."
+  @spec policy_usage(Relay.Scope.t(), String.t()) ::
+          {:ok, %{latest_version: pos_integer(), versions: [map()]} | nil} | {:error, term()}
+  def policy_usage(%Relay.Scope{} = scope, key) do
+    EscalationStore.in_scope(scope, fn _status ->
+      case EscalationStore.get(key) do
+        nil ->
+          nil
+
+        %{"version" => version} ->
+          %{latest_version: version, versions: Relay.Agents.WaitpointStore.policy_usage(key)}
+      end
+    end)
+  end
+
+  # AG-17
   # API-56
   @doc "Lists escalation policies newest first from a decoded cursor; at most `limit + 1` rows come back."
   @spec list_policies(Relay.Scope.t(), String.t() | nil, map() | nil, pos_integer()) ::

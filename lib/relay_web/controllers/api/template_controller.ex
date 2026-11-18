@@ -63,6 +63,16 @@ defmodule RelayWeb.Api.TemplateController do
     end)
   end
 
+  # TP-32
+  # X-10
+  @spec publication_check(Plug.Conn.t(), map()) :: Plug.Conn.t()
+  def publication_check(conn, %{"template_key" => key}) do
+    case at(conn, key) do
+      {:ok, at} -> Work.answer(conn, Templates.check_publication(conn.assigns.scope, at))
+      {:error, error} -> Response.problem(conn, error)
+    end
+  end
+
   # TP-31
   # TP-32
   @spec publish(Plug.Conn.t(), map()) :: Plug.Conn.t()

@@ -436,5 +436,17 @@
     "rule": "set_role",
     "match": "SET LOCAL ROLE relay_owner",
     "reason": "INV-22, INV-26: the committed relay_fn.event_payload_erase is replaced as its owner, relay_owner, which relay_migrator may SET but does not inherit; the role is reset in the same migration transaction"
+  },
+  {
+    "path": "priv/repo/migrations/20270111000300_create_fallback_zone_counts.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-9: the trigger rejects TRUNCATE on the fallback time zone counts"
+  },
+  {
+    "path": "priv/repo/migrations/20270111000400_create_kill_switch_effects.exs",
+    "rule": "physical_delete",
+    "match": "BEFORE TRUNCATE ON relay.",
+    "reason": "OP-9: the trigger rejects TRUNCATE on the kill switch effects"
   }
 ]

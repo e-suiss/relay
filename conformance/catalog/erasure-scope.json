@@ -13,6 +13,18 @@
       "subject_erasure": "not subject data"
     },
     {
+      "table": "kill_switch_effects",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data"
+    },
+    {
+      "table": "fallback_zone_counts",
+      "personal_columns": [],
+      "tenant_close": "row kept",
+      "subject_erasure": "not subject data: daily counts per source, no recipient"
+    },
+    {
       "table": "api_clients",
       "personal_columns": [],
       "tenant_close": "row kept; last_used_ip set to null at the end of the traffic retention period",

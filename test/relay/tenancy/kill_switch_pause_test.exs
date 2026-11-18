@@ -85,6 +85,23 @@ defmodule Relay.Tenancy.KillSwitchPauseTest do
       assert "delivery.paused" in events(delivery)
     end
 
+    test "TN-44: the end of the sweep records the effect delay and the paused deliveries once",
+         %{scope: scope, delivery: delivery} do
+      {_external, ksw} = engage!(scope, channel: "sms")
+      [[args]] = sweep_jobs()
+      engaged_at = DateTime.add(DateTime.utc_now(), -2, :second)
+
+      assert :ok = Sweep.perform(%Oban.Job{args: args, inserted_at: engaged_at})
+      assert [true, "killswitch.off", ^ksw, nil, nil] = delivery_state(delivery)
+
+      assert {:ok, %{^ksw => effect}} = KillSwitch.effects(scope, [ksw])
+      assert effect.paused_count == 1
+      assert effect.effect_delay_ms >= 2_000
+
+      assert :ok = Sweep.perform(%Oban.Job{args: args, inserted_at: DateTime.utc_now()})
+      assert {:ok, %{^ksw => ^effect}} = KillSwitch.effects(scope, [ksw])
+    end
+
     test "TN-40: a platform record's sweep visits every tenant with pending deliveries",
          %{delivery: delivery} do
       {_external, ksw} = engage!(nil, scope_kind: :platform, channel: "sms")

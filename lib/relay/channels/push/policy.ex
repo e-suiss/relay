@@ -58,7 +58,12 @@ defmodule Relay.Channels.Push.Policy do
     with {:ok, class} <- class(facts[:message_class]),
          {:ok, mapping} <- lookup(table, class, facts) do
       sensitive = facts[:sensitivity] == "sensitive" or facts[:sensitive] == true
-      interruption = Interruption.resolve(interruption(class, mapping, facts, sensitive))
+
+      interruption =
+        class
+        |> interruption(mapping, facts, sensitive)
+        |> Interruption.resolve()
+        |> permitted(facts)
 
       content_free =
         Content.content_free?(%{
@@ -85,6 +90,18 @@ defmodule Relay.Channels.Push.Policy do
          expires_at: facts[:expires_at],
          now: facts[:now]
        }}
+    end
+  end
+
+  # CH-65 (3)
+  defp permitted(%{level: level, reasons: reasons} = interruption, facts) do
+    case Interruption.permitted(level, facts[:platform], facts[:interruption_permissions]) do
+      ^level ->
+        interruption
+
+      lower ->
+        lowered = Enum.uniq(reasons ++ [:interruption_platform_lowered])
+        %{interruption | level: lower, reasons: lowered}
     end
   end
 

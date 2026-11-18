@@ -48,7 +48,7 @@ defmodule RelayWeb.Api.KillSwitchController do
   @spec show(Plug.Conn.t(), map()) :: Plug.Conn.t()
   def show(conn, %{"kill_switch_id" => id}) do
     case KillSwitches.fetch(conn.assigns.scope, id) do
-      {:ok, record} -> Work.answer(conn, {:ok, {200, [], KillSwitches.view(record)}})
+      {:ok, record} -> Work.answer(conn, KillSwitches.show(conn.assigns.scope, record))
       {:error, error} -> Response.problem(conn, error)
     end
   end

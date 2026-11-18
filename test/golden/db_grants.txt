@@ -257,6 +257,11 @@ table relay.exports relay_app SELECT
 table relay.exports relay_archive SELECT
 table relay.exports relay_maint SELECT
 table relay.exports relay_owner INSERT,SELECT,UPDATE
+table relay.fallback_zone_counts relay_app SELECT
+table relay.fallback_zone_counts relay_archive SELECT
+table relay.fallback_zone_counts relay_maint SELECT
+table relay.fallback_zone_counts relay_owner INSERT,SELECT,UPDATE
+table relay.fallback_zone_counts relay_report SELECT
 table relay.fanout_slices relay_app SELECT
 table relay.fanout_slices relay_archive SELECT
 table relay.fanout_slices relay_maint SELECT
@@ -339,6 +344,11 @@ table relay.iys_uploads relay_archive SELECT
 table relay.iys_uploads relay_maint SELECT
 table relay.iys_uploads relay_owner INSERT,SELECT,UPDATE
 table relay.iys_uploads relay_report SELECT
+table relay.kill_switch_effects relay_app SELECT
+table relay.kill_switch_effects relay_archive SELECT
+table relay.kill_switch_effects relay_maint SELECT
+table relay.kill_switch_effects relay_owner INSERT,SELECT,UPDATE
+table relay.kill_switch_effects relay_report SELECT
 table relay.kill_switch_generation relay_app SELECT
 table relay.kill_switch_generation relay_archive SELECT
 table relay.kill_switch_generation relay_maint SELECT

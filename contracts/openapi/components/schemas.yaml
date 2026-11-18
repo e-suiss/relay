@@ -2751,6 +2751,25 @@ KillSwitch:
         - type: string
           maxLength: 2000
         - type: "null"
+    effect:
+      description: "When the kill switch took effect (TN-44): effect_delay_ms from its engaging transaction to the end of its queue sweep, the deliveries it holds paused in its own scope and when the sweep ended; null until the sweep ended. A platform record shows the paused deliveries of its own scope only."
+      oneOf:
+        - type: object
+          required:
+            - paused_count
+            - effect_delay_ms
+            - effective_at
+          properties:
+            paused_count:
+              type: integer
+              minimum: 0
+            effect_delay_ms:
+              type: integer
+              minimum: 0
+            effective_at:
+              "$ref": "#/Timestamp"
+          additionalProperties: false
+        - type: "null"
     created_at:
       "$ref": "#/Timestamp"
   additionalProperties: false
@@ -15121,6 +15140,47 @@ RenderProblemReport:
       type: array
       items:
         "$ref": "#/RenderProblemReportRow"
+  additionalProperties: false
+FallbackTimezoneReport:
+  type: object
+  description: "The sends in an inferred time zone of a period of the tenant environment, per UTC day and source (X-6, WF-46)."
+  required:
+    - object
+    - from
+    - to
+    - rows
+  properties:
+    object:
+      type: string
+      const: fallback_timezone_report
+    from:
+      type: string
+      format: date
+    to:
+      type: string
+      format: date
+    rows:
+      type: array
+      items:
+        type: object
+        required:
+          - day
+          - source
+          - deliveries
+        properties:
+          day:
+            type: string
+            format: date
+          source:
+            type: string
+            enum:
+              - device
+              - country
+              - tenant_default
+          deliveries:
+            type: integer
+            minimum: 1
+        additionalProperties: false
   additionalProperties: false
 TenantSettingsUpdate:
   type: object

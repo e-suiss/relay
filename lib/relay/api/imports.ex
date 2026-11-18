@@ -196,12 +196,14 @@ defmodule Relay.Api.Imports do
   defp records(scope, id, records) do
     records
     |> Enum.chunk_every(@record_chunk)
-    |> Enum.reduce_while(:ok, fn chunk, :ok ->
-      case Store.in_scope(scope, fn _status -> Store.record(id, chunk) end) do
-        {:ok, _result} -> {:cont, :ok}
-        {:error, reason} -> {:halt, {:error, reason}}
-      end
-    end)
+    |> Enum.reduce_while(:ok, fn chunk, :ok -> record_chunk(scope, id, chunk) end)
+  end
+
+  defp record_chunk(scope, id, chunk) do
+    case Store.in_scope(scope, fn _status -> Store.record(id, chunk) end) do
+      {:ok, _result} -> {:cont, :ok}
+      {:error, reason} -> {:halt, {:error, reason}}
+    end
   end
 
   defp complete(scope, id, document) do

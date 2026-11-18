@@ -2,7 +2,6 @@ defmodule RelayWeb.Api.ImportsTest do
   use Relay.DataCase, async: false
 
   alias Relay.Api.Imports
-  alias RelayTest.Api
   alias RelayTest.IngestFixture, as: F
   alias RelayTest.TenantFixture
 
@@ -14,9 +13,7 @@ defmodule RelayWeb.Api.ImportsTest do
 
   defp upload(token, type, batch, rows) do
     body = Enum.map_join(rows, "\n", &Jason.encode!/1) <> "\n"
-    path = "/v1/imports?type=#{type}&batch=#{batch}"
-    headers = [{"content-type", "application/x-ndjson"}, F.key() | Api.auth(token, :post, path)]
-    :post |> Api.conn(path, body, headers) |> Api.call(RelayWeb.Router)
+    F.ndjson("/v1/imports?type=#{type}&batch=#{batch}", token, body)
   end
 
   defp imported!(ctx, type, rows, batch \\ nil) do

@@ -727,12 +727,7 @@ defmodule Relay.Api.Imports.Runner do
     key = "import:" <> legacy_ref
 
     with {:ok, prepared} <- error(Events.prepare(events, body, dedup_key: key)) do
-      work = fn _status ->
-        case Events.accept(prepared, events) do
-          {:ok, answer} -> {:ok, {202, [], Jason.encode!(answer)}}
-          {:error, error} -> {:error, error}
-        end
-      end
+      work = fn _status -> accepted(Events.accept(prepared, events)) end
 
       case Idempotency.run(ctx.scope, @endpoint, key, Jason.encode!(body), work) do
         {:ok, {kind, {_status, _headers, answer}}} -> confirmed(kind, line, legacy_ref, answer)
@@ -740,6 +735,9 @@ defmodule Relay.Api.Imports.Runner do
       end
     end
   end
+
+  defp accepted({:ok, answer}), do: {:ok, {202, [], Jason.encode!(answer)}}
+  defp accepted({:error, error}), do: {:error, error}
 
   defp confirmed(kind, line, legacy_ref, answer) do
     %{"id" => event_id} = Jason.decode!(answer)
@@ -752,18 +750,15 @@ defmodule Relay.Api.Imports.Runner do
     input = %{external_id: external_id, fields: fields}
 
     with {:ok, plan} <- error(Relay.Subscribers.prepare(ctx.scope, input, :implicit)) do
-      case Store.in_scope(ctx.scope, fn _status -> Relay.Subscribers.upsert(plan, nil) end) do
-        {:ok, {result, id, _version}} when result in [:created, :updated, :unchanged] ->
-          {:ok, result, id}
-
-        {:ok, {other, _id, _version}} ->
-          {:invalid, Atom.to_string(other)}
-
-        {:error, reason} ->
-          {:retry, reason}
-      end
+      upserted(Store.in_scope(ctx.scope, fn _status -> Relay.Subscribers.upsert(plan, nil) end))
     end
   end
+
+  defp upserted({:ok, {result, id, _version}}) when result in [:created, :updated, :unchanged],
+    do: {:ok, result, id}
+
+  defp upserted({:ok, {other, _id, _version}}), do: {:invalid, Atom.to_string(other)}
+  defp upserted({:error, reason}), do: {:retry, reason}
 
   defp provider_ref(_ctx, _recipient_id, nil), do: {:ok, nil}
 

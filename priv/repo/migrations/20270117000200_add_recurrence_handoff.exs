@@ -11,9 +11,9 @@ defmodule Relay.Repo.Migrations.AddRecurrenceHandoff do
     execute("ALTER TABLE relay.recurrences ADD COLUMN handoff_last_run_at timestamptz")
     execute("ALTER TABLE relay.recurrences ADD COLUMN handoff_cursor text")
 
-    execute(
-      "ALTER TABLE relay.recurrences ADD COLUMN handoff_dry_run boolean NOT NULL DEFAULT false"
-    )
+    execute(~S"""
+    ALTER TABLE relay.recurrences ADD COLUMN handoff_dry_run boolean NOT NULL DEFAULT false
+    """)
 
     execute(~S"""
     ALTER TABLE relay.recurrences ADD CONSTRAINT recurrences_handoff_cursor_check

@@ -5,12 +5,14 @@ defmodule Relay.Api.Imports.Job do
 
   use Relay.Worker, queue: :maintenance, max_attempts: 5, timeout: 3_600_000
 
+  alias Relay.Api.Imports
+
   # OP-96
   @impl Oban.Worker
   def perform(%Oban.Job{args: args, attempt: attempt, max_attempts: max}) do
     with {:ok, scope} <- Relay.Scope.from_job_args(args),
          {:ok, id} <- Relay.Id.parse(args["import_id"] || "") do
-      case Relay.Api.Imports.run(scope, id) do
+      case Imports.run(scope, id) do
         {:ok, _result} -> :ok
         {:error, reason} when attempt >= max -> give_up(scope, id, reason)
         {:error, reason} -> {:error, reason}
@@ -21,7 +23,7 @@ defmodule Relay.Api.Imports.Job do
   end
 
   defp give_up(scope, id, reason) do
-    _ = Relay.Api.Imports.fail(scope, id)
+    _ = Imports.fail(scope, id)
     {:cancel, reason}
   end
 end

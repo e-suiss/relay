@@ -149,6 +149,7 @@ defmodule RelayTest.Isolation do
       "test_recipient_id" => &test_recipient!/1,
       "provider_invoice_id" => &provider_invoice!/1,
       "export_id" => &export!/1,
+      "import_id" => &import!/1,
       "topic_key" => &topic!/1,
       "recurrence_id" => &recurrence!/1,
       "throttle_key" => &throttle!/1,
@@ -567,6 +568,13 @@ defmodule RelayTest.Isolation do
   def export!(scope) do
     body = %{"kind" => "usage_records", "from" => "2026-10-01", "to" => "2026-11-01"}
     F.body(F.request(:post, "/v1/exports", owner(scope), body), 202)["id"]
+  end
+
+  @doc "Starts a templates import in `scope` and returns its identifier."
+  @spec import!(Relay.Scope.t()) :: String.t()
+  def import!(scope) do
+    line = Jason.encode!(%{"key" => "iso", "language" => "liquid", "source" => "x"})
+    F.body(F.ndjson("/v1/imports?type=templates&batch=iso", owner(scope), line), 202)["id"]
   end
 
   @doc "Creates a topic in `scope` and returns its key."

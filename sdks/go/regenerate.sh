@@ -1,7 +1,7 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # X-48
 # X-53
-set -euo pipefail
+set -eu
 
 cd "$(dirname "$0")/internal/codegen"
 

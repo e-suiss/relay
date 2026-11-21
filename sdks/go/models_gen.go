@@ -1413,7 +1413,7 @@ type Export struct {
 	CreatedAt    Timestamp  `json:"created_at"`
 }
 
-// ExportCreate: A raw data export request: the kind and the UTC days from to to (exclusive, at most 92 days).
+// ExportCreate: A raw data export request: the kind and the UTC days from `from` up to `to` (`to` exclusive, at most 92 days).
 type ExportCreate struct {
 	Kind ExportKind `json:"kind"`
 	From string     `json:"from"`

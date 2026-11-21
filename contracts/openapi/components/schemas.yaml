@@ -12939,7 +12939,7 @@ ExportList:
             "$ref": "#/Export"
 ExportCreate:
   type: object
-  description: "A raw data export request: the kind and the UTC days from to to (exclusive, at most 92 days)."
+  description: "A raw data export request: the kind and the UTC days from `from` up to `to` (`to` exclusive, at most 92 days)."
   required:
     - kind
     - from

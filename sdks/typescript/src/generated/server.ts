@@ -4007,7 +4007,7 @@ export interface paths {
     put?: never;
     /**
      * Request a raw data export
-     * @description Requests the CSV of the tenant environment's deliveries, delivery ledger events or usage records for UTC days from to to (exclusive, at most 92 days) (DS-37, OP-39). The request is audited as export.requested and answered 202; a job reads the rows on the report pool inside the tenant scope and writes the CSV: UTF-8, a header row, RFC 4180 quoting, external identifiers, RFC 3339 UTC times, identifiers, codes and counts only. A ready export has its row count, size, SHA-256 and a download_path signed for it that expires with the export, 7 days after it was written; the download needs no credential, answers text/csv as an attachment, is audited as export.downloaded, and answers 404 for an unknown token and 410 for an expired link or export. An export of more than 1000000 rows or 64 MiB fails as too_large. Parquet is not offered.
+     * @description Requests the CSV of the tenant environment's deliveries, delivery ledger events or usage records for UTC days from `from` up to `to` (`to` exclusive, at most 92 days) (DS-37, OP-39). The request is audited as export.requested and answered 202; a job reads the rows on the report pool inside the tenant scope and writes the CSV: UTF-8, a header row, RFC 4180 quoting, external identifiers, RFC 3339 UTC times, identifiers, codes and counts only. A ready export has its row count, size, SHA-256 and a download_path signed for it that expires with the export, 7 days after it was written; the download needs no credential, answers text/csv as an attachment, is audited as export.downloaded, and answers 404 for an unknown token and 410 for an expired link or export. An export of more than 1000000 rows or 64 MiB fails as too_large. Parquet is not offered.
      */
     post: operations["createExport"];
     delete?: never;
@@ -10031,7 +10031,7 @@ export interface components {
     ExportList: components["schemas"]["ListEnvelope"] & {
       data?: components["schemas"]["Export"][];
     };
-    /** @description A raw data export request: the kind and the UTC days from to to (exclusive, at most 92 days). */
+    /** @description A raw data export request: the kind and the UTC days from `from` up to `to` (`to` exclusive, at most 92 days). */
     ExportCreate: {
       kind: components["schemas"]["ExportKind"];
       /** Format: date */
